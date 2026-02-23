@@ -231,7 +231,11 @@
   .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
   .store-row {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
+    padding: 10px 12px; margin: 0 -12px; border-bottom: 1px solid rgba(255,255,255,0.03);
+    border-radius: 8px; transition: all 0.2s;
+  }
+  .store-row:hover {
+    background: rgba(255,255,255,0.03);
   }
   .store-info { flex: 1; }
   .store-name { font-size: 14px; font-weight: 600; }
@@ -1137,6 +1141,8 @@ function renderStores() {
     }
   });
 
+  makeChartClickable(charts.storeBar, document.getElementById("chart-store-bar"), storeGroups.map(s => s.name), "store");
+
   // Store breakdown
   const trips = {};
   RAW.forEach(i => { const key = i.d + "|" + i.s; trips[key] = (trips[key] || { store: i.s, date: i.d }); });
@@ -1148,7 +1154,7 @@ function renderStores() {
     const storeTrips = tripsByStore[s.name] || 0;
     const color = STORE_COLORS[s.name] || "#888";
     return `
-      <div class="store-row">
+      <div class="store-row" onclick="showView('items',null,{store:'${s.name}'})" style="cursor:pointer">
         <div class="store-info">
           <div class="store-name"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${color};margin-right:8px;vertical-align:middle"></span>${s.name}</div>
           <div class="store-meta">${storeTrips} trip${storeTrips>1?"s":""} &bull; ${s.qty} items</div>
