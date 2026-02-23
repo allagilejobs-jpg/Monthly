@@ -421,6 +421,7 @@
   <!-- ==================== ALL ITEMS ==================== -->
   <div id="view-items" class="view">
     <div class="filter-bar">
+      <select id="filter-date"><option value="All">All Dates</option></select>
       <select id="filter-store"><option value="All">All Stores</option></select>
       <select id="filter-cat"><option value="All">All Categories</option></select>
       <select id="filter-type">
@@ -682,12 +683,14 @@ function showView(id, filterType, filterOpts) {
   // Apply filters when navigating to items view
   if (id === 'items') {
     // Reset filters first
+    document.getElementById('filter-date').value = "All";
     document.getElementById('filter-store').value = "All";
     document.getElementById('filter-cat').value = "All";
     document.getElementById('filter-type').value = "All";
     document.getElementById('filter-search').value = "";
     if (filterType) document.getElementById('filter-type').value = filterType;
     if (filterOpts) {
+      if (filterOpts.date) document.getElementById('filter-date').value = filterOpts.date;
       if (filterOpts.store) document.getElementById('filter-store').value = filterOpts.store;
       if (filterOpts.cat) document.getElementById('filter-cat').value = filterOpts.cat;
     }
@@ -1309,8 +1312,16 @@ let currentSort = { col: "t", dir: "desc" };
 
 function renderAllItems() {
   // Populate filter dropdowns
+  const dateSelect = document.getElementById("filter-date");
   const storeSelect = document.getElementById("filter-store");
   const catSelect = document.getElementById("filter-cat");
+  [...new Set(RAW.map(i => i.d))].sort().forEach(d => {
+    const day = parseInt(d.split("/")[1]);
+    const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    const dateObj = new Date(2026, 0, day);
+    const dayName = dayNames[dateObj.getDay()];
+    dateSelect.innerHTML += `<option value="${d}">Jan ${day} (${dayName})</option>`;
+  });
   [...new Set(RAW.map(i => i.s))].sort().forEach(s => {
     storeSelect.innerHTML += `<option value="${s}">${s}</option>`;
   });
@@ -1319,7 +1330,7 @@ function renderAllItems() {
   });
 
   // Attach event listeners
-  ["filter-store","filter-cat","filter-type","filter-search"].forEach(id => {
+  ["filter-date","filter-store","filter-cat","filter-type","filter-search"].forEach(id => {
     document.getElementById(id).addEventListener(id === "filter-search" ? "input" : "change", renderTable);
   });
 
@@ -1327,6 +1338,7 @@ function renderAllItems() {
 }
 
 function clearFilters() {
+  document.getElementById("filter-date").value = "All";
   document.getElementById("filter-store").value = "All";
   document.getElementById("filter-cat").value = "All";
   document.getElementById("filter-type").value = "All";
@@ -1335,12 +1347,14 @@ function clearFilters() {
 }
 
 function renderTable() {
+  const date = document.getElementById("filter-date").value;
   const store = document.getElementById("filter-store").value;
   const cat = document.getElementById("filter-cat").value;
   const type = document.getElementById("filter-type").value;
   const search = document.getElementById("filter-search").value.toLowerCase();
 
   let data = RAW.filter(i => {
+    if (date !== "All" && i.d !== date) return false;
     if (store !== "All" && i.s !== store) return false;
     if (cat !== "All" && i.c !== cat) return false;
     if (type === "Grocery" && itemType(i) !== "grocery") return false;
