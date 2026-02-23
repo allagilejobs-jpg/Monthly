@@ -166,6 +166,11 @@
   .insight {
     background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.15);
     border-radius: 10px; padding: 16px 20px; margin-bottom: 12px;
+    transition: all 0.2s;
+  }
+  .insight:hover {
+    border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.1);
+    transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   }
   .insight-title { font-size: 13px; font-weight: 700; color: var(--green); margin-bottom: 4px; }
   .insight-text { font-size: 13px; color: var(--text-muted); }
@@ -860,13 +865,13 @@ function renderOverview() {
   const biggestDay = groupBy(RAW, "d").sort((a,b) => b.total - a.total)[0];
 
   document.getElementById("insights").innerHTML = [
-    { title: "Top Category", text: `<span class="insight-val">${topCat.name}</span> at ${fmt(topCat.total)} (${pct(topCat.total, grandTotal)} of total spend)` },
-    { title: "Most Spent at Store", text: `<span class="insight-val">${topStore.name}</span> across ${topStore.items.length} items totaling ${fmt(topStore.total)}` },
-    { title: "Costliest Single Product", text: `<span class="insight-val">${topProduct.name}</span> &mdash; ${fmt(topProduct.total)} total (qty ${topProduct.qty})` },
-    { title: "Biggest Shopping Day", text: `<span class="insight-val">Jan ${parseInt(biggestDay.name.split("/")[1])}</span> &mdash; ${fmt(biggestDay.total)} spent across ${biggestDay.items.length} items` },
-    { title: "Repeat Purchases", text: `<span class="insight-val">${freqProducts.length} products</span> bought 2+ times, totaling ${fmt(freqProducts.reduce((s,p) => s + p.total, 0))}` },
-    { title: "Toiletries Share", text: `Household, beauty & paper products accounted for <span class="insight-val">${fmt(toiletryTotal)}</span> (${pct(toiletryTotal, grandTotal)})` },
-  ].map(ins => `<div class="insight"><div class="insight-title">${ins.title}</div><div class="insight-text">${ins.text}</div></div>`).join("");
+    { title: "Top Category", text: `<span class="insight-val">${topCat.name}</span> at ${fmt(topCat.total)} (${pct(topCat.total, grandTotal)} of total spend)`, action: `showView('items',null,{cat:'${topCat.name}'})` },
+    { title: "Most Spent at Store", text: `<span class="insight-val">${topStore.name}</span> across ${topStore.items.length} items totaling ${fmt(topStore.total)}`, action: `showView('items',null,{store:'${topStore.name}'})` },
+    { title: "Costliest Single Product", text: `<span class="insight-val">${topProduct.name}</span> &mdash; ${fmt(topProduct.total)} total (qty ${topProduct.qty})`, action: `showView('items',null,{cat:'${topProduct.cat}'})` },
+    { title: "Biggest Shopping Day", text: `<span class="insight-val">Jan ${parseInt(biggestDay.name.split("/")[1])}</span> &mdash; ${fmt(biggestDay.total)} spent across ${biggestDay.items.length} items`, action: `showView('items',null,{date:'${biggestDay.name}'})` },
+    { title: "Repeat Purchases", text: `<span class="insight-val">${freqProducts.length} products</span> bought 2+ times, totaling ${fmt(freqProducts.reduce((s,p) => s + p.total, 0))}`, action: `showView('groceries')` },
+    { title: "Toiletries Share", text: `Household, beauty & paper products accounted for <span class="insight-val">${fmt(toiletryTotal)}</span> (${pct(toiletryTotal, grandTotal)})`, action: `showView('toiletries')` },
+  ].map(ins => `<div class="insight" onclick="${ins.action}" style="cursor:pointer"><div class="insight-title">${ins.title}</div><div class="insight-text">${ins.text}</div></div>`).join("");
 }
 
 // ─────────── GROCERIES TAB ───────────
