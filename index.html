@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>January 2026 - Grocery & Toiletries Spend Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1b23;
+    --card-border: #2a2b35;
+    --text: #e4e4e7;
+    --text-muted: #71717a;
+    --green: #22c55e;
+    --green-dim: #16a34a;
+    --amber: #f59e0b;
+    --rose: #f43f5e;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+    --cyan: #06b6d4;
+    --teal: #14b8a6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  /* Header */
+  .header { margin-bottom: 28px; }
+  .header h1 {
+    font-size: 28px; font-weight: 700;
+    background: linear-gradient(135deg, #22c55e, #06b6d4);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header p { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+
+  /* Tab navigation */
+  .tabs {
+    display: flex; gap: 4px; margin-bottom: 24px;
+    background: var(--card); border-radius: 10px; padding: 4px;
+    border: 1px solid var(--card-border); width: fit-content;
+  }
+  .tab {
+    padding: 8px 20px; border-radius: 8px; border: none;
+    cursor: pointer; font-size: 13px; font-weight: 500;
+    background: transparent; color: var(--text-muted);
+    font-family: inherit; transition: all 0.2s;
+  }
+  .tab:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .tab.active {
+    background: rgba(34,197,94,0.15); color: var(--green);
+    box-shadow: 0 0 12px rgba(34,197,94,0.1);
+  }
+
+  /* KPI Cards */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px; margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 18px 20px;
+  }
+  .kpi-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 6px;
+  }
+  .kpi-value { font-size: 26px; font-weight: 700; }
+  .kpi-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  /* Cards */
+  .card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 20px 24px; margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--green); margin-bottom: 16px;
+  }
+
+  /* Grids */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  /* Chart container */
+  .chart-wrap { position: relative; height: 300px; }
+  .chart-wrap-sm { position: relative; height: 260px; }
+  .chart-wrap-tall { position: relative; height: 400px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; padding: 10px 14px; font-size: 11px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--green); border-bottom: 1px solid var(--card-border);
+    cursor: pointer; user-select: none;
+  }
+  thead th:hover { color: var(--cyan); }
+  tbody td {
+    padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+  .mono { font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 12px; }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+  .bold { font-weight: 700; }
+  .amt { color: var(--amber); font-weight: 700; }
+  .tag {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 2px 8px; border-radius: 4px;
+  }
+  .tag-grocery { background: rgba(34,197,94,0.12); color: var(--green); }
+  .tag-toiletry { background: rgba(168,85,247,0.12); color: var(--purple); }
+  .tag-nongrocery { background: rgba(244,63,94,0.12); color: var(--rose); }
+
+  /* Filter bar */
+  .filter-bar {
+    display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-bar select, .filter-bar input {
+    background: rgba(255,255,255,0.04); border: 1px solid var(--card-border);
+    border-radius: 8px; padding: 8px 14px; color: var(--text);
+    font-size: 13px; font-family: inherit; outline: none;
+    transition: border-color 0.2s;
+  }
+  .filter-bar select:focus, .filter-bar input:focus {
+    border-color: var(--green);
+  }
+  .filter-bar select option { background: var(--card); }
+  .btn-clear {
+    background: rgba(244,63,94,0.12); border: 1px solid rgba(244,63,94,0.25);
+    color: var(--rose); border-radius: 8px; padding: 8px 14px;
+    font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+
+  /* Legend dots */
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* Insight cards */
+  .insight {
+    background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.15);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 12px;
+  }
+  .insight-title { font-size: 13px; font-weight: 700; color: var(--green); margin-bottom: 4px; }
+  .insight-text { font-size: 13px; color: var(--text-muted); }
+  .insight-val { color: var(--amber); font-weight: 700; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Progress bars */
+  .progress-bar {
+    height: 8px; border-radius: 4px; background: rgba(255,255,255,0.05);
+    overflow: hidden; margin-top: 6px;
+  }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+  .store-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .store-info { flex: 1; }
+  .store-name { font-size: 14px; font-weight: 600; }
+  .store-meta { font-size: 12px; color: var(--text-muted); }
+  .store-amount { font-size: 18px; font-weight: 700; color: var(--amber); text-align: right; min-width: 90px; }
+  .store-pct { font-size: 12px; color: var(--text-muted); text-align: right; min-width: 50px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>January 2026 Grocery & Toiletries Dashboard</h1>
+    <p>Family spend analysis across 9 stores &bull; 33 shopping trips &bull; 184 items purchased</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showView('overview')">Overview</button>
+    <button class="tab" onclick="showView('groceries')">Groceries</button>
+    <button class="tab" onclick="showView('toiletries')">Toiletries</button>
+    <button class="tab" onclick="showView('stores')">By Store</button>
+    <button class="tab" onclick="showView('trends')">Trends</button>
+    <button class="tab" onclick="showView('items')">All Items</button>
+  </div>
+
+  <!-- ==================== OVERVIEW ==================== -->
+  <div id="view-overview" class="view active">
+    <div class="kpi-grid" id="kpi-overview"></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Spending by Category</div>
+        <div class="chart-wrap"><canvas id="chart-cat-pie"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Spending by Store</div>
+        <div class="chart-wrap"><canvas id="chart-store-pie"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Weekly Spending Trend</div>
+        <div class="chart-wrap-sm"><canvas id="chart-weekly"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Grocery vs Toiletries vs Other</div>
+        <div class="chart-wrap-sm"><canvas id="chart-split"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Key Insights</div>
+      <div class="grid-3" id="insights"></div>
+    </div>
+  </div>
+
+  <!-- ==================== GROCERIES ==================== -->
+  <div id="view-groceries" class="view">
+    <div class="kpi-grid" id="kpi-grocery"></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Grocery Spending by Category</div>
+        <div class="chart-wrap"><canvas id="chart-grocery-cat"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Top 15 Grocery Items by Spend</div>
+        <div class="chart-wrap-tall"><canvas id="chart-grocery-top"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Frequently Purchased Grocery Items (2+ times)</div>
+      <div style="overflow-x:auto"><table id="table-grocery-freq"></table></div>
+    </div>
+  </div>
+
+  <!-- ==================== TOILETRIES ==================== -->
+  <div id="view-toiletries" class="view">
+    <div class="kpi-grid" id="kpi-toiletry"></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Toiletries Spending by Category</div>
+        <div class="chart-wrap-sm"><canvas id="chart-toiletry-cat"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Toiletries by Store</div>
+        <div class="chart-wrap-sm"><canvas id="chart-toiletry-store"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">All Toiletry & Household Items</div>
+      <div style="overflow-x:auto"><table id="table-toiletry-all"></table></div>
+    </div>
+  </div>
+
+  <!-- ==================== BY STORE ==================== -->
+  <div id="view-stores" class="view">
+    <div class="card">
+      <div class="card-title">Total Spend by Store</div>
+      <div class="chart-wrap-tall"><canvas id="chart-store-bar"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Store Breakdown</div>
+      <div id="store-breakdown"></div>
+    </div>
+  </div>
+
+  <!-- ==================== TRENDS ==================== -->
+  <div id="view-trends" class="view">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Daily Spending Pattern</div>
+        <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Cumulative Spend Over January</div>
+        <div class="chart-wrap"><canvas id="chart-cumulative"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Shopping Trips Per Week</div>
+        <div class="chart-wrap-sm"><canvas id="chart-trips-week"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Average Spend Per Trip by Store</div>
+        <div class="chart-wrap-sm"><canvas id="chart-avg-trip"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ALL ITEMS ==================== -->
+  <div id="view-items" class="view">
+    <div class="filter-bar">
+      <select id="filter-store"><option value="All">All Stores</option></select>
+      <select id="filter-cat"><option value="All">All Categories</option></select>
+      <select id="filter-type">
+        <option value="All">All Types</option>
+        <option value="Grocery">Grocery Only</option>
+        <option value="Toiletry">Toiletries Only</option>
+        <option value="Other">Other Non-Grocery</option>
+      </select>
+      <input type="text" id="filter-search" placeholder="Search items..." style="min-width:180px">
+      <button class="btn-clear" onclick="clearFilters()">Clear Filters</button>
+      <span id="filter-count" style="font-size:13px;color:var(--text-muted)"></span>
+    </div>
+    <div class="card">
+      <div style="overflow-x:auto"><table id="table-all"></table></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────── DATA ───────────
+const RAW = [
+  {d:"01/01",s:"Instacart (Sprouts)",r:"BOULDER AVO CHIPS",n:"Boulder Canyon Avocado Oil Chips",c:"Snacks & Chips",q:1,u:2.92,t:2.92,ng:false},
+  {d:"01/03",s:"Publix",r:"BRIOCHE SLICED LF",n:"Brioche Sliced Loaf",c:"Bakery & Bread",q:2,u:7.19,t:14.38,ng:false},
+  {d:"01/03",s:"Publix",r:"RING POPS ASSORTED",n:"Ring Pops Assorted Candy",c:"Candy & Sweets",q:2,u:1.00,t:2.00,ng:false},
+  {d:"01/03",s:"Publix",r:"DRUMSTICK SIMPLY",n:"Nestle Drumstick Simply Dipped",c:"Frozen Desserts",q:1,u:6.99,t:6.99,ng:false},
+  {d:"01/03",s:"Publix",r:"PRING SR/CRM/ONION",n:"Pringles Sour Cream & Onion",c:"Snacks & Chips",q:1,u:2.50,t:2.50,ng:false},
+  {d:"01/03",s:"Publix",r:"JENI'S ICE CREAM",n:"Jeni's Splendid Ice Cream",c:"Frozen Desserts",q:1,u:7.99,t:7.99,ng:false},
+  {d:"01/03",s:"Publix",r:"OV GRASSMILK HG",n:"Organic Valley Grassmilk Half Gallon",c:"Dairy & Eggs",q:1,u:7.19,t:7.19,ng:false},
+  {d:"01/03",s:"Publix",r:"PEZ CANDY SET",n:"PEZ Candy Dispenser Set",c:"Candy & Sweets",q:1,u:1.00,t:1.00,ng:false},
+  {d:"01/03",s:"Target",r:"FD CANDY",n:"Favorite Day Candy",c:"Candy & Sweets",q:1,u:1.39,t:1.39,ng:false},
+  {d:"01/03",s:"Target",r:"KINDER",n:"Kinder Chocolate",c:"Candy & Sweets",q:1,u:2.39,t:2.39,ng:false},
+  {d:"01/03",s:"Target",r:"KIT KAT SNGL",n:"Kit Kat Single Bar",c:"Candy & Sweets",q:1,u:1.99,t:1.99,ng:false},
+  {d:"01/03",s:"Target",r:"TAKIS",n:"Takis Rolled Tortilla Chips",c:"Snacks & Chips",q:1,u:2.24,t:2.24,ng:false},
+  {d:"01/03",s:"Target",r:"1.3ZIBDUOSTW",n:"Candy/Snack Item",c:"Candy & Sweets",q:1,u:3.79,t:3.79,ng:false},
+  {d:"01/03",s:"Target",r:"SKITTLES",n:"Skittles Candy",c:"Candy & Sweets",q:1,u:5.59,t:5.59,ng:false},
+  {d:"01/03",s:"Target",r:"EOS",n:"eos Lip Balm/Body Care",c:"Health & Beauty",q:2,u:7.24,t:14.48,ng:true},
+  {d:"01/03",s:"Target",r:"MY MINI",n:"My Mini Toy",c:"Toys",q:1,u:9.99,t:9.99,ng:true},
+  {d:"01/05",s:"Publix",r:"MOOALA UNSW ALMDMK",n:"Mooala Unsweetened Almond Milk",c:"Dairy & Eggs",q:2,u:4.99,t:9.98,ng:false},
+  {d:"01/06",s:"Walmart",r:"GV CUT OKRA",n:"Great Value Cut Okra (Frozen)",c:"Frozen Foods",q:6,u:1.54,t:9.24,ng:false},
+  {d:"01/06",s:"Walmart",r:"RED BELL",n:"Red Bell Peppers",c:"Produce",q:2,u:1.48,t:2.96,ng:false},
+  {d:"01/06",s:"Walmart",r:"PEPPER/ONIO",n:"Pepper & Onion Seasoning Mix",c:"Baking & Pantry",q:1,u:2.84,t:2.84,ng:false},
+  {d:"01/07",s:"Costco",r:"KS CASHEWS",n:"Kirkland Signature Cashews",c:"Snacks & Chips",q:1,u:9.99,t:9.99,ng:false},
+  {d:"01/07",s:"Costco",r:"OTTAVIO EVOO",n:"Ottavio Extra Virgin Olive Oil",c:"Cooking Oils & Condiments",q:1,u:21.58,t:21.58,ng:false},
+  {d:"01/08",s:"Publix",r:"OV GRASSMILK HG",n:"Organic Valley Grassmilk Half Gallon",c:"Dairy & Eggs",q:2,u:7.19,t:14.38,ng:false},
+  {d:"01/08",s:"Publix",r:"CRETORS POP CARMEL",n:"Cretors Caramel Popcorn",c:"Snacks & Chips",q:2,u:3.99,t:7.98,ng:false},
+  {d:"01/08",s:"Publix",r:"CHIFLE SWEET MAD",n:"Chifles Sweet Maduro Plantain Chips",c:"Snacks & Chips",q:2,u:5.99,t:11.98,ng:false},
+  {d:"01/08",s:"Publix",r:"MINI MARSHMALLOWS",n:"Mini Marshmallows",c:"Baking & Pantry",q:1,u:2.19,t:2.19,ng:false},
+  {d:"01/08",s:"Publix",r:"AM LENTILS OG RE",n:"Amy's Organic Lentil Soup",c:"Canned & Packaged Foods",q:1,u:7.19,t:7.19,ng:false},
+  {d:"01/08",s:"Publix",r:"CILANTRO",n:"Cilantro",c:"Produce",q:1,u:1.49,t:1.49,ng:false},
+  {d:"01/08",s:"Publix",r:"APPLES GRANNY SMIT",n:"Granny Smith Apples",c:"Produce",q:1,u:2.64,t:2.64,ng:false},
+  {d:"01/08",s:"Publix",r:"CUCUMBER HOT HOUSE",n:"Hot House Cucumber",c:"Produce",q:1,u:2.50,t:2.50,ng:false},
+  {d:"01/10",s:"Publix",r:"NUMBER 4 SILVER B",n:"Number 4 Silver B (Hair Care)",c:"Health & Beauty",q:1,u:12.99,t:12.99,ng:true},
+  {d:"01/10",s:"Publix",r:"ORGANIC STRWBRRIES",n:"Organic Strawberries",c:"Produce",q:1,u:6.99,t:6.99,ng:false},
+  {d:"01/10",s:"Publix",r:"ORGANIC BANANAS",n:"Organic Bananas",c:"Produce",q:1,u:1.47,t:1.47,ng:false},
+  {d:"01/10",s:"Publix",r:"ORG BLACKBERRIES",n:"Organic Blackberries",c:"Produce",q:1,u:6.99,t:6.99,ng:false},
+  {d:"01/10",s:"Publix",r:"SWEETHEARTS BAG",n:"Sweethearts Valentine Candy",c:"Candy & Sweets",q:1,u:4.19,t:4.19,ng:false},
+  {d:"01/10",s:"Publix",r:"GLAZED DONUT",n:"Glazed Donut",c:"Bakery & Bread",q:1,u:1.19,t:1.19,ng:false},
+  {d:"01/10",s:"Publix",r:"CPCKE 6CT CELEBRTN",n:"Celebration Cupcakes 6-Count",c:"Bakery & Bread",q:1,u:5.99,t:5.99,ng:false},
+  {d:"01/14",s:"Publix",r:"OV GRASSMILK HG",n:"Organic Valley Grassmilk Half Gallon",c:"Dairy & Eggs",q:1,u:7.19,t:7.19,ng:false},
+  {d:"01/14",s:"Publix",r:"MOOALA UNSW ALMDMK",n:"Mooala Unsweetened Almond Milk",c:"Dairy & Eggs",q:1,u:4.99,t:4.99,ng:false},
+  {d:"01/14",s:"Publix",r:"GOLD POTATO",n:"Gold/Yukon Potatoes",c:"Produce",q:1,u:6.99,t:6.99,ng:false},
+  {d:"01/14",s:"Publix",r:"ORG APPLES GALA",n:"Organic Gala Apples",c:"Produce",q:1,u:5.99,t:5.99,ng:false},
+  {d:"01/14",s:"Costco",r:"IRISH SPREAD",n:"Kerrygold Irish Butter",c:"Dairy & Eggs",q:1,u:12.59,t:12.59,ng:false},
+  {d:"01/14",s:"Costco",r:"KS BABY WIPE",n:"Kirkland Signature Baby Wipes",c:"Baby Care",q:1,u:19.99,t:19.99,ng:true},
+  {d:"01/14",s:"Costco",r:"KSOXIPOWDER",n:"Kirkland Oxi Laundry Powder",c:"Household & Cleaning",q:1,u:11.49,t:11.49,ng:true},
+  {d:"01/14",s:"Costco",r:"DM KRNL CORN",n:"Del Monte Kernel Corn (Canned)",c:"Canned & Packaged Foods",q:1,u:11.67,t:11.67,ng:false},
+  {d:"01/14",s:"Costco",r:"DURACELL AA",n:"Duracell AA Batteries",c:"Electronics & Batteries",q:1,u:19.99,t:19.99,ng:true},
+  {d:"01/14",s:"Costco",r:"PASTURE EGGS",n:"Pasture-Raised Eggs",c:"Dairy & Eggs",q:1,u:15.98,t:15.98,ng:false},
+  {d:"01/14",s:"Costco",r:"ORG PRESS",n:"Pulp & Press Organic Cold Pressed Juice",c:"Beverages",q:1,u:59.97,t:59.97,ng:false},
+  {d:"01/14",s:"Costco",r:"AVO OIL CHIP",n:"Avocado Oil Chips",c:"Snacks & Chips",q:1,u:6.49,t:6.49,ng:false},
+  {d:"01/14",s:"Costco",r:"TIDE OXIPODS",n:"Tide Oxi Pods Laundry Detergent",c:"Household & Cleaning",q:1,u:26.99,t:26.99,ng:true},
+  {d:"01/14",s:"Costco",r:"POTATOCHIPS",n:"Potato Chips",c:"Snacks & Chips",q:1,u:3.99,t:3.99,ng:false},
+  {d:"01/14",s:"Costco",r:"DAWN PLATINM",n:"Dawn Platinum Dish Soap",c:"Household & Cleaning",q:1,u:9.49,t:9.49,ng:true},
+  {d:"01/14",s:"Costco",r:"KS PURE SALT",n:"Kirkland Signature Sea Salt",c:"Baking & Pantry",q:1,u:3.29,t:3.29,ng:false},
+  {d:"01/14",s:"Costco",r:"ZIPLC SLIDER",n:"Ziploc Slider Bags",c:"Household & Cleaning",q:1,u:9.99,t:9.99,ng:true},
+  {d:"01/14",s:"Costco",r:"***KSWTR40PK",n:"Kirkland Signature Water 40-Pack",c:"Beverages",q:1,u:11.97,t:11.97,ng:false},
+  {d:"01/15",s:"Instacart (Ingles)",r:"WEETABIX",n:"Weetabix Whole Grain Cereal",c:"Breakfast & Cereal",q:1,u:14.70,t:14.70,ng:false},
+  {d:"01/16",s:"Publix",r:"TWIX COOKIE BAR",n:"Twix Cookie Bar",c:"Candy & Sweets",q:1,u:3.09,t:3.09,ng:false},
+  {d:"01/16",s:"Publix",r:"CELERY",n:"Celery",c:"Produce",q:1,u:2.49,t:2.49,ng:false},
+  {d:"01/16",s:"Publix",r:"PEARS BARTLETT",n:"Bartlett Pears",c:"Produce",q:1,u:4.99,t:4.99,ng:false},
+  {d:"01/16",s:"Publix",r:"STARBURST SOURS",n:"Starburst Sours Candy",c:"Candy & Sweets",q:1,u:3.67,t:3.67,ng:false},
+  {d:"01/16",s:"Publix",r:"BOOM POP KETTLE",n:"Boom Chicka Pop Kettle Corn",c:"Snacks & Chips",q:1,u:4.49,t:4.49,ng:false},
+  {d:"01/16",s:"Walmart",r:"TOMATO PAST",n:"Tomato Paste",c:"Canned & Packaged Foods",q:1,u:2.68,t:2.68,ng:false},
+  {d:"01/16",s:"Walmart",r:"GOLD KIWI",n:"Gold Kiwi Fruit",c:"Produce",q:1,u:4.97,t:4.97,ng:false},
+  {d:"01/16",s:"Walmart",r:"ORG BANANAS",n:"Organic Bananas",c:"Produce",q:1,u:1.29,t:1.29,ng:false},
+  {d:"01/16",s:"Walmart",r:"TOMATO",n:"Tomato",c:"Produce",q:1,u:1.01,t:1.01,ng:false},
+  {d:"01/16",s:"Walmart",r:"ORG SALAD",n:"Organic Salad Mix",c:"Produce",q:1,u:2.98,t:2.98,ng:false},
+  {d:"01/16",s:"Walmart",r:"RED BELL",n:"Red Bell Peppers",c:"Produce",q:4,u:1.48,t:5.92,ng:false},
+  {d:"01/16",s:"Walmart",r:"PIA",n:"Pita Bread",c:"Bakery & Bread",q:1,u:2.18,t:2.18,ng:false},
+  {d:"01/17",s:"Walmart",r:"OV GMILK",n:"Organic Valley Grassmilk Half Gallon",c:"Dairy & Eggs",q:2,u:6.67,t:13.34,ng:false},
+  {d:"01/17",s:"Costco",r:"ORG PRESS",n:"Pulp & Press Organic Cold Pressed Juice",c:"Beverages",q:1,u:59.97,t:59.97,ng:false},
+  {d:"01/17",s:"Instacart (Costco)",r:"ORG IMMUNITY BLNDS",n:"Organic Immunity Blends Juice",c:"Beverages",q:1,u:67.92,t:67.92,ng:false},
+  {d:"01/18",s:"Publix",r:"ORG BLACKBERRIES",n:"Organic Blackberries",c:"Produce",q:1,u:6.99,t:6.99,ng:false},
+  {d:"01/18",s:"Publix",r:"ORGANIC STRWBRRIES",n:"Organic Strawberries",c:"Produce",q:1,u:7.99,t:7.99,ng:false},
+  {d:"01/18",s:"Walmart",r:"JENGIBRE",n:"Ginger Root",c:"Produce",q:1,u:7.08,t:7.08,ng:false},
+  {d:"01/18",s:"Walmart",r:"DV MC TRFL",n:"Dove Men+Care Body Wash",c:"Health & Beauty",q:1,u:13.47,t:13.47,ng:true},
+  {d:"01/18",s:"Walmart",r:"3 MED LOAF",n:"Medium Bread Loaf",c:"Bakery & Bread",q:1,u:1.48,t:1.48,ng:false},
+  {d:"01/18",s:"Walmart",r:"MENS SOCKS",n:"Men's Socks",c:"Clothing & Apparel",q:2,u:11.73,t:23.46,ng:true},
+  {d:"01/19",s:"Publix",r:"JONNY POPS STAR SP",n:"JonnyPops Star-Shaped Popsicles",c:"Frozen Desserts",q:1,u:6.59,t:6.59,ng:false},
+  {d:"01/19",s:"Publix",r:"DRUMSTICK SIMPLY",n:"Nestle Drumstick Simply Dipped",c:"Frozen Desserts",q:1,u:6.99,t:6.99,ng:false},
+  {d:"01/19",s:"Publix",r:"BRIOCHE SLICED LF",n:"Brioche Sliced Loaf",c:"Bakery & Bread",q:1,u:7.19,t:7.19,ng:false},
+  {d:"01/19",s:"Publix",r:"PBX CHKN DMSTKS",n:"Publix Chicken Drumsticks",c:"Meat & Protein",q:1,u:10.21,t:10.21,ng:false},
+  {d:"01/19",s:"Publix",r:"MOOALA UNSW ALMDMK",n:"Mooala Unsweetened Almond Milk",c:"Dairy & Eggs",q:1,u:4.99,t:4.99,ng:false},
+  {d:"01/19",s:"Walmart",r:"EOS MNT/VNL",n:"eos Mint/Vanilla Lip Balm",c:"Health & Beauty",q:2,u:4.97,t:9.94,ng:true},
+  {d:"01/19",s:"Walmart",r:"PIA",n:"Pita Bread",c:"Bakery & Bread",q:2,u:2.18,t:4.36,ng:false},
+  {d:"01/19",s:"Target",r:"GG YOGURT",n:"GoGo squeeZ YogurtZ",c:"Dairy & Eggs",q:1,u:3.69,t:3.69,ng:false},
+  {d:"01/19",s:"Target",r:"ONCEUPONAFARM",n:"Once Upon a Farm Baby Food",c:"Baby Care",q:3,u:3.89,t:11.67,ng:false},
+  {d:"01/19",s:"Target",r:"VITAL FARMS",n:"Vital Farms Pasture-Raised Eggs",c:"Dairy & Eggs",q:1,u:9.99,t:9.99,ng:false},
+  {d:"01/19",s:"Target",r:"FD CHOCOLATE",n:"Favorite Day Chocolate",c:"Candy & Sweets",q:1,u:6.49,t:6.49,ng:false},
+  {d:"01/19",s:"Target",r:"GRAPES",n:"Grapes",c:"Produce",q:1,u:4.59,t:4.59,ng:false},
+  {d:"01/19",s:"Target",r:"ZAK DESIGNS",n:"Zak Designs Cup/Bottle",c:"Housewares",q:1,u:10.99,t:10.99,ng:true},
+  {d:"01/19",s:"Costco (Online)",r:"KS BATH TISSUE",n:"KS Bath Tissue 30 Rolls",c:"Paper Products",q:1,u:22.00,t:22.00,ng:true},
+  {d:"01/19",s:"Costco (Online)",r:"KS PAPER TOWELS",n:"KS Paper Towels 12 Rolls",c:"Paper Products",q:1,u:20.00,t:20.00,ng:true},
+  {d:"01/19",s:"Costco (Online)",r:"HONEST KIDS JUICE",n:"Honest Kids Organic Juice 40-ct",c:"Beverages",q:1,u:25.00,t:25.00,ng:false},
+  {d:"01/19",s:"Costco (Online)",r:"KS FLUSHABLE WIPES",n:"KS Flushable Wipes 640-ct",c:"Household & Cleaning",q:1,u:18.61,t:18.61,ng:true},
+  {d:"01/19",s:"Costco (Online)",r:"KS TRASH BAGS",n:"KS Kitchen Trash Bags 200-ct",c:"Household & Cleaning",q:1,u:25.00,t:25.00,ng:true},
+  {d:"01/21",s:"Walmart",r:"GINGER",n:"Ginger Root",c:"Produce",q:1,u:2.36,t:2.36,ng:false},
+  {d:"01/21",s:"Walmart",r:"GV ITEM",n:"Great Value Seasoning/Spice",c:"Baking & Pantry",q:1,u:1.32,t:1.32,ng:false},
+  {d:"01/21",s:"Walmart",r:"YLW ONION 3",n:"Yellow Onion 3 lb Bag",c:"Produce",q:1,u:2.84,t:2.84,ng:false},
+  {d:"01/21",s:"Walmart",r:"TOMATO",n:"Tomato",c:"Produce",q:1,u:0.61,t:0.61,ng:false},
+  {d:"01/21",s:"Austell Farmers Market",r:"PLANTAIN YELLOW",n:"Yellow Plantains",c:"Produce",q:1,u:6.32,t:6.32,ng:false},
+  {d:"01/21",s:"Austell Farmers Market",r:"RED BELL PEPPER LB",n:"Red Bell Peppers",c:"Produce",q:1,u:5.56,t:5.56,ng:false},
+  {d:"01/21",s:"Austell Farmers Market",r:"BEST OLOYIN HONEY",n:"Best Oloyin Honey Beans",c:"Canned & Packaged Foods",q:1,u:10.99,t:10.99,ng:false},
+  {d:"01/22",s:"Publix",r:"ORGANIC BANANAS",n:"Organic Bananas",c:"Produce",q:1,u:1.71,t:1.71,ng:false},
+  {d:"01/22",s:"Publix",r:"BRIOCHE SLICED LF",n:"Brioche Sliced Loaf",c:"Bakery & Bread",q:1,u:7.19,t:7.19,ng:false},
+  {d:"01/22",s:"Publix",r:"GNWSE PASTURE EGGS",n:"Greenwise Pasture-Raised Eggs",c:"Dairy & Eggs",q:1,u:7.29,t:7.29,ng:false},
+  {d:"01/23",s:"Publix",r:"BOOM POP KETTLE",n:"Boom Chicka Pop Kettle Corn",c:"Snacks & Chips",q:1,u:4.49,t:4.49,ng:false},
+  {d:"01/23",s:"Publix",r:"CHIFLE SWEET MAD",n:"Chifles Sweet Maduro Plantain Chips",c:"Snacks & Chips",q:2,u:5.99,t:11.98,ng:false},
+  {d:"01/23",s:"Publix",r:"MAV ORG GROUND BF",n:"Maverick Organic Ground Beef",c:"Meat & Protein",q:1,u:11.49,t:11.49,ng:false},
+  {d:"01/23",s:"Publix",r:"KA UNBLEACHED FLOU",n:"King Arthur Unbleached Flour",c:"Baking & Pantry",q:1,u:2.85,t:2.85,ng:false},
+  {d:"01/23",s:"Publix",r:"SMPL ML CHOC CHIP",n:"Simple Mills Chocolate Chip Cookies",c:"Snacks & Chips",q:1,u:4.99,t:4.99,ng:false},
+  {d:"01/23",s:"Publix",r:"CORN BI COLOR",n:"Bi-Color Sweet Corn",c:"Produce",q:1,u:4.49,t:4.49,ng:false},
+  {d:"01/23",s:"Walmart",r:"SWEET SALTY",n:"Sweet & Salty Granola Bars",c:"Snacks & Chips",q:2,u:3.54,t:7.08,ng:false},
+  {d:"01/23",s:"Walmart",r:"SEAGRAMS",n:"Seagram's Ginger Ale",c:"Beverages",q:1,u:6.94,t:6.94,ng:false},
+  {d:"01/23",s:"Walmart",r:"RED BELL",n:"Red Bell Peppers",c:"Produce",q:3,u:1.48,t:4.44,ng:false},
+  {d:"01/23",s:"Walmart",r:"GV 40PK",n:"Great Value Water 40-Pack",c:"Beverages",q:2,u:4.92,t:9.84,ng:false},
+  {d:"01/25",s:"Publix",r:"TOPPS PUSH POP",n:"Topps Push Pop Candy",c:"Candy & Sweets",q:1,u:2.34,t:2.34,ng:false},
+  {d:"01/25",s:"Publix",r:"MOOALA UNSW ALMDMK",n:"Mooala Unsweetened Almond Milk",c:"Dairy & Eggs",q:1,u:4.99,t:4.99,ng:false},
+  {d:"01/25",s:"Publix",r:"PUB PREM FUSILLI",n:"Publix Premium Fusilli Pasta",c:"Canned & Packaged Foods",q:1,u:2.99,t:2.99,ng:false},
+  {d:"01/25",s:"Publix",r:"HEINZ BAKED BEANS",n:"Heinz Baked Beans",c:"Canned & Packaged Foods",q:1,u:2.49,t:2.49,ng:false},
+  {d:"01/25",s:"Publix",r:"LINDT MILK CHOC",n:"Lindt Milk Chocolate Bar",c:"Candy & Sweets",q:1,u:5.50,t:5.50,ng:false},
+  {d:"01/25",s:"Publix",r:"ORG CUCUMBER WRAP",n:"Organic Cucumber",c:"Produce",q:2,u:2.99,t:5.98,ng:false},
+  {d:"01/25",s:"Publix",r:"CILANTRO",n:"Cilantro",c:"Produce",q:1,u:1.49,t:1.49,ng:false},
+  {d:"01/25",s:"Publix",r:"ORG APPLES GR SM",n:"Organic Granny Smith Apples",c:"Produce",q:1,u:5.99,t:5.99,ng:false},
+  {d:"01/25",s:"Publix",r:"ORG DANDELION GRNS",n:"Organic Dandelion Greens",c:"Produce",q:1,u:2.99,t:2.99,ng:false},
+  {d:"01/25",s:"Publix",r:"PRODUCE",n:"Produce Item",c:"Produce",q:1,u:3.99,t:3.99,ng:false},
+  {d:"01/25",s:"Publix",r:"GREEN LEAF LETTUCE",n:"Green Leaf Lettuce",c:"Produce",q:1,u:2.49,t:2.49,ng:false},
+  {d:"01/25",s:"Publix",r:"DONUT",n:"Donut (Bakery)",c:"Bakery & Bread",q:1,u:3.57,t:3.57,ng:false},
+  {d:"01/25",s:"Publix",r:"ITEM YELL",n:"Yellow Squash/Produce",c:"Produce",q:1,u:4.99,t:4.99,ng:false},
+  {d:"01/26",s:"Walmart",r:"TOMATO PAST",n:"Tomato Paste",c:"Canned & Packaged Foods",q:2,u:3.43,t:6.86,ng:false},
+  {d:"01/26",s:"Walmart",r:"RED BELL",n:"Red Bell Peppers",c:"Produce",q:4,u:1.48,t:5.92,ng:false},
+  {d:"01/26",s:"Austell Farmers Market",r:"TURKEY CUT WINGS",n:"Turkey Cut Wings",c:"Meat & Protein",q:2,u:8.13,t:16.25,ng:false},
+  {d:"01/26",s:"Austell Farmers Market",r:"PLANTAIN GREEN",n:"Green Plantains",c:"Produce",q:1,u:6.90,t:6.90,ng:false},
+  {d:"01/26",s:"Austell Farmers Market",r:"INDOMIE 40PK",n:"Indomie Instant Noodles 40-Pack",c:"Canned & Packaged Foods",q:1,u:19.99,t:19.99,ng:false},
+  {d:"01/26",s:"Austell Farmers Market",r:"BADIA BAY LEAVES",n:"Badia Bay Leaves",c:"Baking & Pantry",q:1,u:6.49,t:6.49,ng:false},
+  {d:"01/26",s:"Austell Farmers Market",r:"HABANERO RED",n:"Habanero Red Peppers",c:"Produce",q:1,u:4.15,t:4.15,ng:false},
+  {d:"01/26",s:"Austell Farmers Market",r:"GOAT STEW MEAT",n:"Goat Stew Meat (Bone-In)",c:"Meat & Protein",q:3,u:21.76,t:65.28,ng:false},
+  {d:"01/27",s:"Walmart",r:"OV GMILK",n:"Organic Valley Grassmilk Half Gallon",c:"Dairy & Eggs",q:2,u:6.67,t:13.34,ng:false},
+  {d:"01/27",s:"Walmart",r:"PRG ORG",n:"Prego Organic Pasta Sauce",c:"Canned & Packaged Foods",q:1,u:2.27,t:2.27,ng:false},
+  {d:"01/31",s:"Publix",r:"PUBLIX HVY WHP CRM",n:"Publix Heavy Whipping Cream",c:"Dairy & Eggs",q:1,u:3.50,t:3.50,ng:false},
+  {d:"01/31",s:"Publix",r:"GHIR DRK CARAMEL",n:"Ghirardelli Dark Choc Caramel",c:"Candy & Sweets",q:1,u:5.50,t:5.50,ng:false},
+  {d:"01/31",s:"Publix",r:"LINDT MILK CHOC",n:"Lindt Milk Chocolate Bar",c:"Candy & Sweets",q:1,u:5.50,t:5.50,ng:false},
+  {d:"01/31",s:"Publix",r:"ORGANIC BLUEBERRIE",n:"Organic Blueberries",c:"Produce",q:1,u:5.00,t:5.00,ng:false},
+  {d:"01/31",s:"Publix",r:"BONE BRO",n:"Bone Broth",c:"Canned & Packaged Foods",q:1,u:3.99,t:3.99,ng:false},
+  {d:"01/31",s:"Walmart",r:"EOS VAN 160",n:"eos Vanilla Body Lotion",c:"Health & Beauty",q:1,u:9.97,t:9.97,ng:true},
+  {d:"01/31",s:"Walmart",r:"SWEET SALTY",n:"Sweet & Salty Granola Bars",c:"Snacks & Chips",q:2,u:3.54,t:7.08,ng:false},
+  {d:"01/31",s:"Walmart",r:"GV JCE",n:"Great Value Juice",c:"Beverages",q:2,u:3.24,t:6.48,ng:false},
+];
+
+// ─────────── CLASSIFICATION ───────────
+const TOILETRY_CATS = ["Health & Beauty", "Household & Cleaning", "Paper Products"];
+
+function itemType(item) {
+  if (TOILETRY_CATS.includes(item.c)) return "toiletry";
+  if (!item.ng) return "grocery";
+  return "other"; // non-grocery non-toiletry (toys, electronics, clothing, housewares)
+}
+
+// ─────────── UTILITIES ───────────
+const fmt = v => "$" + v.toFixed(2);
+const pct = (v, total) => total > 0 ? (v / total * 100).toFixed(1) + "%" : "0%";
+const sum = arr => arr.reduce((s, i) => s + i.t, 0);
+
+const STORE_COLORS = {
+  "Publix": "#4ade80",
+  "Costco": "#f87171",
+  "Costco (Online)": "#fb923c",
+  "Target": "#f43f5e",
+  "Walmart": "#60a5fa",
+  "Instacart (Sprouts)": "#34d399",
+  "Instacart (Ingles)": "#fb923c",
+  "Instacart (Costco)": "#f97316",
+  "Austell Farmers Market": "#fbbf24",
+};
+
+const PALETTE = [
+  "#22c55e","#3b82f6","#f59e0b","#ef4444","#a855f7",
+  "#06b6d4","#ec4899","#14b8a6","#f97316","#8b5cf6",
+  "#10b981","#6366f1","#eab308","#e11d48","#0ea5e9",
+  "#84cc16","#d946ef","#f43f5e","#0891b2","#a3e635",
+];
+
+// ─────────── COMPUTED DATA ───────────
+const groceries = RAW.filter(i => itemType(i) === "grocery");
+const toiletries = RAW.filter(i => itemType(i) === "toiletry");
+const others = RAW.filter(i => itemType(i) === "other");
+
+const grandTotal = sum(RAW);
+const groceryTotal = sum(groceries);
+const toiletryTotal = sum(toiletries);
+const otherTotal = sum(others);
+
+function groupBy(arr, key) {
+  const m = {};
+  arr.forEach(i => {
+    const k = typeof key === "function" ? key(i) : i[key];
+    if (!m[k]) m[k] = { items: [], total: 0, qty: 0 };
+    m[k].items.push(i);
+    m[k].total += i.t;
+    m[k].qty += i.q;
+  });
+  return Object.entries(m).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.total - a.total);
+}
+
+function groupProducts(arr) {
+  const m = {};
+  arr.forEach(i => {
+    if (!m[i.n]) m[i.n] = { name: i.n, cat: i.c, total: 0, qty: 0, count: 0 };
+    m[i.n].total += i.t;
+    m[i.n].qty += i.q;
+    m[i.n].count++;
+  });
+  return Object.values(m).sort((a, b) => b.total - a.total);
+}
+
+// ─────────── CHART.JS DEFAULTS ───────────
+Chart.defaults.color = "#71717a";
+Chart.defaults.borderColor = "rgba(255,255,255,0.06)";
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.pointStyle = "circle";
+Chart.defaults.plugins.legend.labels.padding = 16;
+
+// ─────────── TAB SWITCHING ───────────
+let charts = {};
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  event.target.classList.add('active');
+  // Resize charts after view switch
+  setTimeout(() => { Object.values(charts).forEach(c => c.resize && c.resize()); }, 50);
+}
+
+// ─────────── RENDER ON LOAD ───────────
+window.addEventListener("DOMContentLoaded", () => {
+  renderOverview();
+  renderGroceries();
+  renderToiletries();
+  renderStores();
+  renderTrends();
+  renderAllItems();
+});
+
+// ─────────── OVERVIEW ───────────
+function renderOverview() {
+  const stores = [...new Set(RAW.map(i => i.s))];
+  const trips = [...new Set(RAW.map(i => i.d + "|" + i.s))].length;
+
+  document.getElementById("kpi-overview").innerHTML = [
+    { label: "Total Spend", value: fmt(grandTotal), color: "var(--green)", sub: `${RAW.length} line items` },
+    { label: "Groceries", value: fmt(groceryTotal), color: "var(--green)", sub: pct(groceryTotal, grandTotal) + " of total" },
+    { label: "Toiletries", value: fmt(toiletryTotal), color: "var(--purple)", sub: pct(toiletryTotal, grandTotal) + " of total" },
+    { label: "Other Non-Grocery", value: fmt(otherTotal), color: "var(--rose)", sub: pct(otherTotal, grandTotal) + " of total" },
+    { label: "Shopping Trips", value: trips, color: "var(--cyan)", sub: `Avg ${fmt(grandTotal / trips)}/trip` },
+    { label: "Stores Visited", value: stores.length, color: "var(--amber)", sub: "Publix most frequent" },
+  ].map(k => `
+    <div class="kpi-card">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value" style="color:${k.color}">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join("");
+
+  // Category pie
+  const catGroups = groupBy(RAW, "c");
+  charts.catPie = new Chart(document.getElementById("chart-cat-pie"), {
+    type: "doughnut",
+    data: {
+      labels: catGroups.map(g => g.name),
+      datasets: [{ data: catGroups.map(g => +g.total.toFixed(2)), backgroundColor: catGroups.map((_, i) => PALETTE[i % PALETTE.length]), borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: "55%",
+      plugins: {
+        legend: { position: "right", labels: { font: { size: 11 }, padding: 8 } },
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, grandTotal)})` } }
+      }
+    }
+  });
+
+  // Store pie
+  const storeGroups = groupBy(RAW, "s");
+  charts.storePie = new Chart(document.getElementById("chart-store-pie"), {
+    type: "doughnut",
+    data: {
+      labels: storeGroups.map(g => g.name),
+      datasets: [{ data: storeGroups.map(g => +g.total.toFixed(2)), backgroundColor: storeGroups.map(g => STORE_COLORS[g.name] || "#888"), borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: "55%",
+      plugins: {
+        legend: { position: "right", labels: { font: { size: 11 }, padding: 8 } },
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, grandTotal)})` } }
+      }
+    }
+  });
+
+  // Weekly bar
+  const weeks = [
+    { name: "Week 1 (1-7)", min: 1, max: 7 },
+    { name: "Week 2 (8-14)", min: 8, max: 14 },
+    { name: "Week 3 (15-21)", min: 15, max: 21 },
+    { name: "Week 4 (22-28)", min: 22, max: 28 },
+    { name: "Week 5 (29-31)", min: 29, max: 31 },
+  ];
+  const weeklyData = weeks.map(w => {
+    const items = RAW.filter(i => { const day = parseInt(i.d.split("/")[1]); return day >= w.min && day <= w.max; });
+    const g = items.filter(i => itemType(i) === "grocery");
+    const t = items.filter(i => itemType(i) === "toiletry");
+    return { name: w.name, grocery: +sum(g).toFixed(2), toiletry: +sum(t).toFixed(2) };
+  });
+  charts.weekly = new Chart(document.getElementById("chart-weekly"), {
+    type: "bar",
+    data: {
+      labels: weeklyData.map(w => w.name),
+      datasets: [
+        { label: "Groceries", data: weeklyData.map(w => w.grocery), backgroundColor: "#22c55e", borderRadius: 6 },
+        { label: "Toiletries", data: weeklyData.map(w => w.toiletry), backgroundColor: "#a855f7", borderRadius: 6 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { stacked: true }, y: { stacked: true, ticks: { callback: v => "$" + v } } },
+      plugins: { tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt(ctx.raw)}` } } }
+    }
+  });
+
+  // Grocery/Toiletry/Other split
+  charts.split = new Chart(document.getElementById("chart-split"), {
+    type: "doughnut",
+    data: {
+      labels: ["Groceries", "Toiletries", "Other Non-Grocery"],
+      datasets: [{
+        data: [+groceryTotal.toFixed(2), +toiletryTotal.toFixed(2), +otherTotal.toFixed(2)],
+        backgroundColor: ["#22c55e", "#a855f7", "#f43f5e"],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: "60%",
+      plugins: {
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, grandTotal)})` } }
+      }
+    }
+  });
+
+  // Insights
+  const topCat = catGroups[0];
+  const topStore = storeGroups[0];
+  const products = groupProducts(RAW);
+  const topProduct = products[0];
+  const freqProducts = products.filter(p => p.count >= 2);
+  const avgTrip = grandTotal / [...new Set(RAW.map(i => i.d + "|" + i.s))].length;
+  const biggestDay = groupBy(RAW, "d").sort((a,b) => b.total - a.total)[0];
+
+  document.getElementById("insights").innerHTML = [
+    { title: "Top Category", text: `<span class="insight-val">${topCat.name}</span> at ${fmt(topCat.total)} (${pct(topCat.total, grandTotal)} of total spend)` },
+    { title: "Most Spent at Store", text: `<span class="insight-val">${topStore.name}</span> across ${topStore.items.length} items totaling ${fmt(topStore.total)}` },
+    { title: "Costliest Single Product", text: `<span class="insight-val">${topProduct.name}</span> &mdash; ${fmt(topProduct.total)} total (qty ${topProduct.qty})` },
+    { title: "Biggest Shopping Day", text: `<span class="insight-val">Jan ${parseInt(biggestDay.name.split("/")[1])}</span> &mdash; ${fmt(biggestDay.total)} spent across ${biggestDay.items.length} items` },
+    { title: "Repeat Purchases", text: `<span class="insight-val">${freqProducts.length} products</span> bought 2+ times, totaling ${fmt(freqProducts.reduce((s,p) => s + p.total, 0))}` },
+    { title: "Toiletries Share", text: `Household, beauty & paper products accounted for <span class="insight-val">${fmt(toiletryTotal)}</span> (${pct(toiletryTotal, grandTotal)})` },
+  ].map(ins => `<div class="insight"><div class="insight-title">${ins.title}</div><div class="insight-text">${ins.text}</div></div>`).join("");
+}
+
+// ─────────── GROCERIES TAB ───────────
+function renderGroceries() {
+  const cats = groupBy(groceries, "c");
+  const products = groupProducts(groceries);
+  const trips = [...new Set(groceries.map(i => i.d + "|" + i.s))].length;
+
+  document.getElementById("kpi-grocery").innerHTML = [
+    { label: "Total Grocery Spend", value: fmt(groceryTotal), color: "var(--green)", sub: `${pct(groceryTotal, grandTotal)} of all spend` },
+    { label: "Grocery Items", value: groceries.reduce((s,i)=>s+i.q,0), color: "var(--cyan)", sub: `${groceries.length} line items` },
+    { label: "Categories", value: cats.length, color: "var(--amber)", sub: `Top: ${cats[0].name}` },
+    { label: "Avg Per Grocery Trip", value: fmt(groceryTotal / trips), color: "var(--teal)", sub: `${trips} trips with groceries` },
+  ].map(k => `<div class="kpi-card"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:${k.color}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join("");
+
+  // Grocery category bar
+  charts.groceryCat = new Chart(document.getElementById("chart-grocery-cat"), {
+    type: "doughnut",
+    data: {
+      labels: cats.map(c => c.name),
+      datasets: [{ data: cats.map(c => +c.total.toFixed(2)), backgroundColor: cats.map((_, i) => PALETTE[i % PALETTE.length]), borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: "50%",
+      plugins: {
+        legend: { position: "right", labels: { font: { size: 11 }, padding: 8 } },
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, groceryTotal)})` } }
+      }
+    }
+  });
+
+  // Top 15 grocery items
+  const top15 = products.slice(0, 15);
+  charts.groceryTop = new Chart(document.getElementById("chart-grocery-top"), {
+    type: "bar",
+    data: {
+      labels: top15.map(p => p.name.length > 30 ? p.name.slice(0,28) + "..." : p.name),
+      datasets: [{ data: top15.map(p => +p.total.toFixed(2)), backgroundColor: "#22c55e", borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: "y", responsive: true, maintainAspectRatio: false,
+      scales: { x: { ticks: { callback: v => "$" + v } } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `${fmt(ctx.raw)} (qty: ${top15[ctx.dataIndex].qty})` } }
+      }
+    }
+  });
+
+  // Frequently purchased table
+  const freq = products.filter(p => p.count >= 2);
+  let html = `<thead><tr><th>Product</th><th>Category</th><th class="text-center">Qty Bought</th><th class="text-right">Total Spent</th><th class="text-right">Avg/Unit</th></tr></thead><tbody>`;
+  freq.forEach(p => {
+    html += `<tr><td class="bold">${p.name}</td><td style="color:var(--text-muted)">${p.cat}</td><td class="text-center">${p.qty}</td><td class="text-right mono amt">${fmt(p.total)}</td><td class="text-right mono">${fmt(p.total / p.qty)}</td></tr>`;
+  });
+  html += `</tbody>`;
+  document.getElementById("table-grocery-freq").innerHTML = html;
+}
+
+// ─────────── TOILETRIES TAB ───────────
+function renderToiletries() {
+  const cats = groupBy(toiletries, "c");
+  const stores = groupBy(toiletries, "s");
+  const products = groupProducts(toiletries);
+
+  document.getElementById("kpi-toiletry").innerHTML = [
+    { label: "Total Toiletries Spend", value: fmt(toiletryTotal), color: "var(--purple)", sub: `${pct(toiletryTotal, grandTotal)} of all spend` },
+    { label: "Items Purchased", value: toiletries.reduce((s,i)=>s+i.q,0), color: "var(--cyan)", sub: `${toiletries.length} line items` },
+    { label: "Categories", value: cats.length, color: "var(--amber)", sub: cats.map(c => c.name).join(", ") },
+    { label: "Avg Item Cost", value: fmt(toiletryTotal / toiletries.reduce((s,i)=>s+i.q,0)), color: "var(--teal)", sub: "per unit" },
+  ].map(k => `<div class="kpi-card"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:${k.color}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join("");
+
+  // Toiletry by category
+  const toilCatColors = ["#a855f7", "#d946ef", "#ec4899"];
+  charts.toilCat = new Chart(document.getElementById("chart-toiletry-cat"), {
+    type: "doughnut",
+    data: {
+      labels: cats.map(c => c.name),
+      datasets: [{ data: cats.map(c => +c.total.toFixed(2)), backgroundColor: toilCatColors, borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: "55%",
+      plugins: {
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, toiletryTotal)})` } }
+      }
+    }
+  });
+
+  // Toiletry by store
+  charts.toilStore = new Chart(document.getElementById("chart-toiletry-store"), {
+    type: "bar",
+    data: {
+      labels: stores.map(s => s.name),
+      datasets: [{ data: stores.map(s => +s.total.toFixed(2)), backgroundColor: stores.map(s => STORE_COLORS[s.name] || "#888"), borderRadius: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { ticks: { callback: v => "$" + v } } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmt(ctx.raw) } } }
+    }
+  });
+
+  // All toiletry items table
+  let html = `<thead><tr><th>Date</th><th>Store</th><th>Product</th><th>Category</th><th class="text-center">Qty</th><th class="text-right">Unit $</th><th class="text-right">Total</th></tr></thead><tbody>`;
+  toiletries.sort((a,b) => b.t - a.t).forEach(i => {
+    html += `<tr>
+      <td class="mono">${i.d}</td>
+      <td>${i.s}</td>
+      <td class="bold">${i.n}</td>
+      <td style="color:var(--text-muted)">${i.c}</td>
+      <td class="text-center">${i.q}</td>
+      <td class="text-right mono">${fmt(i.u)}</td>
+      <td class="text-right mono amt">${fmt(i.t)}</td>
+    </tr>`;
+  });
+  html += `</tbody>`;
+  document.getElementById("table-toiletry-all").innerHTML = html;
+}
+
+// ─────────── STORES TAB ───────────
+function renderStores() {
+  const storeGroups = groupBy(RAW, "s");
+
+  charts.storeBar = new Chart(document.getElementById("chart-store-bar"), {
+    type: "bar",
+    data: {
+      labels: storeGroups.map(s => s.name),
+      datasets: [
+        {
+          label: "Groceries",
+          data: storeGroups.map(s => +sum(s.items.filter(i => itemType(i) === "grocery")).toFixed(2)),
+          backgroundColor: "#22c55e", borderRadius: 4
+        },
+        {
+          label: "Toiletries",
+          data: storeGroups.map(s => +sum(s.items.filter(i => itemType(i) === "toiletry")).toFixed(2)),
+          backgroundColor: "#a855f7", borderRadius: 4
+        },
+        {
+          label: "Other",
+          data: storeGroups.map(s => +sum(s.items.filter(i => itemType(i) === "other")).toFixed(2)),
+          backgroundColor: "#f43f5e", borderRadius: 4
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { stacked: true }, y: { stacked: true, ticks: { callback: v => "$" + v } } },
+      plugins: { tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt(ctx.raw)}` } } }
+    }
+  });
+
+  // Store breakdown
+  const trips = {};
+  RAW.forEach(i => { const key = i.d + "|" + i.s; trips[key] = (trips[key] || { store: i.s, date: i.d }); });
+  const tripsByStore = {};
+  Object.values(trips).forEach(t => { tripsByStore[t.store] = (tripsByStore[t.store] || 0) + 1; });
+
+  document.getElementById("store-breakdown").innerHTML = storeGroups.map(s => {
+    const pctVal = (s.total / grandTotal * 100).toFixed(1);
+    const storeTrips = tripsByStore[s.name] || 0;
+    const color = STORE_COLORS[s.name] || "#888";
+    return `
+      <div class="store-row">
+        <div class="store-info">
+          <div class="store-name"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${color};margin-right:8px;vertical-align:middle"></span>${s.name}</div>
+          <div class="store-meta">${storeTrips} trip${storeTrips>1?"s":""} &bull; ${s.qty} items</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pctVal}%;background:${color}"></div></div>
+        </div>
+        <div class="store-pct">${pctVal}%</div>
+        <div class="store-amount">${fmt(s.total)}</div>
+      </div>`;
+  }).join("");
+}
+
+// ─────────── TRENDS TAB ───────────
+function renderTrends() {
+  // Daily spending
+  const dailyMap = {};
+  RAW.forEach(i => { dailyMap[i.d] = (dailyMap[i.d] || 0) + i.t; });
+  const days = Object.entries(dailyMap).sort((a,b) => a[0].localeCompare(b[0]));
+
+  charts.daily = new Chart(document.getElementById("chart-daily"), {
+    type: "line",
+    data: {
+      labels: days.map(d => "Jan " + parseInt(d[0].split("/")[1])),
+      datasets: [{
+        label: "Daily Spend",
+        data: days.map(d => +d[1].toFixed(2)),
+        borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.1)",
+        fill: true, tension: 0.3, pointRadius: 5, pointBackgroundColor: "#22c55e"
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { ticks: { callback: v => "$" + v } } },
+      plugins: { tooltip: { callbacks: { label: ctx => fmt(ctx.raw) } } }
+    }
+  });
+
+  // Cumulative spend
+  let cum = 0;
+  const cumData = days.map(d => { cum += d[1]; return { date: "Jan " + parseInt(d[0].split("/")[1]), total: +cum.toFixed(2) }; });
+  charts.cumulative = new Chart(document.getElementById("chart-cumulative"), {
+    type: "line",
+    data: {
+      labels: cumData.map(d => d.date),
+      datasets: [{
+        label: "Cumulative Spend",
+        data: cumData.map(d => d.total),
+        borderColor: "#06b6d4", backgroundColor: "rgba(6,182,212,0.08)",
+        fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: "#06b6d4"
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { ticks: { callback: v => "$" + v } } },
+      plugins: { tooltip: { callbacks: { label: ctx => fmt(ctx.raw) } } }
+    }
+  });
+
+  // Trips per week
+  const weekNames = ["Week 1 (1-7)", "Week 2 (8-14)", "Week 3 (15-21)", "Week 4 (22-28)", "Week 5 (29-31)"];
+  const weekTrips = weekNames.map((wn, wi) => {
+    const mins = [1,8,15,22,29];
+    const maxs = [7,14,21,28,31];
+    const tripSet = new Set();
+    RAW.forEach(i => {
+      const day = parseInt(i.d.split("/")[1]);
+      if (day >= mins[wi] && day <= maxs[wi]) tripSet.add(i.d + "|" + i.s);
+    });
+    return tripSet.size;
+  });
+  charts.tripsWeek = new Chart(document.getElementById("chart-trips-week"), {
+    type: "bar",
+    data: {
+      labels: weekNames,
+      datasets: [{ label: "Trips", data: weekTrips, backgroundColor: "#3b82f6", borderRadius: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  // Avg spend per trip by store
+  const tripCounts = {};
+  const storeSpend = {};
+  RAW.forEach(i => {
+    const key = i.d + "|" + i.s;
+    if (!tripCounts[i.s]) { tripCounts[i.s] = new Set(); storeSpend[i.s] = 0; }
+    tripCounts[i.s].add(key);
+    storeSpend[i.s] += i.t;
+  });
+  const avgTripData = Object.keys(storeSpend).map(s => ({
+    name: s, avg: +(storeSpend[s] / tripCounts[s].size).toFixed(2)
+  })).sort((a,b) => b.avg - a.avg);
+
+  charts.avgTrip = new Chart(document.getElementById("chart-avg-trip"), {
+    type: "bar",
+    data: {
+      labels: avgTripData.map(d => d.name),
+      datasets: [{ label: "Avg/Trip", data: avgTripData.map(d => d.avg), backgroundColor: avgTripData.map(d => STORE_COLORS[d.name] || "#888"), borderRadius: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { ticks: { callback: v => "$" + v } } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmt(ctx.raw) + " avg per trip" } } }
+    }
+  });
+}
+
+// ─────────── ALL ITEMS TAB ───────────
+let currentSort = { col: "t", dir: "desc" };
+
+function renderAllItems() {
+  // Populate filter dropdowns
+  const storeSelect = document.getElementById("filter-store");
+  const catSelect = document.getElementById("filter-cat");
+  [...new Set(RAW.map(i => i.s))].sort().forEach(s => {
+    storeSelect.innerHTML += `<option value="${s}">${s}</option>`;
+  });
+  [...new Set(RAW.map(i => i.c))].sort().forEach(c => {
+    catSelect.innerHTML += `<option value="${c}">${c}</option>`;
+  });
+
+  // Attach event listeners
+  ["filter-store","filter-cat","filter-type","filter-search"].forEach(id => {
+    document.getElementById(id).addEventListener(id === "filter-search" ? "input" : "change", renderTable);
+  });
+
+  renderTable();
+}
+
+function clearFilters() {
+  document.getElementById("filter-store").value = "All";
+  document.getElementById("filter-cat").value = "All";
+  document.getElementById("filter-type").value = "All";
+  document.getElementById("filter-search").value = "";
+  renderTable();
+}
+
+function renderTable() {
+  const store = document.getElementById("filter-store").value;
+  const cat = document.getElementById("filter-cat").value;
+  const type = document.getElementById("filter-type").value;
+  const search = document.getElementById("filter-search").value.toLowerCase();
+
+  let data = RAW.filter(i => {
+    if (store !== "All" && i.s !== store) return false;
+    if (cat !== "All" && i.c !== cat) return false;
+    if (type === "Grocery" && itemType(i) !== "grocery") return false;
+    if (type === "Toiletry" && itemType(i) !== "toiletry") return false;
+    if (type === "Other" && itemType(i) === "grocery") return false;
+    if (search && !i.n.toLowerCase().includes(search) && !i.r.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  // Sort
+  data.sort((a, b) => {
+    let va = a[currentSort.col], vb = b[currentSort.col];
+    if (typeof va === "string") { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+    if (currentSort.dir === "asc") return va > vb ? 1 : va < vb ? -1 : 0;
+    return va < vb ? 1 : va > vb ? -1 : 0;
+  });
+
+  const total = sum(data);
+  document.getElementById("filter-count").textContent = `${data.length} items | ${fmt(total)}`;
+
+  const cols = [
+    { key: "d", label: "Date" },
+    { key: "s", label: "Store" },
+    { key: "n", label: "Product" },
+    { key: "c", label: "Category" },
+    { key: "q", label: "Qty" },
+    { key: "u", label: "Unit $" },
+    { key: "t", label: "Total" },
+  ];
+
+  let html = `<thead><tr>`;
+  cols.forEach(col => {
+    const arrow = currentSort.col === col.key ? (currentSort.dir === "asc" ? " ↑" : " ↓") : "";
+    html += `<th onclick="sortTable('${col.key}')">${col.label}${arrow}</th>`;
+  });
+  html += `</tr></thead><tbody>`;
+
+  data.forEach(i => {
+    const typ = itemType(i);
+    const tagClass = typ === "grocery" ? "tag-grocery" : typ === "toiletry" ? "tag-toiletry" : "tag-nongrocery";
+    const tagLabel = typ === "grocery" ? "GROCERY" : typ === "toiletry" ? "TOILETRY" : "OTHER";
+    html += `<tr>
+      <td class="mono">${i.d}</td>
+      <td>${i.s}</td>
+      <td class="bold">${i.n} <span class="tag ${tagClass}">${tagLabel}</span></td>
+      <td style="color:var(--text-muted)">${i.c}</td>
+      <td class="text-center">${i.q}</td>
+      <td class="text-right mono">${fmt(i.u)}</td>
+      <td class="text-right mono amt">${fmt(i.t)}</td>
+    </tr>`;
+  });
+  html += `</tbody>`;
+  document.getElementById("table-all").innerHTML = html;
+}
+
+function sortTable(col) {
+  if (currentSort.col === col) {
+    currentSort.dir = currentSort.dir === "asc" ? "desc" : "asc";
+  } else {
+    currentSort.col = col;
+    currentSort.dir = "desc";
+  }
+  renderTable();
+}
+</script>
+</body>
+</html>
