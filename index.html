@@ -606,7 +606,7 @@ const legendPos = isMobile ? "bottom" : "right";
 
 // ─────────── TAB SWITCHING ───────────
 let charts = {};
-function showView(id, filterType) {
+function showView(id, filterType, filterOpts) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('view-' + id).classList.add('active');
@@ -614,15 +614,39 @@ function showView(id, filterType) {
   document.querySelectorAll('.tab').forEach(t => {
     if (t.getAttribute('data-view') === id) t.classList.add('active');
   });
-  // Apply filter if navigating to items view with a filter
-  if (id === 'items' && filterType) {
-    document.getElementById('filter-type').value = filterType;
+  // Apply filters when navigating to items view
+  if (id === 'items') {
+    // Reset filters first
+    document.getElementById('filter-store').value = "All";
+    document.getElementById('filter-cat').value = "All";
+    document.getElementById('filter-type').value = "All";
+    document.getElementById('filter-search').value = "";
+    if (filterType) document.getElementById('filter-type').value = filterType;
+    if (filterOpts) {
+      if (filterOpts.store) document.getElementById('filter-store').value = filterOpts.store;
+      if (filterOpts.cat) document.getElementById('filter-cat').value = filterOpts.cat;
+    }
     renderTable();
   }
   // Resize charts after view switch
   setTimeout(() => { Object.values(charts).forEach(c => c.resize && c.resize()); }, 50);
   // Scroll to top
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Helper to make a chart clickable - navigates to items filtered by the clicked segment
+function makeChartClickable(chart, canvas, labels, filterKey) {
+  canvas.style.cursor = "pointer";
+  canvas.addEventListener("click", (evt) => {
+    const points = chart.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
+    if (points.length > 0) {
+      const idx = points[0].index;
+      const label = labels[idx];
+      const opts = {};
+      opts[filterKey] = label;
+      showView("items", null, opts);
+    }
+  });
 }
 
 // ─────────── RENDER ON LOAD ───────────
@@ -672,6 +696,8 @@ function renderOverview() {
     }
   });
 
+  makeChartClickable(charts.catPie, document.getElementById("chart-cat-pie"), catGroups.map(g => g.name), "cat");
+
   // Store pie
   const storeGroups = groupBy(RAW, "s");
   charts.storePie = new Chart(document.getElementById("chart-store-pie"), {
@@ -689,6 +715,8 @@ function renderOverview() {
       }
     }
   });
+
+  makeChartClickable(charts.storePie, document.getElementById("chart-store-pie"), storeGroups.map(g => g.name), "store");
 
   // Weekly bar
   const weeks = [
@@ -740,6 +768,19 @@ function renderOverview() {
     }
   });
 
+  // Make split chart clickable - Groceries/Toiletries/Other navigate to respective tabs
+  const splitCanvas = document.getElementById("chart-split");
+  splitCanvas.style.cursor = "pointer";
+  splitCanvas.addEventListener("click", (evt) => {
+    const points = charts.split.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
+    if (points.length > 0) {
+      const idx = points[0].index;
+      if (idx === 0) showView("groceries");
+      else if (idx === 1) showView("toiletries");
+      else showView("items", "Other");
+    }
+  });
+
   // Insights
   const topCat = catGroups[0];
   const topStore = storeGroups[0];
@@ -787,6 +828,8 @@ function renderGroceries() {
       }
     }
   });
+
+  makeChartClickable(charts.groceryCat, document.getElementById("chart-grocery-cat"), cats.map(c => c.name), "cat");
 
   // Top 15 grocery items
   const top15 = products.slice(0, 15);
@@ -845,6 +888,8 @@ function renderToiletries() {
     }
   });
 
+  makeChartClickable(charts.toilCat, document.getElementById("chart-toiletry-cat"), cats.map(c => c.name), "cat");
+
   // Toiletry by store
   charts.toilStore = new Chart(document.getElementById("chart-toiletry-store"), {
     type: "bar",
@@ -858,6 +903,8 @@ function renderToiletries() {
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmt(ctx.raw) } } }
     }
   });
+
+  makeChartClickable(charts.toilStore, document.getElementById("chart-toiletry-store"), stores.map(s => s.name), "store");
 
   // All toiletry items table
   let html = `<thead><tr><th>Date</th><th>Store</th><th>Product</th><th>Category</th><th class="text-center">Qty</th><th class="text-right">Unit $</th><th class="text-right">Total</th></tr></thead><tbody>`;
