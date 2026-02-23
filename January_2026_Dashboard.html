@@ -536,7 +536,7 @@ function itemType(item) {
 }
 
 // ─────────── UTILITIES ───────────
-const fmt = v => "$" + v.toFixed(2);
+const fmt = v => "$" + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 const pct = (v, total) => total > 0 ? (v / total * 100).toFixed(1) + "%" : "0%";
 const sum = arr => arr.reduce((s, i) => s + i.t, 0);
 
