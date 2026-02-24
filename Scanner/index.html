@@ -1209,6 +1209,17 @@ Return ONLY a JSON object with this exact structure:
 
 function cancelProcessing() {
   processingCancelled = true;
+  // Terminate worker immediately if running
+  if (tesseractWorker) {
+    try { tesseractWorker.terminate(); } catch(e) {}
+    tesseractWorker = null;
+  }
+  // Reset progress bars and go back to upload
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('progressFill').classList.remove('done');
+  document.getElementById('currentFileFill').style.width = '0%';
+  document.getElementById('currentFileFill').classList.remove('done');
+  goToStep(1);
 }
 
 // ============================================================
