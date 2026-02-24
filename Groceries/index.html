@@ -584,6 +584,14 @@
     <div id="trips-list"></div>
   </div>
 
+  <!-- ==================== PRODUCT DETAIL ==================== -->
+  <div id="view-product-detail" class="view">
+    <div style="margin-bottom:16px">
+      <button id="product-detail-back" style="background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;padding:8px 16px;color:var(--green);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">&larr; Back</button>
+    </div>
+    <div id="product-detail-content"></div>
+  </div>
+
   <!-- ==================== TRIP DETAIL ==================== -->
   <div id="view-trip-detail" class="view">
     <div style="margin-bottom:16px">
@@ -1552,7 +1560,8 @@ function renderGroceries() {
   const freq = products.filter(p => p.count >= 2);
   let html = `<thead><tr><th>Product</th><th>Category</th><th class="text-center">Qty Bought</th><th class="text-right">Total Spent</th><th class="text-right">Avg/Unit</th></tr></thead><tbody>`;
   freq.forEach(p => {
-    html += `<tr><td class="bold">${p.name}</td><td style="color:var(--text-muted)">${p.cat}</td><td class="text-center">${p.qty}</td><td class="text-right mono amt">${fmt(p.total)}</td><td class="text-right mono">${fmt(p.total / p.qty)}</td></tr>`;
+    const escaped = p.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    html += `<tr style="cursor:pointer" onclick="showProductDetail('${escaped}','groceries')"><td class="bold">${p.name}<span style="float:right;color:var(--text-muted);font-size:11px">&rarr;</span></td><td style="color:var(--text-muted)">${p.cat}</td><td class="text-center">${p.qty}</td><td class="text-right mono amt">${fmt(p.total)}</td><td class="text-right mono">${fmt(p.total / p.qty)}</td></tr>`;
   });
   html += `</tbody>`;
   document.getElementById("table-grocery-freq").innerHTML = html;
@@ -1847,6 +1856,63 @@ function renderTrips() {
   });
 
   document.getElementById("trips-list").innerHTML = html;
+}
+
+let productDetailSource = 'groceries';
+function showProductDetail(productName, source) {
+  productDetailSource = source || 'groceries';
+  const items = activeData.filter(i => i.n === productName).sort((a, b) => a.d.localeCompare(b.d));
+  if (!items.length) return;
+  const total = items.reduce((s, i) => s + i.t, 0);
+  const totalQty = items.reduce((s, i) => s + i.q, 0);
+  const cat = items[0].c;
+  const stores = [...new Set(items.map(i => i.s))];
+  const dates = [...new Set(items.map(i => i.d))];
+
+  const backTab = productDetailSource === 'groceries' ? 'groceries' : 'toiletries';
+  document.getElementById("product-detail-back").onclick = () => showView(backTab);
+  document.getElementById("product-detail-back").textContent = "\u2190 Back to " + (backTab === 'groceries' ? 'Groceries' : 'Toiletries');
+
+  let html = `<div class="trip-detail-header">
+    <div>
+      <div class="trip-detail-title">${productName}</div>
+      <div class="trip-detail-store">${cat} \u2022 ${stores.join(", ")}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="trip-detail-total">${fmt(total)}</div>
+      <div class="trip-detail-count">${totalQty} units across ${dates.length} shopping date${dates.length !== 1 ? 's' : ''}</div>
+    </div>
+  </div>`;
+
+  // Summary stats
+  html += `<div class="kpi-grid" style="margin-bottom:20px">`;
+  html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Times Purchased</div><div class="kpi-value" style="color:var(--green)">${dates.length}</div><div class="kpi-sub">${dates.length === 1 ? '1 date' : dates.length + ' different dates'}</div></div>`;
+  html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Total Quantity</div><div class="kpi-value" style="color:var(--cyan)">${totalQty}</div><div class="kpi-sub">units bought</div></div>`;
+  html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Avg Per Purchase</div><div class="kpi-value" style="color:var(--amber)">${fmt(total / dates.length)}</div><div class="kpi-sub">per shopping date</div></div>`;
+  html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Avg Unit Price</div><div class="kpi-value" style="color:var(--teal)">${fmt(total / totalQty)}</div><div class="kpi-sub">per unit</div></div>`;
+  html += `</div>`;
+
+  // Purchase history table
+  html += `<div class="card"><div class="card-title">Purchase History</div>`;
+  html += `<div style="overflow-x:auto"><table>`;
+  html += `<thead><tr><th>Date</th><th>Store</th><th class="text-center">Qty</th><th class="text-right">Unit Price</th><th class="text-right">Total</th></tr></thead><tbody>`;
+  items.forEach(i => {
+    const dayNum = parseInt(i.d.split("/")[1]);
+    const dateLabel = ctx.monthName ? ctx.monthName + " " + dayNum + ", " + ctx.year : i.d;
+    html += `<tr>
+      <td class="mono">${dateLabel}</td>
+      <td>${i.s}</td>
+      <td class="text-center">${i.q}</td>
+      <td class="text-right mono">${fmt(i.u)}</td>
+      <td class="text-right mono amt">${fmt(i.t)}</td>
+    </tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+
+  document.getElementById("product-detail-content").innerHTML = html;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-product-detail').classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
 }
 
 function showTripDetail(tripIdx) {
