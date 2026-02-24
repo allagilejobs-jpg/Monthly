@@ -350,6 +350,42 @@
   th.sorted-asc::after { content: " \u25B2"; font-size: 9px; }
   th.sorted-desc::after { content: " \u25BC"; font-size: 9px; }
 
+  /* Global search */
+  #global-search:focus { border-color: var(--blue); }
+  .search-result {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 16px; cursor: pointer; transition: background 0.15s;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .search-result:last-child { border-bottom: none; }
+  .search-result:hover { background: rgba(255,255,255,0.04); }
+  .search-result-name { font-size: 13px; font-weight: 600; }
+  .search-result-name mark { background: rgba(59,130,246,0.3); color: var(--text); border-radius: 2px; padding: 0 2px; }
+  .search-result-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .search-result-amount { font-size: 13px; font-weight: 700; color: var(--amber); white-space: nowrap; }
+  .search-group-header {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--blue); padding: 10px 16px 4px; background: rgba(255,255,255,0.02);
+  }
+
+  /* Light theme */
+  body.light {
+    --bg: #f5f5f7; --card: #ffffff; --card-border: #e0e0e5;
+    --text: #1a1a2e; --text-muted: #6b6b80;
+  }
+  body.light .modal { box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+  body.light .modal-select option, body.light .filter-bar select option,
+  body.light .month-nav select option { background: #fff; }
+  body.light .search-result-name mark { background: rgba(59,130,246,0.25); color: #1a1a2e; }
+
+  /* Theme toggle */
+  .theme-toggle {
+    background: rgba(255,255,255,0.06); border: 1px solid var(--card-border);
+    border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 16px;
+    line-height: 1; transition: all 0.2s; color: var(--text);
+  }
+  .theme-toggle:hover { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
+
   /* Responsive */
   @media (max-width: 900px) {
     .container { padding: 14px; }
@@ -405,7 +441,10 @@
       <h1>All Expenses Dashboard</h1>
       <p id="dashboard-subtitle">Upload bank statements to track all your spending</p>
     </div>
-    <a href="index.html" class="header-link">&larr; Grocery Dashboard</a>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">&#127769;</button>
+      <a href="../Groceries/" class="header-link">&larr; Grocery Dashboard</a>
+    </div>
   </div>
 
   <div class="month-nav" id="month-nav">
@@ -421,6 +460,21 @@
     <button class="tab" onclick="showView('trends')">Trends</button>
     <button class="tab" onclick="showView('transactions')">All Transactions</button>
     <button class="tab" id="tab-compare" onclick="showView('compare')" style="display:none">Compare</button>
+  </div>
+
+  <!-- Global Search -->
+  <div id="global-search-wrap" style="position:relative;margin-bottom:20px">
+    <input type="text" id="global-search" placeholder="Search merchants, categories..." oninput="onGlobalSearch(this.value)" onfocus="onGlobalSearch(this.value)" style="width:100%;max-width:500px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;padding:10px 16px 10px 38px;color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:border-color 0.2s">
+    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:16px;pointer-events:none">&#128269;</span>
+    <div id="global-search-results" style="display:none;position:absolute;top:100%;left:0;width:100%;max-width:500px;max-height:400px;overflow-y:auto;background:var(--card);border:1px solid var(--card-border);border-radius:10px;margin-top:4px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:100"></div>
+  </div>
+
+  <!-- Merchant Detail -->
+  <div class="view" id="view-merchant-detail">
+    <div style="margin-bottom:16px">
+      <button id="merchant-detail-back" style="background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;padding:8px 16px;color:var(--blue);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">&larr; Back</button>
+    </div>
+    <div id="merchant-detail-content"></div>
   </div>
 
   <!-- Overview -->
@@ -867,6 +921,9 @@ function showView(id, filterOpts) {
   });
   if (id === 'transactions' && filterOpts) {
     setTimeout(() => applyTransactionFilter(filterOpts), 50);
+  }
+  if (id === 'merchant-detail' && filterOpts && filterOpts.merchant) {
+    showMerchantDetail(filterOpts.merchant, filterOpts.source || 'merchants');
   }
 }
 
@@ -1451,13 +1508,69 @@ function renderOverview() {
   // Daily chart
   html += '<div class="card"><div class="card-title">Daily Spending</div><div class="chart-wrap"><canvas id="chart-daily-overview"></canvas></div></div>';
 
-  // Insights
+  // Smart Insights
+  html += '<div class="card"><div class="card-title">Smart Insights</div><div class="grid-2" style="margin-top:8px">';
+
+  // 1. Spending concentration
+  if (catGroups.length >= 2) {
+    const top3Cats = catGroups.slice(0, 3);
+    const top3Total = top3Cats.reduce((s, g) => s + g.total, 0);
+    const top3Pct = ((top3Total / totalExpenses) * 100).toFixed(0);
+    html += '<div class="insight" onclick="showView(\'categories\')"><div class="insight-title">Spending Concentration</div><div class="insight-text">Top 3 categories account for <span class="insight-val">' + top3Pct + '%</span> of spending: ' + top3Cats.map(c => c.name).join(', ') + '</div></div>';
+  }
+
+  // 2. Top category share
+  if (catGroups.length) {
+    const topCatPct = ((catGroups[0].total / totalExpenses) * 100).toFixed(1);
+    html += '<div class="insight" onclick="showView(\'transactions\',{category:\'' + catGroups[0].name.replace(/'/g,"\\'") + '\'})"><div class="insight-title">Top Category</div><div class="insight-text"><span class="insight-val">' + catGroups[0].name + '</span> takes up ' + topCatPct + '% of total spending (' + fmt(catGroups[0].total) + ')</div></div>';
+  }
+
+  // 3. Biggest single expense
   const biggest = activeData.reduce((a, b) => a.amount > b.amount ? a : b, activeData[0]);
+  html += '<div class="insight" onclick="showView(\'merchant-detail\',{merchant:\'' + biggest.merchant.replace(/'/g,"\\'") + '\',source:\'overview\'})"><div class="insight-title">Biggest Single Expense</div><div class="insight-text"><span class="insight-val">' + fmt(biggest.amount) + '</span> at ' + biggest.merchant + ' on ' + biggest.date + '</div></div>';
+
+  // 4. Most frequent merchant
   const mostFreqMerch = merchantGroups.reduce((a, b) => a.count > b.count ? a : b, merchantGroups[0]);
-  html += '<div class="grid-2">';
-  html += '<div class="insight" onclick="showView(\'transactions\',{merchant:\'' + biggest.merchant.replace(/'/g,"\\'") + '\'})"><div class="insight-title">Biggest Single Expense</div><div class="insight-text"><span class="insight-val">' + fmt(biggest.amount) + '</span> at ' + biggest.merchant + ' on ' + biggest.date + '</div></div>';
-  html += '<div class="insight" onclick="showView(\'transactions\',{merchant:\'' + mostFreqMerch.name.replace(/'/g,"\\'") + '\'})"><div class="insight-title">Most Frequent Merchant</div><div class="insight-text"><span class="insight-val">' + mostFreqMerch.name + '</span> \u2014 ' + mostFreqMerch.count + ' transactions totaling ' + fmt(mostFreqMerch.total) + '</div></div>';
-  html += '</div>';
+  html += '<div class="insight" onclick="showView(\'merchant-detail\',{merchant:\'' + mostFreqMerch.name.replace(/'/g,"\\'") + '\',source:\'overview\'})"><div class="insight-title">Most Frequent Merchant</div><div class="insight-text"><span class="insight-val">' + mostFreqMerch.name + '</span> \u2014 ' + mostFreqMerch.count + ' transactions totaling ' + fmt(mostFreqMerch.total) + '</div></div>';
+
+  // 5. Biggest shopping day
+  if (ctx.daysInMonth) {
+    const dailyTotals = {};
+    activeData.forEach(t => { dailyTotals[t.date] = (dailyTotals[t.date] || 0) + t.amount; });
+    const entries = Object.entries(dailyTotals);
+    if (entries.length) {
+      const topDay = entries.sort((a, b) => b[1] - a[1])[0];
+      const topDayTxCount = activeData.filter(t => t.date === topDay[0]).length;
+      html += '<div class="insight" onclick="showView(\'transactions\',{date:\'' + topDay[0] + '\'})"><div class="insight-title">Highest Spending Day</div><div class="insight-text"><span class="insight-val">' + topDay[0] + '</span> \u2014 ' + fmt(topDay[1]) + ' across ' + topDayTxCount + ' transactions</div></div>';
+    }
+  }
+
+  // 6. Day-of-week pattern
+  const dowNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const dowTotals = new Array(7).fill(0);
+  activeData.forEach(t => { const d = new Date(t.date + 'T00:00:00'); if (!isNaN(d)) dowTotals[d.getDay()] += t.amount; });
+  const topDowIdx = dowTotals.indexOf(Math.max(...dowTotals));
+  html += '<div class="insight" onclick="showView(\'trends\')"><div class="insight-title">Spending Pattern</div><div class="insight-text">Most spending happens on <span class="insight-val">' + dowNames[topDowIdx] + 's</span> (' + fmt(dowTotals[topDowIdx]) + ' total this month)</div></div>';
+
+  // 7. Average transaction size
+  const medianAmounts = [...activeData].sort((a, b) => a.amount - b.amount);
+  const median = medianAmounts.length % 2 === 0
+    ? (medianAmounts[medianAmounts.length / 2 - 1].amount + medianAmounts[medianAmounts.length / 2].amount) / 2
+    : medianAmounts[Math.floor(medianAmounts.length / 2)].amount;
+  html += '<div class="insight" onclick="showView(\'transactions\')"><div class="insight-title">Transaction Size</div><div class="insight-text">Median: <span class="insight-val">' + fmt(median) + '</span> \u2022 Average: ' + fmt(avgPerTx) + ' across ' + txCount + ' transactions</div></div>';
+
+  // 8. Merchant loyalty (top merchant share)
+  if (merchantGroups.length) {
+    const topMerchPct = ((merchantGroups[0].total / totalExpenses) * 100).toFixed(1);
+    html += '<div class="insight" onclick="showView(\'merchant-detail\',{merchant:\'' + merchantGroups[0].name.replace(/'/g,"\\'") + '\',source:\'overview\'})"><div class="insight-title">Top Merchant Share</div><div class="insight-text"><span class="insight-val">' + merchantGroups[0].name + '</span> accounts for ' + topMerchPct + '% of total spending (' + merchantGroups[0].count + ' transactions)</div></div>';
+  }
+
+  // 9. Small vs large transactions
+  const smallTx = activeData.filter(t => t.amount < 20);
+  const largeTx = activeData.filter(t => t.amount >= 100);
+  html += '<div class="insight" onclick="showView(\'transactions\')"><div class="insight-title">Transaction Breakdown</div><div class="insight-text"><span class="insight-val">' + smallTx.length + '</span> small (under $20) vs <span class="insight-val">' + largeTx.length + '</span> large ($100+) transactions</div></div>';
+
+  html += '</div></div>';
 
   el.innerHTML = html;
 
@@ -1561,7 +1674,7 @@ function renderMerchantRows(data) {
   if (!tbody) return;
   tbody.innerHTML = data.map(m => {
     const avg = m.total / m.count;
-    return '<tr style="cursor:pointer" onclick="showView(\'transactions\',{merchant:\'' + m.name.replace(/'/g,"\\'") + '\'})">' +
+    return '<tr style="cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + m.name.replace(/'/g,"\\'") + '\',source:\'merchants\'})">' +
       '<td style="font-weight:600">' + m.name + '</td>' +
       '<td class="text-right amt">' + fmt(m.total) + '</td>' +
       '<td class="text-right">' + m.count + '</td>' +
@@ -1677,6 +1790,53 @@ function renderTrends() {
       scales: { x: { grid: { display: false }, ticks: { color: '#e4e4e7' } },
                y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } }
   });
+
+  // ── Spending Streaks ──
+  const daysWithSpend = new Set();
+  activeData.forEach(t => { const day = parseInt(t.date.substring(8, 10)); if (day >= 1 && day <= ctx.daysInMonth) daysWithSpend.add(day); });
+  let maxSpend = 0, curSpend = 0, maxNoSpend = 0, curNoSpend = 0;
+  for (let d = 1; d <= ctx.daysInMonth; d++) {
+    if (daysWithSpend.has(d)) { curSpend++; curNoSpend = 0; } else { curNoSpend++; curSpend = 0; }
+    if (curSpend > maxSpend) maxSpend = curSpend;
+    if (curNoSpend > maxNoSpend) maxNoSpend = curNoSpend;
+  }
+  const streakEl = document.getElementById('view-trends');
+  let streakHtml = '<div class="grid-2" style="margin-top:20px">';
+  streakHtml += '<div class="card"><div class="card-title">Spending Streaks</div>';
+  streakHtml += '<div class="kpi-grid" style="margin-top:12px">';
+  streakHtml += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Longest Spend Streak</div><div class="kpi-value" style="color:var(--rose)">' + maxSpend + ' days</div><div class="kpi-sub">Consecutive days with expenses</div></div>';
+  streakHtml += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Longest No-Spend Streak</div><div class="kpi-value" style="color:var(--green)">' + maxNoSpend + ' days</div><div class="kpi-sub">Consecutive days with no expenses</div></div>';
+  streakHtml += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Active Spending Days</div><div class="kpi-value">' + daysWithSpend.size + '/' + ctx.daysInMonth + '</div><div class="kpi-sub">' + ((daysWithSpend.size / ctx.daysInMonth) * 100).toFixed(0) + '% of the month</div></div>';
+  streakHtml += '</div></div>';
+
+  // Calendar heatmap
+  streakHtml += '<div class="card"><div class="card-title">Spending Calendar</div>';
+  const maxDaily = Math.max(...dailyData);
+  const firstDow = new Date(ctx.year, ctx.month - 1, 1).getDay();
+  streakHtml += '<div class="heatmap-grid" style="margin-top:12px">';
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => { streakHtml += '<div class="heatmap-label">' + d + '</div>'; });
+  for (let i = 0; i < firstDow; i++) streakHtml += '<div></div>';
+  for (let d = 1; d <= ctx.daysInMonth; d++) {
+    const val = dailyData[d - 1];
+    const intensity = maxDaily > 0 ? val / maxDaily : 0;
+    let bg, color;
+    if (val === 0) { bg = 'rgba(255,255,255,0.03)'; color = 'var(--text-muted)'; }
+    else if (intensity < 0.25) { bg = 'rgba(59,130,246,0.15)'; color = '#93c5fd'; }
+    else if (intensity < 0.5) { bg = 'rgba(59,130,246,0.3)'; color = '#60a5fa'; }
+    else if (intensity < 0.75) { bg = 'rgba(59,130,246,0.5)'; color = '#3b82f6'; }
+    else { bg = 'rgba(59,130,246,0.7)'; color = '#fff'; }
+    streakHtml += '<div class="heatmap-cell" style="background:' + bg + ';color:' + color + '" title="' + ctx.monthAbbr + ' ' + d + ': ' + fmt(val) + '">' + d + '</div>';
+  }
+  streakHtml += '</div>';
+  streakHtml += '<div style="display:flex;align-items:center;gap:8px;margin-top:12px;justify-content:center">';
+  streakHtml += '<span style="font-size:11px;color:var(--text-muted)">Less</span>';
+  ['rgba(255,255,255,0.03)','rgba(59,130,246,0.15)','rgba(59,130,246,0.3)','rgba(59,130,246,0.5)','rgba(59,130,246,0.7)'].forEach(c => {
+    streakHtml += '<div style="width:16px;height:16px;border-radius:4px;background:' + c + '"></div>';
+  });
+  streakHtml += '<span style="font-size:11px;color:var(--text-muted)">More</span>';
+  streakHtml += '</div></div>';
+  streakHtml += '</div>';
+  streakEl.insertAdjacentHTML('beforeend', streakHtml);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1888,9 +2048,174 @@ function renderCompare() {
 }
 
 // ══════════════════════════════════════════════════════════
+// GLOBAL SEARCH
+// ══════════════════════════════════════════════════════════
+let searchTimeout = null;
+function onGlobalSearch(query) {
+  clearTimeout(searchTimeout);
+  const wrap = document.getElementById('global-search-results');
+  if (!query || query.length < 2 || activeData.length === 0) { wrap.style.display = 'none'; return; }
+  searchTimeout = setTimeout(() => {
+    const q = query.toLowerCase();
+    let html = '';
+
+    // Search merchants
+    const matchedMerchants = merchantGroups.filter(m => m.name.toLowerCase().includes(q)).slice(0, 5);
+    if (matchedMerchants.length) {
+      html += '<div class="search-group-header">Merchants</div>';
+      matchedMerchants.forEach(m => {
+        const highlighted = m.name.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi'), '<mark>$1</mark>');
+        html += '<div class="search-result" onclick="closeSearch();showView(\'merchant-detail\',{merchant:\'' + m.name.replace(/'/g,"\\'") + '\',source:\'search\'})">';
+        html += '<div><div class="search-result-name">' + highlighted + '</div>';
+        html += '<div class="search-result-meta">' + m.count + ' transactions</div></div>';
+        html += '<div class="search-result-amount">' + fmt(m.total) + '</div></div>';
+      });
+    }
+
+    // Search categories
+    const matchedCats = catGroups.filter(c => c.name.toLowerCase().includes(q)).slice(0, 5);
+    if (matchedCats.length) {
+      html += '<div class="search-group-header">Categories</div>';
+      matchedCats.forEach(c => {
+        const highlighted = c.name.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi'), '<mark>$1</mark>');
+        html += '<div class="search-result" onclick="closeSearch();showView(\'transactions\',{category:\'' + c.name.replace(/'/g,"\\'") + '\'})">';
+        html += '<div><div class="search-result-name">' + highlighted + '</div>';
+        html += '<div class="search-result-meta">' + c.count + ' transactions</div></div>';
+        html += '<div class="search-result-amount">' + fmt(c.total) + '</div></div>';
+      });
+    }
+
+    // Search individual transactions by description
+    const matchedTx = activeData.filter(t => t.description.toLowerCase().includes(q) || t.merchant.toLowerCase().includes(q)).slice(0, 5);
+    if (matchedTx.length && !matchedMerchants.length) {
+      html += '<div class="search-group-header">Transactions</div>';
+      matchedTx.forEach(t => {
+        const name = t.merchant || t.description;
+        const highlighted = name.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi'), '<mark>$1</mark>');
+        html += '<div class="search-result" onclick="closeSearch();showView(\'transactions\',{merchant:\'' + t.merchant.replace(/'/g,"\\'") + '\'})">';
+        html += '<div><div class="search-result-name">' + highlighted + '</div>';
+        html += '<div class="search-result-meta">' + t.date + ' \u2022 ' + t.category + '</div></div>';
+        html += '<div class="search-result-amount">' + fmt(t.amount) + '</div></div>';
+      });
+    }
+
+    if (!html) html = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">No results for "' + query + '"</div>';
+    wrap.innerHTML = html;
+    wrap.style.display = 'block';
+  }, 200);
+}
+
+function closeSearch() {
+  document.getElementById('global-search-results').style.display = 'none';
+  document.getElementById('global-search').value = '';
+}
+
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('global-search-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('global-search-results').style.display = 'none';
+  }
+});
+
+// ══════════════════════════════════════════════════════════
+// THEME TOGGLE
+// ══════════════════════════════════════════════════════════
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  localStorage.setItem('expenses_theme', isLight ? 'light' : 'dark');
+  document.getElementById('theme-toggle').innerHTML = isLight ? '&#9728;' : '&#127769;';
+}
+
+// ══════════════════════════════════════════════════════════
+// MERCHANT DETAIL VIEW
+// ══════════════════════════════════════════════════════════
+function showMerchantDetail(merchantName, source) {
+  source = source || 'merchants';
+  const container = document.getElementById('merchant-detail-content');
+  const backBtn = document.getElementById('merchant-detail-back');
+
+  // Hide all views and show merchant detail
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-merchant-detail').classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+  // Back button
+  const backMap = { merchants: 'merchants', overview: 'overview', search: 'overview', transactions: 'transactions' };
+  const backView = backMap[source] || 'merchants';
+  backBtn.onclick = () => showView(backView);
+
+  // Get transactions for this merchant
+  const txs = activeData.filter(t => t.merchant === merchantName).sort((a, b) => a.date < b.date ? -1 : 1);
+  if (txs.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-state-title">No transactions found</div></div>'; return; }
+
+  const total = txs.reduce((s, t) => s + t.amount, 0);
+  const avg = total / txs.length;
+  const minTx = txs.reduce((a, b) => a.amount < b.amount ? a : b);
+  const maxTx = txs.reduce((a, b) => a.amount > b.amount ? a : b);
+  const categories = [...new Set(txs.map(t => t.category))];
+  const dateRange = txs[0].date + ' \u2014 ' + txs[txs.length - 1].date;
+
+  let html = '';
+
+  // Header card
+  html += '<div class="card" style="border-left:4px solid var(--blue)">';
+  html += '<div style="font-size:22px;font-weight:700;margin-bottom:4px">' + merchantName + '</div>';
+  html += '<div style="font-size:13px;color:var(--text-muted)">' + categories.join(', ') + ' \u2022 ' + dateRange + '</div>';
+  html += '</div>';
+
+  // KPI cards
+  html += '<div class="kpi-grid">';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Total Spent</div><div class="kpi-value amt">' + fmt(total) + '</div><div class="kpi-sub">' + txs.length + ' transactions</div></div>';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Average</div><div class="kpi-value">' + fmt(avg) + '</div><div class="kpi-sub">per transaction</div></div>';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Range</div><div class="kpi-value">' + fmt(minTx.amount) + ' \u2014 ' + fmt(maxTx.amount) + '</div><div class="kpi-sub">min \u2014 max</div></div>';
+  html += '</div>';
+
+  // Price tracker (if multiple transactions)
+  if (txs.length > 1) {
+    html += '<div class="card"><div class="card-title">Amount Tracker</div>';
+    html += '<table><thead><tr><th>Date</th><th>Category</th><th class="text-right">Amount</th><th class="text-right">Change</th></tr></thead><tbody>';
+    txs.forEach((t, i) => {
+      let changeHtml = '<span style="color:var(--text-muted)">\u2014</span>';
+      if (i > 0) {
+        const diff = t.amount - txs[i - 1].amount;
+        const pct = txs[i - 1].amount ? ((diff / txs[i - 1].amount) * 100).toFixed(1) : 0;
+        if (diff > 0) changeHtml = '<span style="color:var(--rose)">\u25B2 +' + fmt(diff) + ' (+' + pct + '%)</span>';
+        else if (diff < 0) changeHtml = '<span style="color:var(--green)">\u25BC ' + fmt(diff) + ' (' + pct + '%)</span>';
+        else changeHtml = '<span style="color:var(--text-muted)">\u2014 no change</span>';
+      }
+      html += '<tr><td class="mono">' + t.date + '</td>';
+      html += '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>';
+      html += '<td class="text-right amt">' + fmt(t.amount) + '</td>';
+      html += '<td class="text-right" style="font-size:12px">' + changeHtml + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  // All transactions
+  html += '<div class="card"><div class="card-title">All Transactions (' + txs.length + ')</div>';
+  html += '<table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th class="text-right">Amount</th><th>Source</th></tr></thead><tbody>';
+  txs.forEach(t => {
+    html += '<tr><td class="mono">' + t.date + '</td>';
+    html += '<td style="font-size:12px;color:var(--text-muted);max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g, '&quot;') + '">' + (t.description || t.merchant) + '</td>';
+    html += '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>';
+    html += '<td class="text-right amt">' + fmt(t.amount) + '</td>';
+    html += '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  container.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════
 // INITIALIZATION
 // ══════════════════════════════════════════════════════════
 (function init() {
+  // Restore theme
+  if (localStorage.getItem('expenses_theme') === 'light') {
+    document.body.classList.add('light');
+    document.getElementById('theme-toggle').innerHTML = '&#9728;';
+  }
+
   const months = loadMonths();
   if (months.length > 0) {
     const active = localStorage.getItem("expenses_activeMonth");
@@ -1903,5 +2228,11 @@ function renderCompare() {
 })();
 
 </script>
+<div style="text-align:center;padding:32px 20px 24px;font-size:12px;color:var(--text-muted);border-top:1px solid var(--card-border);margin-top:40px">
+  <span style="font-weight:600;color:var(--text)">Family Finance Dashboards</span><br>
+  <a href="https://allagilejobs-jpg.github.io/Monthly/Groceries/" style="color:var(--green);text-decoration:none;margin:0 8px">Groceries</a> &bull;
+  <a href="https://allagilejobs-jpg.github.io/Monthly/Expenses/" style="color:var(--blue);text-decoration:none;margin:0 8px">All Expenses</a> &bull;
+  <a href="https://allagilejobs-jpg.github.io/Monthly/" style="color:var(--text-muted);text-decoration:none;margin:0 8px">Home</a>
+</div>
 </body>
 </html>
