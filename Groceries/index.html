@@ -2056,11 +2056,41 @@ function renderOverview() {
     let aHtml = '<div class="card"><div class="card-title" style="color:var(--rose)">Unusual Purchases</div>';
     aHtml += '<div style="font-size:12px;color:var(--text-muted);margin:-8px 0 14px">Items with prices or amounts significantly above their average</div>';
     anomalies.forEach(a => {
-      const icon = a.type === 'price' ? '\u26A0\uFE0F' : '\uD83D\uDCC8';
       const escaped = a.product.replace(/'/g, "\\'");
+      // Build description and suggestions based on anomaly type
+      let description = '';
+      let suggestions = '';
+      if (a.type === 'price') {
+        const overpay = (a.amount - a.avg).toFixed(2);
+        const otherStores = activeData.filter(i => i.n === a.product && i.s !== a.item.s);
+        const cheaperStore = otherStores.length > 0 ? otherStores.sort((x, y) => x.u - y.u)[0] : null;
+        description = 'This item was purchased at <span style="color:var(--amber);font-weight:600">' + fmt(a.amount) + '/unit</span> on ' + a.item.d + ' at ' + a.item.s + ', which is <span style="color:var(--rose);font-weight:600">' + fmt(overpay) + ' more</span> per unit than your average price of ' + fmt(a.avg) + '. This could indicate a price increase at this store, a different size/variant, or a one-time markup.';
+        suggestions = '<div style="margin-top:10px;padding:10px 14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:8px">';
+        suggestions += '<div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Suggestions</div>';
+        suggestions += '<div style="font-size:12px;color:var(--text-muted);line-height:1.7">';
+        if (cheaperStore) {
+          suggestions += '\u2022 You paid less at <span style="color:var(--green);font-weight:600">' + cheaperStore.s + '</span> (' + fmt(cheaperStore.u) + '/unit) \u2014 consider buying there next time<br>';
+        }
+        suggestions += '\u2022 Check if a different size or brand was accidentally purchased<br>';
+        suggestions += '\u2022 Compare unit prices on your next trip to verify if the store raised prices<br>';
+        suggestions += '\u2022 Click to view full price history for this product';
+        suggestions += '</div></div>';
+      } else {
+        const pctOfCat = ((a.item.t / groupBy(activeData, 'c').find(c => c.name === a.item.c).total) * 100).toFixed(0);
+        description = 'This single purchase of <span style="color:var(--amber);font-weight:600">' + a.product + '</span> at <span style="color:var(--amber);font-weight:600">' + fmt(a.amount) + '</span> accounts for <span style="color:var(--rose);font-weight:600">' + pctOfCat + '%</span> of all ' + a.item.c + ' spending, which is ' + a.ratio + 'x the category average of ' + fmt(a.avg) + '. A single item dominating a category may skew your budget analysis.';
+        suggestions = '<div style="margin-top:10px;padding:10px 14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:8px">';
+        suggestions += '<div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Suggestions</div>';
+        suggestions += '<div style="font-size:12px;color:var(--text-muted);line-height:1.7">';
+        suggestions += '\u2022 Consider whether this was a bulk or one-time purchase vs. a regular expense<br>';
+        suggestions += '\u2022 If bought in bulk, spreading the cost mentally over weeks may give a clearer budget picture<br>';
+        suggestions += '\u2022 Review if this item could be found cheaper at another store<br>';
+        suggestions += '\u2022 Click to view full purchase history and price trends';
+        suggestions += '</div></div>';
+      }
       aHtml += '<div class="insight" style="cursor:pointer;border-color:rgba(244,63,94,0.2);background:rgba(244,63,94,0.04)" onclick="showProductDetail(\'' + escaped + '\',\'overview\')">';
-      aHtml += '<div class="insight-title" style="color:var(--rose)">' + icon + ' ' + a.ratio + 'x above average</div>';
-      aHtml += '<div class="insight-text">' + a.message + '</div>';
+      aHtml += '<div class="insight-title" style="color:var(--rose)">' + (a.type === 'price' ? '\u26A0\uFE0F Price Spike' : '\uD83D\uDCC8 Category Dominance') + ' \u2014 ' + a.ratio + 'x above average</div>';
+      aHtml += '<div class="insight-text" style="margin-bottom:6px">' + description + '</div>';
+      aHtml += suggestions;
       aHtml += '</div>';
     });
     aHtml += '</div>';
