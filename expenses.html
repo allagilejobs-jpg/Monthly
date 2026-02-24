@@ -346,32 +346,14 @@
   .view { display: none; }
   .view.active { display: block; }
 
-  /* Responsive table card layout */
+  /* Responsive table helpers */
   @media (max-width: 900px) {
-    table thead { display: none; }
-    table tbody tr {
-      display: block; margin-bottom: 10px; padding: 10px 12px;
-      border: 1px solid var(--card-border); border-radius: 8px;
-      background: rgba(255,255,255,0.02);
-    }
-    table tbody td {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
-      font-size: 12px; text-align: right;
-    }
-    table tbody td:last-child { border-bottom: none; }
-    table tbody td::before {
-      content: attr(data-label); font-weight: 600; color: var(--text-muted);
-      font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
-      text-align: left; margin-right: 12px; flex-shrink: 0;
-    }
+    .hide-mobile { display: none !important; }
     .heatmap-grid { gap: 3px; }
     .heatmap-cell { font-size: 10px; }
     .heatmap-label { font-size: 9px; padding: 2px; }
   }
   @media (max-width: 480px) {
-    table tbody td { font-size: 11px; }
-    table tbody td::before { font-size: 9px; }
     .heatmap-grid { gap: 2px; }
     .heatmap-cell { font-size: 9px; }
     .heatmap-label { font-size: 8px; }
@@ -2019,9 +2001,9 @@ function renderTransactions() {
   html += '<div class="card" style="overflow-x:auto"><table id="tx-table"><thead><tr>';
   html += '<th onclick="sortTxTable(\'date\')">Date</th>';
   html += '<th onclick="sortTxTable(\'merchant\')">Merchant</th>';
-  html += '<th onclick="sortTxTable(\'category\')">Category</th>';
-  html += '<th onclick="sortTxTable(\'amount\')">Amount</th>';
-  html += '<th>Source</th>';
+  html += '<th onclick="sortTxTable(\'category\')" class="hide-mobile">Category</th>';
+  html += '<th onclick="sortTxTable(\'amount\')" class="text-right">Amount</th>';
+  html += '<th class="text-center hide-mobile">Source</th>';
   html += '<th></th>';
   html += '</tr></thead><tbody id="tx-tbody"></tbody></table></div>';
   html += '<div id="tx-count" style="font-size:12px;color:var(--text-muted);margin-top:-12px;margin-bottom:20px"></div>';
@@ -2060,12 +2042,12 @@ function renderTxRows() {
   tbody.innerHTML = filtered.map(t => {
     const edited = edits[t.id];
     const editDot = edited ? '<span class="edit-dot" title="Edited"></span>' : '';
-    return '<tr><td data-label="Date" class="mono">' + t.date + '</td>' +
-      '<td data-label="Merchant" style="font-weight:600">' + t.merchant + editDot + '</td>' +
-      '<td data-label="Category"><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>' +
-      '<td data-label="Amount" class="amt">' + fmt(t.amount) + '</td>' +
-      '<td data-label="Source"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td>' +
-      '<td data-label=""><span class="edit-icon" onclick="event.stopPropagation();openEditModal(\'' + t.id + '\')">&#9998;</span></td></tr>';
+    return '<tr><td class="mono">' + t.date + '</td>' +
+      '<td style="font-weight:600">' + t.merchant + editDot + '</td>' +
+      '<td class="hide-mobile"><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>' +
+      '<td class="text-right amt">' + fmt(t.amount) + '</td>' +
+      '<td class="text-center hide-mobile"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td>' +
+      '<td><span class="edit-icon" onclick="event.stopPropagation();openEditModal(\'' + t.id + '\')">&#9998;</span></td></tr>';
   }).join('');
   const countEl = document.getElementById('tx-count');
   if (countEl) countEl.textContent = 'Showing ' + filtered.length + ' of ' + activeData.length + ' transactions' + (filtered.length !== activeData.length ? ' \u2022 Total: ' + fmt(filtered.reduce((s, t) => s + t.amount, 0)) : '');
@@ -2324,7 +2306,7 @@ function showMerchantDetail(merchantName, source) {
   // Price tracker (if multiple transactions)
   if (txs.length > 1) {
     html += '<div class="card"><div class="card-title">Amount Tracker</div>';
-    html += '<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Category</th><th>Amount</th><th>Change</th></tr></thead><tbody>';
+    html += '<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th class="hide-mobile">Category</th><th class="text-right">Amount</th><th class="text-right">Change</th></tr></thead><tbody>';
     txs.forEach((t, i) => {
       let changeHtml = '<span style="color:var(--text-muted)">\u2014</span>';
       if (i > 0) {
@@ -2334,23 +2316,23 @@ function showMerchantDetail(merchantName, source) {
         else if (diff < 0) changeHtml = '<span style="color:var(--green)">\u25BC ' + fmt(diff) + ' (' + pct + '%)</span>';
         else changeHtml = '<span style="color:var(--text-muted)">\u2014 no change</span>';
       }
-      html += '<tr><td data-label="Date" class="mono">' + t.date + '</td>';
-      html += '<td data-label="Category"><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>';
-      html += '<td data-label="Amount" class="amt">' + fmt(t.amount) + '</td>';
-      html += '<td data-label="Change" style="font-size:12px">' + changeHtml + '</td></tr>';
+      html += '<tr><td class="mono">' + t.date + '</td>';
+      html += '<td class="hide-mobile"><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>';
+      html += '<td class="text-right amt">' + fmt(t.amount) + '</td>';
+      html += '<td class="text-right" style="font-size:12px">' + changeHtml + '</td></tr>';
     });
     html += '</tbody></table></div></div>';
   }
 
   // All transactions
   html += '<div class="card"><div class="card-title">All Transactions (' + txs.length + ')</div>';
-  html += '<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th><th>Source</th></tr></thead><tbody>';
+  html += '<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th class="hide-mobile">Description</th><th>Category</th><th class="text-right">Amount</th><th class="hide-mobile">Source</th></tr></thead><tbody>';
   txs.forEach(t => {
-    html += '<tr><td data-label="Date" class="mono">' + t.date + '</td>';
-    html += '<td data-label="Description" style="font-size:12px;color:var(--text-muted)" title="' + (t.description || '').replace(/"/g, '&quot;') + '">' + (t.description || t.merchant) + '</td>';
-    html += '<td data-label="Category"><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>';
-    html += '<td data-label="Amount" class="amt">' + fmt(t.amount) + '</td>';
-    html += '<td data-label="Source"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td></tr>';
+    html += '<tr><td class="mono">' + t.date + '</td>';
+    html += '<td class="hide-mobile" style="font-size:12px;color:var(--text-muted);max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g, '&quot;') + '">' + (t.description || t.merchant) + '</td>';
+    html += '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>';
+    html += '<td class="text-right amt">' + fmt(t.amount) + '</td>';
+    html += '<td class="text-center hide-mobile"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td></tr>';
   });
   html += '</tbody></table></div></div>';
 
@@ -2424,14 +2406,14 @@ function showCategoryDetail(categoryName, source) {
 
   // All transactions
   html += '<div class="card"><div class="card-title">All Transactions (' + txs.length + ')</div>';
-  html += '<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Merchant</th><th>Description</th><th>Amount</th><th>Source</th></tr></thead><tbody>';
+  html += '<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Merchant</th><th class="hide-mobile">Description</th><th class="text-right">Amount</th><th class="hide-mobile">Source</th></tr></thead><tbody>';
   txs.forEach(t => {
     html += '<tr style="cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + t.merchant.replace(/'/g,"\\'") + '\',source:\'categories\'})">';
-    html += '<td data-label="Date" class="mono">' + t.date + '</td>';
-    html += '<td data-label="Merchant" style="font-weight:600">' + t.merchant + '</td>';
-    html += '<td data-label="Description" style="font-size:12px;color:var(--text-muted)" title="' + (t.description || '').replace(/"/g,'&quot;') + '">' + (t.description || t.merchant) + '</td>';
-    html += '<td data-label="Amount" class="amt">' + fmt(t.amount) + '</td>';
-    html += '<td data-label="Source"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td></tr>';
+    html += '<td class="mono">' + t.date + '</td>';
+    html += '<td style="font-weight:600">' + t.merchant + '</td>';
+    html += '<td class="hide-mobile" style="font-size:12px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g,'&quot;') + '">' + (t.description || t.merchant) + '</td>';
+    html += '<td class="text-right amt">' + fmt(t.amount) + '</td>';
+    html += '<td class="text-center hide-mobile"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td></tr>';
   });
   html += '</tbody></table></div></div>';
 
