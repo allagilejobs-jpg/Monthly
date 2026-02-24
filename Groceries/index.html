@@ -1,0 +1,2464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>January 2026 - Grocery & Toiletries Spend Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1b23;
+    --card-border: #2a2b35;
+    --text: #e4e4e7;
+    --text-muted: #71717a;
+    --green: #22c55e;
+    --green-dim: #16a34a;
+    --amber: #f59e0b;
+    --rose: #f43f5e;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+    --cyan: #06b6d4;
+    --teal: #14b8a6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  /* Header */
+  .header { margin-bottom: 28px; }
+  .header h1 {
+    font-size: 28px; font-weight: 700;
+    background: linear-gradient(135deg, #22c55e, #06b6d4);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header p { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+
+  /* Tab navigation */
+  .tabs {
+    display: flex; gap: 4px; margin-bottom: 24px;
+    background: var(--card); border-radius: 10px; padding: 4px;
+    border: 1px solid var(--card-border); width: fit-content;
+  }
+  .tab {
+    padding: 8px 20px; border-radius: 8px; border: none;
+    cursor: pointer; font-size: 13px; font-weight: 500;
+    background: transparent; color: var(--text-muted);
+    font-family: inherit; transition: all 0.2s;
+  }
+  .tab:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .tab.active {
+    background: rgba(34,197,94,0.15); color: var(--green);
+    box-shadow: 0 0 12px rgba(34,197,94,0.1);
+  }
+
+  /* KPI Cards */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px; margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 18px 20px;
+    cursor: pointer; transition: all 0.2s; position: relative;
+  }
+  .kpi-card:hover {
+    border-color: rgba(34,197,94,0.4);
+    background: rgba(255,255,255,0.04);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  .kpi-card:active { transform: translateY(0); }
+  .kpi-card::after {
+    content: "→";
+    position: absolute; top: 14px; right: 14px;
+    font-size: 14px; color: var(--text-muted); opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .kpi-card:hover::after { opacity: 1; }
+  .kpi-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 6px;
+  }
+  .kpi-value { font-size: 26px; font-weight: 700; }
+  .kpi-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  /* Cards */
+  .card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 20px 24px; margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--green); margin-bottom: 16px;
+  }
+
+  /* Grids */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  /* Chart container */
+  .chart-wrap { position: relative; height: 300px; }
+  .chart-wrap-sm { position: relative; height: 260px; }
+  .chart-wrap-tall { position: relative; height: 400px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; padding: 10px 14px; font-size: 11px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--green); border-bottom: 1px solid var(--card-border);
+    cursor: pointer; user-select: none;
+  }
+  thead th:hover { color: var(--cyan); }
+  tbody td {
+    padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+  .mono { font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 12px; }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+  .bold { font-weight: 700; }
+  .amt { color: var(--amber); font-weight: 700; }
+  .tag {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 2px 8px; border-radius: 4px;
+  }
+  .tag-grocery { background: rgba(34,197,94,0.12); color: var(--green); }
+  .tag-toiletry { background: rgba(168,85,247,0.12); color: var(--purple); }
+  .tag-nongrocery { background: rgba(244,63,94,0.12); color: var(--rose); }
+
+  /* Filter bar */
+  .filter-bar {
+    display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-bar select, .filter-bar input {
+    background: rgba(255,255,255,0.04); border: 1px solid var(--card-border);
+    border-radius: 8px; padding: 8px 14px; color: var(--text);
+    font-size: 13px; font-family: inherit; outline: none;
+    transition: border-color 0.2s;
+  }
+  .filter-bar select:focus, .filter-bar input:focus {
+    border-color: var(--green);
+  }
+  .filter-bar select option { background: var(--card); }
+  .btn-clear {
+    background: rgba(244,63,94,0.12); border: 1px solid rgba(244,63,94,0.25);
+    color: var(--rose); border-radius: 8px; padding: 8px 14px;
+    font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+
+  /* Legend dots */
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* Insight cards */
+  .insight {
+    background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.15);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 12px;
+    transition: all 0.2s;
+  }
+  .insight:hover {
+    border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.1);
+    transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .insight-title { font-size: 13px; font-weight: 700; color: var(--green); margin-bottom: 4px; }
+  .insight-text { font-size: 13px; color: var(--text-muted); }
+  .insight-val { color: var(--amber); font-weight: 700; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .container { padding: 14px; }
+    .header h1 { font-size: 20px; }
+    .header p { font-size: 12px; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .kpi-value { font-size: 20px; }
+    .kpi-card { padding: 14px 16px; }
+    .tabs {
+      width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; flex-wrap: nowrap;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab { padding: 8px 14px; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
+    .card { padding: 16px; margin-bottom: 14px; }
+    .card-title { font-size: 11px; margin-bottom: 12px; }
+    .chart-wrap { height: 260px; }
+    .chart-wrap-sm { height: 220px; }
+    .chart-wrap-tall { height: 320px; }
+    table { font-size: 12px; }
+    thead th { padding: 8px 10px; font-size: 10px; }
+    tbody td { padding: 8px 10px; font-size: 12px; }
+    .filter-bar select, .filter-bar input { font-size: 12px; padding: 7px 10px; width: 100%; }
+    .filter-bar { gap: 8px; }
+    .store-amount { font-size: 15px; min-width: 70px; }
+    .store-name { font-size: 13px; }
+    .insight { padding: 12px 14px; }
+    .insight-title { font-size: 12px; }
+    .insight-text { font-size: 12px; }
+  }
+  @media (max-width: 480px) {
+    .container { padding: 10px; }
+    .header h1 { font-size: 17px; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .kpi-value { font-size: 18px; }
+    .kpi-card { padding: 12px 14px; }
+    .kpi-label { font-size: 9px; letter-spacing: 1px; }
+    .kpi-sub { font-size: 11px; }
+    .chart-wrap { height: 220px; }
+    .chart-wrap-sm { height: 200px; }
+    .chart-wrap-tall { height: 280px; }
+    .tag { font-size: 8px; padding: 1px 5px; }
+  }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Progress bars */
+  .progress-bar {
+    height: 8px; border-radius: 4px; background: rgba(255,255,255,0.05);
+    overflow: hidden; margin-top: 6px;
+  }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+  .store-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 12px; margin: 0 -12px; border-bottom: 1px solid rgba(255,255,255,0.03);
+    border-radius: 8px; transition: all 0.2s;
+  }
+  .store-row:hover {
+    background: rgba(255,255,255,0.03);
+  }
+  .store-info { flex: 1; }
+  .store-name { font-size: 14px; font-weight: 600; }
+  .store-meta { font-size: 12px; color: var(--text-muted); }
+  .store-amount { font-size: 18px; font-weight: 700; color: var(--amber); text-align: right; min-width: 90px; }
+  .store-pct { font-size: 12px; color: var(--text-muted); text-align: right; min-width: 50px; }
+
+  /* Trip cards */
+  .trip-card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 18px 22px; margin-bottom: 12px;
+    cursor: pointer; transition: all 0.2s; position: relative;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 16px;
+  }
+  .trip-card:hover {
+    border-color: rgba(34,197,94,0.4); background: rgba(255,255,255,0.04);
+    transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  .trip-card:active { transform: translateY(0); }
+  .trip-left { flex: 1; min-width: 0; }
+  .trip-date { font-size: 18px; font-weight: 700; color: var(--green); }
+  .trip-store { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  .trip-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .trip-items-preview {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+  }
+  .trip-item-chip {
+    font-size: 11px; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;
+    padding: 3px 8px; color: var(--text-muted); white-space: nowrap;
+    max-width: 180px; overflow: hidden; text-overflow: ellipsis;
+  }
+  .trip-right { text-align: right; flex-shrink: 0; }
+  .trip-total { font-size: 22px; font-weight: 700; color: var(--amber); }
+  .trip-arrow { font-size: 18px; color: var(--text-muted); margin-top: 4px; }
+  .trip-detail-header {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 24px; margin-bottom: 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 16px;
+  }
+  .trip-detail-title { font-size: 22px; font-weight: 700; }
+  .trip-detail-store { font-size: 16px; color: var(--text-muted); margin-top: 4px; }
+  .trip-detail-total { font-size: 32px; font-weight: 700; color: var(--amber); }
+  .trip-detail-count { font-size: 13px; color: var(--text-muted); }
+  @media (max-width: 900px) {
+    .trip-card { padding: 14px 16px; gap: 12px; }
+    .trip-date { font-size: 15px; }
+    .trip-store { font-size: 13px; }
+    .trip-total { font-size: 18px; }
+    .trip-items-preview { display: none; }
+    .trip-detail-title { font-size: 18px; }
+    .trip-detail-total { font-size: 24px; }
+  }
+
+  /* Edit modal */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7); z-index: 1000;
+    justify-content: center; align-items: center; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 28px; max-width: 480px; width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .modal-title {
+    font-size: 16px; font-weight: 700; color: var(--green); margin-bottom: 20px;
+  }
+  .modal-field { margin-bottom: 16px; }
+  .modal-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-muted); margin-bottom: 6px; display: block;
+  }
+  .modal-input, .modal-select {
+    width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border);
+    border-radius: 8px; padding: 10px 14px; color: var(--text);
+    font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s;
+  }
+  .modal-input:focus, .modal-select:focus { border-color: var(--green); }
+  .modal-select option { background: var(--card); }
+  .modal-actions {
+    display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end;
+  }
+  .modal-btn {
+    padding: 10px 20px; border-radius: 8px; border: none;
+    font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: all 0.2s;
+  }
+  .modal-btn-cancel {
+    background: rgba(255,255,255,0.06); color: var(--text-muted);
+    border: 1px solid var(--card-border);
+  }
+  .modal-btn-cancel:hover { background: rgba(255,255,255,0.1); }
+  .modal-btn-save {
+    background: rgba(34,197,94,0.2); color: var(--green);
+    border: 1px solid rgba(34,197,94,0.3);
+  }
+  .modal-btn-save:hover { background: rgba(34,197,94,0.3); }
+  .modal-btn-reset {
+    background: rgba(244,63,94,0.12); color: var(--rose);
+    border: 1px solid rgba(244,63,94,0.25); margin-right: auto;
+  }
+  .modal-btn-reset:hover { background: rgba(244,63,94,0.2); }
+  .modal-original {
+    font-size: 11px; color: var(--text-muted); margin-top: 4px; font-style: italic;
+  }
+  .edit-icon {
+    display: inline-block; margin-left: 6px; font-size: 12px; color: var(--text-muted);
+    opacity: 0; transition: opacity 0.2s; cursor: pointer; vertical-align: middle;
+  }
+  tbody tr:hover .edit-icon { opacity: 1; }
+  .has-edit { position: relative; }
+  .edit-dot {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--cyan); margin-left: 6px; vertical-align: middle;
+  }
+
+  /* Month navigation */
+  .month-nav {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .month-nav select {
+    background: rgba(255,255,255,0.04); border: 1px solid var(--card-border);
+    border-radius: 8px; padding: 8px 14px; color: var(--text);
+    font-size: 14px; font-weight: 600; font-family: inherit; outline: none;
+  }
+  .month-nav select option { background: var(--card); }
+  .month-nav-btn {
+    border-radius: 8px; padding: 8px 16px; font-size: 13px;
+    font-weight: 600; cursor: pointer; font-family: inherit; border: none;
+    transition: all 0.2s;
+  }
+  .month-nav-btn:hover { transform: translateY(-1px); }
+
+  /* Upload modal */
+  .drop-zone {
+    border: 2px dashed var(--card-border); border-radius: 12px;
+    padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s;
+  }
+  .drop-zone.drag-over { border-color: var(--green); background: rgba(34,197,94,0.06); }
+  .drop-zone-icon { font-size: 32px; margin-bottom: 8px; }
+  .drop-zone-text { font-size: 14px; font-weight: 600; color: var(--text); }
+  .drop-zone-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  /* Compare delta cards */
+  .delta-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px; margin-bottom: 24px;
+  }
+  .delta-card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 18px 20px;
+  }
+  .delta-value { font-size: 22px; font-weight: 700; }
+  .delta-change { font-size: 13px; font-weight: 600; margin-top: 4px; }
+  .delta-up { color: var(--rose); }
+  .delta-down { color: var(--green); }
+  .delta-same { color: var(--text-muted); }
+
+  /* Help modal */
+  .help-section { margin-bottom: 20px; }
+  .help-section-title {
+    font-size: 13px; font-weight: 700; color: var(--green);
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--card-border);
+  }
+  .help-text { font-size: 13px; color: var(--text-muted); line-height: 1.7; }
+  .help-text strong { color: var(--text); }
+  .help-table {
+    width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px;
+  }
+  .help-table th {
+    text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px; color: var(--green);
+    border-bottom: 1px solid var(--card-border); background: rgba(34,197,94,0.04);
+  }
+  .help-table td {
+    padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.03);
+    color: var(--text-muted); vertical-align: top;
+  }
+  .help-table td:first-child { color: var(--text); font-weight: 600; white-space: nowrap; }
+  .help-chip {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 2px 8px; border-radius: 4px; margin: 2px 3px 2px 0;
+  }
+  .help-step {
+    display: flex; gap: 12px; margin-bottom: 14px;
+  }
+  .help-step-num {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(34,197,94,0.15); color: var(--green);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+  }
+  .help-step-text { font-size: 13px; color: var(--text-muted); line-height: 1.6; padding-top: 3px; }
+  .help-step-text strong { color: var(--text); }
+
+  @media (max-width: 900px) {
+    .month-nav { gap: 8px; }
+    .month-nav select { font-size: 13px; padding: 7px 10px; }
+    .month-nav-btn { font-size: 12px; padding: 7px 12px; }
+    .delta-grid { grid-template-columns: repeat(2, 1fr); }
+    .help-table { font-size: 11px; }
+    .help-table th, .help-table td { padding: 6px 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+    <div>
+      <h1 id="dashboard-title">Grocery & Toiletries Dashboard</h1>
+      <p id="dashboard-subtitle">Family spend analysis</p>
+    </div>
+    <a href="../Expenses/" style="font-size:13px;color:var(--blue);text-decoration:none;font-weight:600;padding:8px 16px;border:1px solid rgba(59,130,246,0.3);border-radius:8px;background:rgba(59,130,246,0.08);transition:all 0.2s;white-space:nowrap">All Expenses &rarr;</a>
+  </div>
+
+  <div class="month-nav" id="month-nav">
+    <select id="month-select"></select>
+    <button class="month-nav-btn" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3)" onclick="openUploadModal()">+ Upload Month</button>
+    <button class="month-nav-btn" style="background:rgba(255,255,255,0.04);color:var(--text-muted);border:1px solid var(--card-border)" onclick="openDataManager()">Manage Data</button>
+    <button class="month-nav-btn" style="background:rgba(59,130,246,0.12);color:var(--blue);border:1px solid rgba(59,130,246,0.25)" onclick="openHelpModal()">? Help</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-view="overview" onclick="showView('overview')">Overview</button>
+    <button class="tab" data-view="groceries" onclick="showView('groceries')">Groceries</button>
+    <button class="tab" data-view="toiletries" onclick="showView('toiletries')">Toiletries</button>
+    <button class="tab" data-view="stores" onclick="showView('stores')">By Store</button>
+    <button class="tab" data-view="trends" onclick="showView('trends')">Trends</button>
+    <button class="tab" data-view="trips" onclick="showView('trips')">Trips</button>
+    <button class="tab" data-view="items" onclick="showView('items')">All Items</button>
+    <button class="tab" data-view="compare" onclick="showView('compare')">Compare</button>
+  </div>
+
+  <!-- ==================== OVERVIEW ==================== -->
+  <div id="view-overview" class="view active">
+    <div class="kpi-grid" id="kpi-overview"></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Spending by Category</div>
+        <div class="chart-wrap"><canvas id="chart-cat-pie"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Spending by Store</div>
+        <div class="chart-wrap"><canvas id="chart-store-pie"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Weekly Spending Trend</div>
+        <div class="chart-wrap-sm"><canvas id="chart-weekly"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Grocery vs Toiletries vs Other</div>
+        <div class="chart-wrap-sm"><canvas id="chart-split"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Key Insights</div>
+      <div class="grid-3" id="insights"></div>
+    </div>
+  </div>
+
+  <!-- ==================== GROCERIES ==================== -->
+  <div id="view-groceries" class="view">
+    <div class="kpi-grid" id="kpi-grocery"></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Grocery Spending by Category</div>
+        <div class="chart-wrap"><canvas id="chart-grocery-cat"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Top 15 Grocery Items by Spend</div>
+        <div class="chart-wrap-tall"><canvas id="chart-grocery-top"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Frequently Purchased Grocery Items (2+ times)</div>
+      <div style="overflow-x:auto"><table id="table-grocery-freq"></table></div>
+    </div>
+  </div>
+
+  <!-- ==================== TOILETRIES ==================== -->
+  <div id="view-toiletries" class="view">
+    <div class="kpi-grid" id="kpi-toiletry"></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Toiletries Spending by Category</div>
+        <div class="chart-wrap-sm"><canvas id="chart-toiletry-cat"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Toiletries by Store</div>
+        <div class="chart-wrap-sm"><canvas id="chart-toiletry-store"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">All Toiletry & Household Items</div>
+      <div style="overflow-x:auto"><table id="table-toiletry-all"></table></div>
+    </div>
+  </div>
+
+  <!-- ==================== BY STORE ==================== -->
+  <div id="view-stores" class="view">
+    <div class="card">
+      <div class="card-title">Total Spend by Store</div>
+      <div class="chart-wrap-tall"><canvas id="chart-store-bar"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Store Breakdown</div>
+      <div id="store-breakdown"></div>
+    </div>
+  </div>
+
+  <!-- ==================== TRENDS ==================== -->
+  <div id="view-trends" class="view">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Daily Spending Pattern</div>
+        <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title" id="cumulative-title">Cumulative Spend</div>
+        <div class="chart-wrap"><canvas id="chart-cumulative"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Shopping Trips Per Week</div>
+        <div class="chart-wrap-sm"><canvas id="chart-trips-week"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Average Spend Per Trip by Store</div>
+        <div class="chart-wrap-sm"><canvas id="chart-avg-trip"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TRIPS ==================== -->
+  <div id="view-trips" class="view">
+    <div class="kpi-grid" id="kpi-trips"></div>
+    <div id="trips-list"></div>
+  </div>
+
+  <!-- ==================== TRIP DETAIL ==================== -->
+  <div id="view-trip-detail" class="view">
+    <div style="margin-bottom:16px">
+      <button onclick="showView('trips')" style="background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;padding:8px 16px;color:var(--green);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">← Back to All Trips</button>
+    </div>
+    <div id="trip-detail-content"></div>
+  </div>
+
+  <!-- ==================== ALL ITEMS ==================== -->
+  <div id="view-items" class="view">
+    <div class="filter-bar">
+      <select id="filter-date"><option value="All">All Dates</option></select>
+      <select id="filter-store"><option value="All">All Stores</option></select>
+      <select id="filter-cat"><option value="All">All Categories</option></select>
+      <select id="filter-type">
+        <option value="All">All Types</option>
+        <option value="Grocery">Grocery Only</option>
+        <option value="Toiletry">Toiletries Only</option>
+        <option value="Other">Other Non-Grocery</option>
+      </select>
+      <input type="text" id="filter-search" placeholder="Search items..." style="min-width:180px">
+      <button class="btn-clear" onclick="clearFilters()">Clear Filters</button>
+      <span id="filter-count" style="font-size:13px;color:var(--text-muted)"></span>
+    </div>
+    <div class="card">
+      <div style="overflow-x:auto"><table id="table-all"></table></div>
+    </div>
+  </div>
+
+  <!-- ==================== COMPARE ==================== -->
+  <div id="view-compare" class="view">
+    <div id="compare-content"></div>
+  </div>
+
+</div><!-- end container -->
+
+<!-- Upload Modal -->
+<div class="modal-overlay" id="upload-modal" onclick="if(event.target===this)closeUploadModal()">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">Upload Monthly Data</div>
+    <div class="drop-zone" id="drop-zone">
+      <div class="drop-zone-icon">&#128193;</div>
+      <div class="drop-zone-text">Drop your Excel file here or click to browse</div>
+      <div class="drop-zone-hint">Expects an "All Transactions" sheet with columns:<br>Date, Store, Receipt Name, Full Product Name, Category, Qty, Unit Price, Line Total, Non-Grocery?</div>
+      <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none">
+    </div>
+    <div id="upload-preview" style="display:none;margin-top:16px">
+      <div style="font-size:13px;color:var(--green);font-weight:700;margin-bottom:8px" id="upload-month-label"></div>
+      <div style="font-size:12px;color:var(--text-muted)" id="upload-stats"></div>
+      <div style="max-height:200px;overflow-y:auto;margin-top:12px;font-size:12px" id="upload-sample"></div>
+    </div>
+    <div id="upload-actions" style="display:none;margin-top:20px">
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" onclick="closeUploadModal()">Cancel</button>
+        <button class="modal-btn modal-btn-save" onclick="confirmUpload()">Import This Month</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Data Manager Modal -->
+<div class="modal-overlay" id="manager-modal" onclick="if(event.target===this)closeDataManager()">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">Data Manager</div>
+    <div style="margin-bottom:16px;font-size:12px;color:var(--text-muted)">
+      Data is stored in this browser's localStorage. It does not sync across devices.
+    </div>
+    <div id="manager-list"></div>
+    <div id="manager-usage" style="margin-top:12px;font-size:11px;color:var(--text-muted)"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="modal-btn modal-btn-cancel" onclick="closeDataManager()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal-overlay" id="help-modal" onclick="if(event.target===this)closeHelpModal()">
+  <div class="modal" style="max-width:740px;max-height:85vh;overflow-y:auto">
+    <div class="modal-title" style="font-size:18px">Receipt Analysis Methodology</div>
+    <div class="help-text" style="margin-bottom:20px">Reference guide for monthly receipt processing and Excel file preparation.</div>
+
+    <!-- 1. Data Collection -->
+    <div class="help-section">
+      <div class="help-section-title">1. Data Collection</div>
+      <div class="help-text">
+        Collect <strong>all receipt images</strong> for the month from every store. Receipts may come as:
+      </div>
+      <div class="help-text" style="margin-top:6px">
+        &#8226; Physical paper receipt photos<br>
+        &#8226; Digital screenshots from store apps<br>
+        &#8226; Online order confirmations
+      </div>
+      <div class="help-text" style="margin-top:8px">
+        Target stores include <strong>Walmart, Publix, Target, Costco</strong> (in-warehouse and online), <strong>Austell Farmers Market</strong>, and <strong>Instacart</strong> (covering Sprouts, Ingles, Costco delivery). Upload all receipt images at once for processing.<br><br>
+        <strong>New stores can be added at any time.</strong> If you shop at a new store in a future month, simply include those receipts &mdash; the dashboard will automatically pick up any new store names from the data. No configuration needed.
+      </div>
+    </div>
+
+    <!-- 2. Data Extraction -->
+    <div class="help-section">
+      <div class="help-section-title">2. Data Extraction</div>
+      <div class="help-text" style="margin-bottom:10px">
+        Every line item on every receipt is extracted. For each item, capture the following data points into the base table:
+      </div>
+      <div style="overflow-x:auto">
+        <table class="help-table">
+          <thead><tr><th>Column</th><th>Field Name</th><th>Description</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td>Date</td><td>MM/DD date from receipt timestamp</td><td>01/14</td></tr>
+            <tr><td>B</td><td>Store</td><td>Full store name as identified from receipt header</td><td>Publix</td></tr>
+            <tr><td>C</td><td>Receipt Name</td><td>Abbreviated name exactly as printed on receipt</td><td>OV GRASSMILK HG</td></tr>
+            <tr><td>D</td><td>Full Product Name</td><td>Decoded human-readable product name</td><td>Organic Valley Grassmilk Half Gallon</td></tr>
+            <tr><td>E</td><td>Category</td><td>Assigned category from the master category list</td><td>Dairy &amp; Eggs</td></tr>
+            <tr><td>F</td><td>Qty</td><td>Quantity purchased (count from receipt)</td><td>2</td></tr>
+            <tr><td>G</td><td>Unit Price</td><td>Price per single unit of the item</td><td>$7.19</td></tr>
+            <tr><td>H</td><td>Line Total</td><td>Qty &times; Unit Price (or receipt total for that line)</td><td>$14.38</td></tr>
+            <tr><td>I</td><td>Non-Grocery?</td><td>TRUE if item is not food/drink; FALSE if grocery</td><td>FALSE</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 3. Product Name Decoding -->
+    <div class="help-section">
+      <div class="help-section-title">3. Product Name Decoding</div>
+      <div class="help-text" style="margin-bottom:10px">
+        Receipts use heavily abbreviated product names. Each abbreviation must be decoded to its full product name. When a receipt abbreviation is ambiguous, use the <strong>UPC barcode number</strong> (printed on many receipts) to look up the exact product. For weight-based items (e.g., produce sold per pound), record the total line price as the Line Total.
+      </div>
+      <div style="overflow-x:auto">
+        <table class="help-table">
+          <thead><tr><th>Receipt Abbreviation</th><th>Decoded Name</th><th>Decoding Logic</th></tr></thead>
+          <tbody>
+            <tr><td>OV GRASSMILK HG</td><td>Organic Valley Grassmilk Half Gallon</td><td>Brand initials + product + size abbrev</td></tr>
+            <tr><td>MOOALA UNSW ALMDMK</td><td>Mooala Unsweetened Almond Milk</td><td>Brand + truncated descriptors</td></tr>
+            <tr><td>CHIFLE SWEET MAD</td><td>Chifles Sweet Maduro Plantain Chips</td><td>Brand + flavor abbreviation</td></tr>
+            <tr><td>PBX CHKN DMSTKS</td><td>Publix Chicken Drumsticks</td><td>Store brand abbrev + consonant-only words</td></tr>
+            <tr><td>KSOXIPOWDER</td><td>Kirkland Signature Oxi Powder</td><td>Brand initials concatenated with product</td></tr>
+            <tr><td>CPCKE 6CT CELEBRTN</td><td>Celebration Cupcakes 6-Count</td><td>Truncated words + count + truncated descriptor</td></tr>
+            <tr><td>JENGIBRE</td><td>Ginger Root</td><td>Spanish product name</td></tr>
+            <tr><td>DV MC TRFL</td><td>Dove Men+Care Body Wash</td><td>Brand initials + product initials</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 4. Category Assignment -->
+    <div class="help-section">
+      <div class="help-section-title">4. Category Assignment</div>
+      <div class="help-text" style="margin-bottom:10px">Every item is assigned exactly one category. Use these consistently across months for accurate comparisons. <strong>New categories can be added at any time</strong> &mdash; if a product doesn't fit an existing category, create a new one in the spreadsheet and the dashboard will automatically include it. You can also rename or recategorize items after uploading by clicking any item in the All Items tab.</div>
+
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px">GROCERY CATEGORIES</div>
+        <table class="help-table">
+          <thead><tr><th>Category</th><th>Includes</th></tr></thead>
+          <tbody>
+            <tr><td><span class="help-chip tag-grocery">Produce</span></td><td>Fresh fruits, vegetables, herbs, leafy greens, plantains, peppers, potatoes, onions</td></tr>
+            <tr><td><span class="help-chip tag-grocery">Dairy &amp; Eggs</span></td><td>Milk, almond milk, butter, cream, eggs, yogurt pouches</td></tr>
+            <tr><td><span class="help-chip tag-grocery">Meat &amp; Protein</span></td><td>Chicken, ground beef, goat meat, turkey wings</td></tr>
+            <tr><td><span class="help-chip tag-grocery">Bakery &amp; Bread</span></td><td>Bread loaves, brioche, pita, donuts, cupcakes</td></tr>
+            <tr><td><span class="help-chip tag-grocery">Snacks &amp; Chips</span></td><td>Chips, popcorn, granola bars, crackers, cookies, cashews, plantain chips</td></tr>
+            <tr><td><span class="help-chip tag-grocery">Candy &amp; Sweets</span></td><td>Chocolate bars, candy, PEZ, gummies, Sweethearts</td></tr>
+            <tr><td><span class="help-chip tag-grocery">Beverages</span></td><td>Juice, water packs, ginger ale, cold pressed juice</td></tr>
+            <tr><td><span class="help-chip tag-grocery">Frozen Desserts</span></td><td>Ice cream, popsicles, frozen treats</td></tr>
+            <tr><td><span class="help-chip tag-grocery">Frozen Foods</span></td><td>Frozen vegetables (okra, etc.)</td></tr>
+            <tr><td><span class="help-chip tag-grocery">Canned &amp; Packaged Foods</span></td><td>Canned beans, corn, soup, pasta sauce, tomato paste, instant noodles, pasta, broth</td></tr>
+            <tr><td><span class="help-chip tag-grocery">Baking &amp; Pantry</span></td><td>Flour, salt, spices, bay leaves, seasoning mixes, marshmallows</td></tr>
+            <tr><td><span class="help-chip tag-grocery">Cooking Oils &amp; Condiments</span></td><td>Olive oil, cooking oils</td></tr>
+            <tr><td><span class="help-chip tag-grocery">Breakfast &amp; Cereal</span></td><td>Cereal (Weetabix, etc.)</td></tr>
+            <tr><td><span class="help-chip tag-grocery">Baby Care (Food)</span></td><td>Baby food pouches like Once Upon a Farm (categorized as grocery)</td></tr>
+            <tr><td><span class="help-chip tag-grocery">Prepared Foods &amp; Deli</span></td><td>Deli items, prepared meals</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:6px">TOILETRY CATEGORIES (auto-classified by dashboard)</div>
+        <table class="help-table">
+          <thead><tr><th>Category</th><th>Includes</th></tr></thead>
+          <tbody>
+            <tr><td><span class="help-chip tag-toiletry">Health &amp; Beauty</span></td><td>Lip balm, body lotion, body wash, hair care products</td></tr>
+            <tr><td><span class="help-chip tag-toiletry">Household &amp; Cleaning</span></td><td>Dish soap, laundry detergent/pods, oxi powder, trash bags, flushable wipes, Ziploc bags</td></tr>
+            <tr><td><span class="help-chip tag-toiletry">Paper Products</span></td><td>Bath tissue, paper towels</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--rose);margin-bottom:6px">NON-GROCERY CATEGORIES (mark Non-Grocery? = TRUE)</div>
+        <table class="help-table">
+          <thead><tr><th>Category</th><th>Includes</th></tr></thead>
+          <tbody>
+            <tr><td><span class="help-chip tag-nongrocery">Electronics &amp; Batteries</span></td><td>Batteries (Duracell, etc.)</td></tr>
+            <tr><td><span class="help-chip tag-nongrocery">Clothing &amp; Apparel</span></td><td>Socks, clothing items</td></tr>
+            <tr><td><span class="help-chip tag-nongrocery">Baby Care (Non-Food)</span></td><td>Baby wipes</td></tr>
+            <tr><td><span class="help-chip tag-nongrocery">Toys</span></td><td>Children's toys</td></tr>
+            <tr><td><span class="help-chip tag-nongrocery">Housewares</span></td><td>Cups, bottles, kitchen items (Zak Designs, etc.)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="help-text" style="margin-top:10px">
+        Non-grocery items are highlighted in <strong style="color:#f59e0b">yellow</strong> in the spreadsheet and flagged <strong>TRUE</strong> in column I. This allows filtering to see pure food spending vs. total spending.
+      </div>
+    </div>
+
+    <!-- 5. Classification Logic -->
+    <div class="help-section">
+      <div class="help-section-title">5. Dashboard Classification Logic</div>
+      <div class="help-text">
+        The dashboard auto-classifies each item into one of three types:<br><br>
+        <strong style="color:var(--purple)">Toiletry</strong> &mdash; Any item whose Category is "Health &amp; Beauty", "Household &amp; Cleaning", or "Paper Products" (regardless of the Non-Grocery flag).<br><br>
+        <strong style="color:var(--green)">Grocery</strong> &mdash; Any item where Non-Grocery = FALSE and it's not a toiletry category.<br><br>
+        <strong style="color:var(--rose)">Other</strong> &mdash; Any item where Non-Grocery = TRUE and it's not a toiletry category (toys, electronics, clothing, etc.).
+      </div>
+    </div>
+
+    <!-- 6. Spreadsheet Structure -->
+    <div class="help-section">
+      <div class="help-section-title">6. Spreadsheet Structure (6 Sheets)</div>
+      <div class="help-text" style="margin-bottom:8px">Only <strong>Sheet 1 (All Transactions)</strong> is required for the dashboard upload. Sheets 2&ndash;6 are optional reference sheets for your own analysis.</div>
+
+      <div style="margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:4px">Sheet 1: All Transactions (REQUIRED)</div>
+        <div class="help-text">
+          &#8226; Every line item from every receipt, one row per item<br>
+          &#8226; Columns A through I as defined above<br>
+          &#8226; Sorted chronologically by date<br>
+          &#8226; Non-grocery rows highlighted in yellow (fill color FFF2CC)<br>
+          &#8226; Final row contains SUM formula for column H (grand total)
+        </div>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:4px">Sheet 2: By Store (optional)</div>
+        <div class="help-text">
+          Pivot on Store. For each store: Total Items (SUM of Qty), Number of Trips (COUNT of unique dates), Total Spent (SUM of Line Total), % of Total Spend. Sorted descending by Total Spent.
+        </div>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:4px">Sheet 3: By Category (optional)</div>
+        <div class="help-text">
+          Pivot on Category. For each category: Total Items, Total Spent, % of Total Spend, Grocery/Non-Grocery label. Non-grocery categories highlighted in yellow. Sorted descending by Total Spent.
+        </div>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:4px">Sheet 4: Top Spent Items (optional)</div>
+        <div class="help-text">
+          Group by Full Product Name. For each unique product: Total Qty Bought, Total Spent. Ranked by Total Spent descending (rank 1 = most expensive cumulative item).
+        </div>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:4px">Sheet 5: Frequently Purchased (optional)</div>
+        <div class="help-text">
+          Same as Sheet 4, but filtered to items where total quantity is 2 or more. Additional column: Avg Cost Per Unit (Total Spent &divide; Total Qty Bought). Sorted descending by Total Spent.
+        </div>
+      </div>
+
+      <div style="margin-bottom:4px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:4px">Sheet 6: Summary Dashboard (optional)</div>
+        <div class="help-text">Key metrics calculated from all data:</div>
+        <table class="help-table" style="margin-top:6px">
+          <thead><tr><th>Metric</th><th>Formula / Logic</th></tr></thead>
+          <tbody>
+            <tr><td>Total Spend (All Items)</td><td>SUM of all Line Total values</td></tr>
+            <tr><td>Total Grocery Spend</td><td>SUM of Line Total WHERE Non-Grocery = FALSE</td></tr>
+            <tr><td>Total Non-Grocery Spend</td><td>SUM of Line Total WHERE Non-Grocery = TRUE</td></tr>
+            <tr><td>Total Line Items</td><td>COUNT of all data rows (one per receipt line)</td></tr>
+            <tr><td>Total Items Purchased</td><td>SUM of all Qty values (accounts for qty &gt; 1)</td></tr>
+            <tr><td>Number of Stores</td><td>COUNT of unique values in Store column</td></tr>
+            <tr><td>Number of Trips</td><td>COUNT of unique (Store + Date) combinations</td></tr>
+            <tr><td>Average Spend Per Trip</td><td>Total Spend &divide; Number of Trips</td></tr>
+          </tbody>
+        </table>
+        <div class="help-text" style="margin-top:6px">Also includes: Top 10 most expensive items (by cumulative spend) and Top 10 most frequently purchased items (by total quantity).</div>
+      </div>
+    </div>
+
+    <!-- 7. Formatting Rules -->
+    <div class="help-section">
+      <div class="help-section-title">7. Formatting Rules</div>
+      <div class="help-text">
+        &#8226; All currency values formatted as <strong>$#,##0.00</strong><br>
+        &#8226; Percentage values formatted as <strong>0.0%</strong><br>
+        &#8226; Header rows: <strong>white text on dark blue fill (2F5496)</strong>, bold Arial 11pt<br>
+        &#8226; Data rows: Arial 10pt, light gray borders (D9D9D9)<br>
+        &#8226; Non-grocery rows: <strong style="color:#f59e0b">yellow highlight fill (FFF2CC)</strong><br>
+        &#8226; Grand total rows: bold font<br>
+        &#8226; Dates with asterisk (e.g., 01/25*) indicate estimated dates from damaged/unreadable receipts
+      </div>
+    </div>
+
+    <!-- 8. Monthly Replication -->
+    <div class="help-section" style="margin-bottom:0">
+      <div class="help-section-title">8. Monthly Replication Checklist</div>
+      <div class="help-step">
+        <div class="help-step-num">1</div>
+        <div class="help-step-text">Upload all receipt images for the month</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">2</div>
+        <div class="help-step-text">Extract and decode every line item using the same column structure</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">3</div>
+        <div class="help-step-text">Assign categories using the master category list (add new categories only if needed)</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">4</div>
+        <div class="help-step-text">Build the 6-sheet spreadsheet with identical formulas and formatting</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">5</div>
+        <div class="help-step-text">Click <strong>"+ Upload Month"</strong> on the dashboard and drop in the Excel file</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">6</div>
+        <div class="help-step-text">Verify receipt count matches the number of uploaded files</div>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="modal-btn modal-btn-cancel" onclick="closeHelpModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="edit-modal" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal">
+    <div class="modal-title" id="edit-modal-title">Edit Item</div>
+    <div class="modal-field">
+      <label class="modal-label">Product Name</label>
+      <input type="text" class="modal-input" id="edit-name">
+      <div class="modal-original" id="edit-original-name"></div>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Category</label>
+      <select class="modal-select" id="edit-category"></select>
+      <div class="modal-original" id="edit-original-cat"></div>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Type</label>
+      <select class="modal-select" id="edit-type">
+        <option value="false">Grocery</option>
+        <option value="true">Non-Grocery</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-reset" id="edit-reset-btn" onclick="resetEdit()">Reset to Original</button>
+      <button class="modal-btn modal-btn-cancel" onclick="closeEditModal()">Cancel</button>
+      <button class="modal-btn modal-btn-save" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────── MONTH CONSTANTS ───────────
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+// ─────────── SEED DATA (January 2026) ───────────
+const SEED_DATA = [
+  {d:"01/01",s:"Instacart (Sprouts)",r:"BOULDER AVO CHIPS",n:"Boulder Canyon Avocado Oil Chips",c:"Snacks & Chips",q:1,u:2.92,t:2.92,ng:false},
+  {d:"01/03",s:"Publix",r:"BRIOCHE SLICED LF",n:"Brioche Sliced Loaf",c:"Bakery & Bread",q:2,u:7.19,t:14.38,ng:false},
+  {d:"01/03",s:"Publix",r:"RING POPS ASSORTED",n:"Ring Pops Assorted Candy",c:"Candy & Sweets",q:2,u:1.00,t:2.00,ng:false},
+  {d:"01/03",s:"Publix",r:"DRUMSTICK SIMPLY",n:"Nestle Drumstick Simply Dipped",c:"Frozen Desserts",q:1,u:6.99,t:6.99,ng:false},
+  {d:"01/03",s:"Publix",r:"PRING SR/CRM/ONION",n:"Pringles Sour Cream & Onion",c:"Snacks & Chips",q:1,u:2.50,t:2.50,ng:false},
+  {d:"01/03",s:"Publix",r:"JENI'S ICE CREAM",n:"Jeni's Splendid Ice Cream",c:"Frozen Desserts",q:1,u:7.99,t:7.99,ng:false},
+  {d:"01/03",s:"Publix",r:"OV GRASSMILK HG",n:"Organic Valley Grassmilk Half Gallon",c:"Dairy & Eggs",q:1,u:7.19,t:7.19,ng:false},
+  {d:"01/03",s:"Publix",r:"PEZ CANDY SET",n:"PEZ Candy Dispenser Set",c:"Candy & Sweets",q:1,u:1.00,t:1.00,ng:false},
+  {d:"01/03",s:"Target",r:"FD CANDY",n:"Favorite Day Candy",c:"Candy & Sweets",q:1,u:1.39,t:1.39,ng:false},
+  {d:"01/03",s:"Target",r:"KINDER",n:"Kinder Chocolate",c:"Candy & Sweets",q:1,u:2.39,t:2.39,ng:false},
+  {d:"01/03",s:"Target",r:"KIT KAT SNGL",n:"Kit Kat Single Bar",c:"Candy & Sweets",q:1,u:1.99,t:1.99,ng:false},
+  {d:"01/03",s:"Target",r:"TAKIS",n:"Takis Rolled Tortilla Chips",c:"Snacks & Chips",q:1,u:2.24,t:2.24,ng:false},
+  {d:"01/03",s:"Target",r:"1.3ZIBDUOSTW",n:"Candy/Snack Item",c:"Candy & Sweets",q:1,u:3.79,t:3.79,ng:false},
+  {d:"01/03",s:"Target",r:"SKITTLES",n:"Skittles Candy",c:"Candy & Sweets",q:1,u:5.59,t:5.59,ng:false},
+  {d:"01/03",s:"Target",r:"EOS",n:"eos Lip Balm/Body Care",c:"Health & Beauty",q:2,u:7.24,t:14.48,ng:true},
+  {d:"01/03",s:"Target",r:"MY MINI",n:"My Mini Toy",c:"Toys",q:1,u:9.99,t:9.99,ng:true},
+  {d:"01/05",s:"Publix",r:"MOOALA UNSW ALMDMK",n:"Mooala Unsweetened Almond Milk",c:"Dairy & Eggs",q:2,u:4.99,t:9.98,ng:false},
+  {d:"01/06",s:"Walmart",r:"GV CUT OKRA",n:"Great Value Cut Okra (Frozen)",c:"Frozen Foods",q:6,u:1.54,t:9.24,ng:false},
+  {d:"01/06",s:"Walmart",r:"RED BELL",n:"Red Bell Peppers",c:"Produce",q:2,u:1.48,t:2.96,ng:false},
+  {d:"01/06",s:"Walmart",r:"PEPPER/ONIO",n:"Pepper & Onion Seasoning Mix",c:"Baking & Pantry",q:1,u:2.84,t:2.84,ng:false},
+  {d:"01/07",s:"Costco",r:"KS CASHEWS",n:"Kirkland Signature Cashews",c:"Snacks & Chips",q:1,u:9.99,t:9.99,ng:false},
+  {d:"01/07",s:"Costco",r:"OTTAVIO EVOO",n:"Ottavio Extra Virgin Olive Oil",c:"Cooking Oils & Condiments",q:1,u:21.58,t:21.58,ng:false},
+  {d:"01/08",s:"Publix",r:"OV GRASSMILK HG",n:"Organic Valley Grassmilk Half Gallon",c:"Dairy & Eggs",q:2,u:7.19,t:14.38,ng:false},
+  {d:"01/08",s:"Publix",r:"CRETORS POP CARMEL",n:"Cretors Caramel Popcorn",c:"Snacks & Chips",q:2,u:3.99,t:7.98,ng:false},
+  {d:"01/08",s:"Publix",r:"CHIFLE SWEET MAD",n:"Chifles Sweet Maduro Plantain Chips",c:"Snacks & Chips",q:2,u:5.99,t:11.98,ng:false},
+  {d:"01/08",s:"Publix",r:"MINI MARSHMALLOWS",n:"Mini Marshmallows",c:"Baking & Pantry",q:1,u:2.19,t:2.19,ng:false},
+  {d:"01/08",s:"Publix",r:"AM LENTILS OG RE",n:"Amy's Organic Lentil Soup",c:"Canned & Packaged Foods",q:1,u:7.19,t:7.19,ng:false},
+  {d:"01/08",s:"Publix",r:"CILANTRO",n:"Cilantro",c:"Produce",q:1,u:1.49,t:1.49,ng:false},
+  {d:"01/08",s:"Publix",r:"APPLES GRANNY SMIT",n:"Granny Smith Apples",c:"Produce",q:1,u:2.64,t:2.64,ng:false},
+  {d:"01/08",s:"Publix",r:"CUCUMBER HOT HOUSE",n:"Hot House Cucumber",c:"Produce",q:1,u:2.50,t:2.50,ng:false},
+  {d:"01/10",s:"Publix",r:"NUMBER 4 SILVER B",n:"Number 4 Silver B (Hair Care)",c:"Health & Beauty",q:1,u:12.99,t:12.99,ng:true},
+  {d:"01/10",s:"Publix",r:"ORGANIC STRWBRRIES",n:"Organic Strawberries",c:"Produce",q:1,u:6.99,t:6.99,ng:false},
+  {d:"01/10",s:"Publix",r:"ORGANIC BANANAS",n:"Organic Bananas",c:"Produce",q:1,u:1.47,t:1.47,ng:false},
+  {d:"01/10",s:"Publix",r:"ORG BLACKBERRIES",n:"Organic Blackberries",c:"Produce",q:1,u:6.99,t:6.99,ng:false},
+  {d:"01/10",s:"Publix",r:"SWEETHEARTS BAG",n:"Sweethearts Valentine Candy",c:"Candy & Sweets",q:1,u:4.19,t:4.19,ng:false},
+  {d:"01/10",s:"Publix",r:"GLAZED DONUT",n:"Glazed Donut",c:"Bakery & Bread",q:1,u:1.19,t:1.19,ng:false},
+  {d:"01/10",s:"Publix",r:"CPCKE 6CT CELEBRTN",n:"Celebration Cupcakes 6-Count",c:"Bakery & Bread",q:1,u:5.99,t:5.99,ng:false},
+  {d:"01/14",s:"Publix",r:"OV GRASSMILK HG",n:"Organic Valley Grassmilk Half Gallon",c:"Dairy & Eggs",q:1,u:7.19,t:7.19,ng:false},
+  {d:"01/14",s:"Publix",r:"MOOALA UNSW ALMDMK",n:"Mooala Unsweetened Almond Milk",c:"Dairy & Eggs",q:1,u:4.99,t:4.99,ng:false},
+  {d:"01/14",s:"Publix",r:"GOLD POTATO",n:"Gold/Yukon Potatoes",c:"Produce",q:1,u:6.99,t:6.99,ng:false},
+  {d:"01/14",s:"Publix",r:"ORG APPLES GALA",n:"Organic Gala Apples",c:"Produce",q:1,u:5.99,t:5.99,ng:false},
+  {d:"01/14",s:"Costco",r:"IRISH SPREAD",n:"Kerrygold Irish Butter",c:"Dairy & Eggs",q:1,u:12.59,t:12.59,ng:false},
+  {d:"01/14",s:"Costco",r:"KS BABY WIPE",n:"Kirkland Signature Baby Wipes",c:"Baby Care",q:1,u:19.99,t:19.99,ng:true},
+  {d:"01/14",s:"Costco",r:"KSOXIPOWDER",n:"Kirkland Oxi Laundry Powder",c:"Household & Cleaning",q:1,u:11.49,t:11.49,ng:true},
+  {d:"01/14",s:"Costco",r:"DM KRNL CORN",n:"Del Monte Kernel Corn (Canned)",c:"Canned & Packaged Foods",q:1,u:11.67,t:11.67,ng:false},
+  {d:"01/14",s:"Costco",r:"DURACELL AA",n:"Duracell AA Batteries",c:"Electronics & Batteries",q:1,u:19.99,t:19.99,ng:true},
+  {d:"01/14",s:"Costco",r:"PASTURE EGGS",n:"Pasture-Raised Eggs",c:"Dairy & Eggs",q:1,u:15.98,t:15.98,ng:false},
+  {d:"01/14",s:"Costco",r:"ORG PRESS",n:"Pulp & Press Organic Cold Pressed Juice",c:"Beverages",q:1,u:59.97,t:59.97,ng:false},
+  {d:"01/14",s:"Costco",r:"AVO OIL CHIP",n:"Avocado Oil Chips",c:"Snacks & Chips",q:1,u:6.49,t:6.49,ng:false},
+  {d:"01/14",s:"Costco",r:"TIDE OXIPODS",n:"Tide Oxi Pods Laundry Detergent",c:"Household & Cleaning",q:1,u:26.99,t:26.99,ng:true},
+  {d:"01/14",s:"Costco",r:"POTATOCHIPS",n:"Potato Chips",c:"Snacks & Chips",q:1,u:3.99,t:3.99,ng:false},
+  {d:"01/14",s:"Costco",r:"DAWN PLATINM",n:"Dawn Platinum Dish Soap",c:"Household & Cleaning",q:1,u:9.49,t:9.49,ng:true},
+  {d:"01/14",s:"Costco",r:"KS PURE SALT",n:"Kirkland Signature Sea Salt",c:"Baking & Pantry",q:1,u:3.29,t:3.29,ng:false},
+  {d:"01/14",s:"Costco",r:"ZIPLC SLIDER",n:"Ziploc Slider Bags",c:"Household & Cleaning",q:1,u:9.99,t:9.99,ng:true},
+  {d:"01/14",s:"Costco",r:"***KSWTR40PK",n:"Kirkland Signature Water 40-Pack",c:"Beverages",q:1,u:11.97,t:11.97,ng:false},
+  {d:"01/15",s:"Instacart (Ingles)",r:"WEETABIX",n:"Weetabix Whole Grain Cereal",c:"Breakfast & Cereal",q:1,u:14.70,t:14.70,ng:false},
+  {d:"01/16",s:"Publix",r:"TWIX COOKIE BAR",n:"Twix Cookie Bar",c:"Candy & Sweets",q:1,u:3.09,t:3.09,ng:false},
+  {d:"01/16",s:"Publix",r:"CELERY",n:"Celery",c:"Produce",q:1,u:2.49,t:2.49,ng:false},
+  {d:"01/16",s:"Publix",r:"PEARS BARTLETT",n:"Bartlett Pears",c:"Produce",q:1,u:4.99,t:4.99,ng:false},
+  {d:"01/16",s:"Publix",r:"STARBURST SOURS",n:"Starburst Sours Candy",c:"Candy & Sweets",q:1,u:3.67,t:3.67,ng:false},
+  {d:"01/16",s:"Publix",r:"BOOM POP KETTLE",n:"Boom Chicka Pop Kettle Corn",c:"Snacks & Chips",q:1,u:4.49,t:4.49,ng:false},
+  {d:"01/16",s:"Walmart",r:"TOMATO PAST",n:"Tomato Paste",c:"Canned & Packaged Foods",q:1,u:2.68,t:2.68,ng:false},
+  {d:"01/16",s:"Walmart",r:"GOLD KIWI",n:"Gold Kiwi Fruit",c:"Produce",q:1,u:4.97,t:4.97,ng:false},
+  {d:"01/16",s:"Walmart",r:"ORG BANANAS",n:"Organic Bananas",c:"Produce",q:1,u:1.29,t:1.29,ng:false},
+  {d:"01/16",s:"Walmart",r:"TOMATO",n:"Tomato",c:"Produce",q:1,u:1.01,t:1.01,ng:false},
+  {d:"01/16",s:"Walmart",r:"ORG SALAD",n:"Organic Salad Mix",c:"Produce",q:1,u:2.98,t:2.98,ng:false},
+  {d:"01/16",s:"Walmart",r:"RED BELL",n:"Red Bell Peppers",c:"Produce",q:4,u:1.48,t:5.92,ng:false},
+  {d:"01/16",s:"Walmart",r:"PIA",n:"Pita Bread",c:"Bakery & Bread",q:1,u:2.18,t:2.18,ng:false},
+  {d:"01/17",s:"Walmart",r:"OV GMILK",n:"Organic Valley Grassmilk Half Gallon",c:"Dairy & Eggs",q:2,u:6.67,t:13.34,ng:false},
+  {d:"01/17",s:"Costco",r:"ORG PRESS",n:"Pulp & Press Organic Cold Pressed Juice",c:"Beverages",q:1,u:59.97,t:59.97,ng:false},
+  {d:"01/17",s:"Instacart (Costco)",r:"ORG IMMUNITY BLNDS",n:"Organic Immunity Blends Juice",c:"Beverages",q:1,u:67.92,t:67.92,ng:false},
+  {d:"01/18",s:"Publix",r:"ORG BLACKBERRIES",n:"Organic Blackberries",c:"Produce",q:1,u:6.99,t:6.99,ng:false},
+  {d:"01/18",s:"Publix",r:"ORGANIC STRWBRRIES",n:"Organic Strawberries",c:"Produce",q:1,u:7.99,t:7.99,ng:false},
+  {d:"01/18",s:"Walmart",r:"JENGIBRE",n:"Ginger Root",c:"Produce",q:1,u:7.08,t:7.08,ng:false},
+  {d:"01/18",s:"Walmart",r:"DV MC TRFL",n:"Dove Men+Care Body Wash",c:"Health & Beauty",q:1,u:13.47,t:13.47,ng:true},
+  {d:"01/18",s:"Walmart",r:"3 MED LOAF",n:"Medium Bread Loaf",c:"Bakery & Bread",q:1,u:1.48,t:1.48,ng:false},
+  {d:"01/18",s:"Walmart",r:"MENS SOCKS",n:"Men's Socks",c:"Clothing & Apparel",q:2,u:11.73,t:23.46,ng:true},
+  {d:"01/19",s:"Publix",r:"JONNY POPS STAR SP",n:"JonnyPops Star-Shaped Popsicles",c:"Frozen Desserts",q:1,u:6.59,t:6.59,ng:false},
+  {d:"01/19",s:"Publix",r:"DRUMSTICK SIMPLY",n:"Nestle Drumstick Simply Dipped",c:"Frozen Desserts",q:1,u:6.99,t:6.99,ng:false},
+  {d:"01/19",s:"Publix",r:"BRIOCHE SLICED LF",n:"Brioche Sliced Loaf",c:"Bakery & Bread",q:1,u:7.19,t:7.19,ng:false},
+  {d:"01/19",s:"Publix",r:"PBX CHKN DMSTKS",n:"Publix Chicken Drumsticks",c:"Meat & Protein",q:1,u:10.21,t:10.21,ng:false},
+  {d:"01/19",s:"Publix",r:"MOOALA UNSW ALMDMK",n:"Mooala Unsweetened Almond Milk",c:"Dairy & Eggs",q:1,u:4.99,t:4.99,ng:false},
+  {d:"01/19",s:"Walmart",r:"EOS MNT/VNL",n:"eos Mint/Vanilla Lip Balm",c:"Health & Beauty",q:2,u:4.97,t:9.94,ng:true},
+  {d:"01/19",s:"Walmart",r:"PIA",n:"Pita Bread",c:"Bakery & Bread",q:2,u:2.18,t:4.36,ng:false},
+  {d:"01/19",s:"Target",r:"GG YOGURT",n:"GoGo squeeZ YogurtZ",c:"Dairy & Eggs",q:1,u:3.69,t:3.69,ng:false},
+  {d:"01/19",s:"Target",r:"ONCEUPONAFARM",n:"Once Upon a Farm Baby Food",c:"Baby Care",q:3,u:3.89,t:11.67,ng:false},
+  {d:"01/19",s:"Target",r:"VITAL FARMS",n:"Vital Farms Pasture-Raised Eggs",c:"Dairy & Eggs",q:1,u:9.99,t:9.99,ng:false},
+  {d:"01/19",s:"Target",r:"FD CHOCOLATE",n:"Favorite Day Chocolate",c:"Candy & Sweets",q:1,u:6.49,t:6.49,ng:false},
+  {d:"01/19",s:"Target",r:"GRAPES",n:"Grapes",c:"Produce",q:1,u:4.59,t:4.59,ng:false},
+  {d:"01/19",s:"Target",r:"ZAK DESIGNS",n:"Zak Designs Cup/Bottle",c:"Housewares",q:1,u:10.99,t:10.99,ng:true},
+  {d:"01/19",s:"Costco (Online)",r:"KS BATH TISSUE",n:"KS Bath Tissue 30 Rolls",c:"Paper Products",q:1,u:22.00,t:22.00,ng:true},
+  {d:"01/19",s:"Costco (Online)",r:"KS PAPER TOWELS",n:"KS Paper Towels 12 Rolls",c:"Paper Products",q:1,u:20.00,t:20.00,ng:true},
+  {d:"01/19",s:"Costco (Online)",r:"HONEST KIDS JUICE",n:"Honest Kids Organic Juice 40-ct",c:"Beverages",q:1,u:25.00,t:25.00,ng:false},
+  {d:"01/19",s:"Costco (Online)",r:"KS FLUSHABLE WIPES",n:"KS Flushable Wipes 640-ct",c:"Household & Cleaning",q:1,u:18.61,t:18.61,ng:true},
+  {d:"01/19",s:"Costco (Online)",r:"KS TRASH BAGS",n:"KS Kitchen Trash Bags 200-ct",c:"Household & Cleaning",q:1,u:25.00,t:25.00,ng:true},
+  {d:"01/21",s:"Walmart",r:"GINGER",n:"Ginger Root",c:"Produce",q:1,u:2.36,t:2.36,ng:false},
+  {d:"01/21",s:"Walmart",r:"GV ITEM",n:"Great Value Seasoning/Spice",c:"Baking & Pantry",q:1,u:1.32,t:1.32,ng:false},
+  {d:"01/21",s:"Walmart",r:"YLW ONION 3",n:"Yellow Onion 3 lb Bag",c:"Produce",q:1,u:2.84,t:2.84,ng:false},
+  {d:"01/21",s:"Walmart",r:"TOMATO",n:"Tomato",c:"Produce",q:1,u:0.61,t:0.61,ng:false},
+  {d:"01/21",s:"Austell Farmers Market",r:"PLANTAIN YELLOW",n:"Yellow Plantains",c:"Produce",q:1,u:6.32,t:6.32,ng:false},
+  {d:"01/21",s:"Austell Farmers Market",r:"RED BELL PEPPER LB",n:"Red Bell Peppers",c:"Produce",q:1,u:5.56,t:5.56,ng:false},
+  {d:"01/21",s:"Austell Farmers Market",r:"BEST OLOYIN HONEY",n:"Best Oloyin Honey Beans",c:"Canned & Packaged Foods",q:1,u:10.99,t:10.99,ng:false},
+  {d:"01/22",s:"Publix",r:"ORGANIC BANANAS",n:"Organic Bananas",c:"Produce",q:1,u:1.71,t:1.71,ng:false},
+  {d:"01/22",s:"Publix",r:"BRIOCHE SLICED LF",n:"Brioche Sliced Loaf",c:"Bakery & Bread",q:1,u:7.19,t:7.19,ng:false},
+  {d:"01/22",s:"Publix",r:"GNWSE PASTURE EGGS",n:"Greenwise Pasture-Raised Eggs",c:"Dairy & Eggs",q:1,u:7.29,t:7.29,ng:false},
+  {d:"01/23",s:"Publix",r:"BOOM POP KETTLE",n:"Boom Chicka Pop Kettle Corn",c:"Snacks & Chips",q:1,u:4.49,t:4.49,ng:false},
+  {d:"01/23",s:"Publix",r:"CHIFLE SWEET MAD",n:"Chifles Sweet Maduro Plantain Chips",c:"Snacks & Chips",q:2,u:5.99,t:11.98,ng:false},
+  {d:"01/23",s:"Publix",r:"MAV ORG GROUND BF",n:"Maverick Organic Ground Beef",c:"Meat & Protein",q:1,u:11.49,t:11.49,ng:false},
+  {d:"01/23",s:"Publix",r:"KA UNBLEACHED FLOU",n:"King Arthur Unbleached Flour",c:"Baking & Pantry",q:1,u:2.85,t:2.85,ng:false},
+  {d:"01/23",s:"Publix",r:"SMPL ML CHOC CHIP",n:"Simple Mills Chocolate Chip Cookies",c:"Snacks & Chips",q:1,u:4.99,t:4.99,ng:false},
+  {d:"01/23",s:"Publix",r:"CORN BI COLOR",n:"Bi-Color Sweet Corn",c:"Produce",q:1,u:4.49,t:4.49,ng:false},
+  {d:"01/23",s:"Walmart",r:"SWEET SALTY",n:"Sweet & Salty Granola Bars",c:"Snacks & Chips",q:2,u:3.54,t:7.08,ng:false},
+  {d:"01/23",s:"Walmart",r:"SEAGRAMS",n:"Seagram's Ginger Ale",c:"Beverages",q:1,u:6.94,t:6.94,ng:false},
+  {d:"01/23",s:"Walmart",r:"RED BELL",n:"Red Bell Peppers",c:"Produce",q:3,u:1.48,t:4.44,ng:false},
+  {d:"01/23",s:"Walmart",r:"GV 40PK",n:"Great Value Water 40-Pack",c:"Beverages",q:2,u:4.92,t:9.84,ng:false},
+  {d:"01/25",s:"Publix",r:"TOPPS PUSH POP",n:"Topps Push Pop Candy",c:"Candy & Sweets",q:1,u:2.34,t:2.34,ng:false},
+  {d:"01/25",s:"Publix",r:"MOOALA UNSW ALMDMK",n:"Mooala Unsweetened Almond Milk",c:"Dairy & Eggs",q:1,u:4.99,t:4.99,ng:false},
+  {d:"01/25",s:"Publix",r:"PUB PREM FUSILLI",n:"Publix Premium Fusilli Pasta",c:"Canned & Packaged Foods",q:1,u:2.99,t:2.99,ng:false},
+  {d:"01/25",s:"Publix",r:"HEINZ BAKED BEANS",n:"Heinz Baked Beans",c:"Canned & Packaged Foods",q:1,u:2.49,t:2.49,ng:false},
+  {d:"01/25",s:"Publix",r:"LINDT MILK CHOC",n:"Lindt Milk Chocolate Bar",c:"Candy & Sweets",q:1,u:5.50,t:5.50,ng:false},
+  {d:"01/25",s:"Publix",r:"ORG CUCUMBER WRAP",n:"Organic Cucumber",c:"Produce",q:2,u:2.99,t:5.98,ng:false},
+  {d:"01/25",s:"Publix",r:"CILANTRO",n:"Cilantro",c:"Produce",q:1,u:1.49,t:1.49,ng:false},
+  {d:"01/25",s:"Publix",r:"ORG APPLES GR SM",n:"Organic Granny Smith Apples",c:"Produce",q:1,u:5.99,t:5.99,ng:false},
+  {d:"01/25",s:"Publix",r:"ORG DANDELION GRNS",n:"Organic Dandelion Greens",c:"Produce",q:1,u:2.99,t:2.99,ng:false},
+  {d:"01/25",s:"Publix",r:"PRODUCE",n:"Produce Item",c:"Produce",q:1,u:3.99,t:3.99,ng:false},
+  {d:"01/25",s:"Publix",r:"GREEN LEAF LETTUCE",n:"Green Leaf Lettuce",c:"Produce",q:1,u:2.49,t:2.49,ng:false},
+  {d:"01/25",s:"Publix",r:"DONUT",n:"Donut (Bakery)",c:"Bakery & Bread",q:1,u:3.57,t:3.57,ng:false},
+  {d:"01/25",s:"Publix",r:"ITEM YELL",n:"Yellow Squash/Produce",c:"Produce",q:1,u:4.99,t:4.99,ng:false},
+  {d:"01/26",s:"Walmart",r:"TOMATO PAST",n:"Tomato Paste",c:"Canned & Packaged Foods",q:2,u:3.43,t:6.86,ng:false},
+  {d:"01/26",s:"Walmart",r:"RED BELL",n:"Red Bell Peppers",c:"Produce",q:4,u:1.48,t:5.92,ng:false},
+  {d:"01/26",s:"Austell Farmers Market",r:"TURKEY CUT WINGS",n:"Turkey Cut Wings",c:"Meat & Protein",q:2,u:8.13,t:16.25,ng:false},
+  {d:"01/26",s:"Austell Farmers Market",r:"PLANTAIN GREEN",n:"Green Plantains",c:"Produce",q:1,u:6.90,t:6.90,ng:false},
+  {d:"01/26",s:"Austell Farmers Market",r:"INDOMIE 40PK",n:"Indomie Instant Noodles 40-Pack",c:"Canned & Packaged Foods",q:1,u:19.99,t:19.99,ng:false},
+  {d:"01/26",s:"Austell Farmers Market",r:"BADIA BAY LEAVES",n:"Badia Bay Leaves",c:"Baking & Pantry",q:1,u:6.49,t:6.49,ng:false},
+  {d:"01/26",s:"Austell Farmers Market",r:"HABANERO RED",n:"Habanero Red Peppers",c:"Produce",q:1,u:4.15,t:4.15,ng:false},
+  {d:"01/26",s:"Austell Farmers Market",r:"GOAT STEW MEAT",n:"Goat Stew Meat (Bone-In)",c:"Meat & Protein",q:3,u:21.76,t:65.28,ng:false},
+  {d:"01/27",s:"Walmart",r:"OV GMILK",n:"Organic Valley Grassmilk Half Gallon",c:"Dairy & Eggs",q:2,u:6.67,t:13.34,ng:false},
+  {d:"01/27",s:"Walmart",r:"PRG ORG",n:"Prego Organic Pasta Sauce",c:"Canned & Packaged Foods",q:1,u:2.27,t:2.27,ng:false},
+  {d:"01/31",s:"Publix",r:"PUBLIX HVY WHP CRM",n:"Publix Heavy Whipping Cream",c:"Dairy & Eggs",q:1,u:3.50,t:3.50,ng:false},
+  {d:"01/31",s:"Publix",r:"GHIR DRK CARAMEL",n:"Ghirardelli Dark Choc Caramel",c:"Candy & Sweets",q:1,u:5.50,t:5.50,ng:false},
+  {d:"01/31",s:"Publix",r:"LINDT MILK CHOC",n:"Lindt Milk Chocolate Bar",c:"Candy & Sweets",q:1,u:5.50,t:5.50,ng:false},
+  {d:"01/31",s:"Publix",r:"ORGANIC BLUEBERRIE",n:"Organic Blueberries",c:"Produce",q:1,u:5.00,t:5.00,ng:false},
+  {d:"01/31",s:"Publix",r:"BONE BRO",n:"Bone Broth",c:"Canned & Packaged Foods",q:1,u:3.99,t:3.99,ng:false},
+  {d:"01/31",s:"Walmart",r:"EOS VAN 160",n:"eos Vanilla Body Lotion",c:"Health & Beauty",q:1,u:9.97,t:9.97,ng:true},
+  {d:"01/31",s:"Walmart",r:"SWEET SALTY",n:"Sweet & Salty Granola Bars",c:"Snacks & Chips",q:2,u:3.54,t:7.08,ng:false},
+  {d:"01/31",s:"Walmart",r:"GV JCE",n:"Great Value Juice",c:"Beverages",q:2,u:3.24,t:6.48,ng:false},
+];
+
+// ─────────── CLASSIFICATION ───────────
+const TOILETRY_CATS = ["Health & Beauty", "Household & Cleaning", "Paper Products"];
+
+function itemType(item) {
+  if (TOILETRY_CATS.includes(item.c)) return "toiletry";
+  if (!item.ng) return "grocery";
+  return "other";
+}
+
+// ─────────── UTILITIES ───────────
+const fmt = v => "$" + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+const pct = (v, total) => total > 0 ? (v / total * 100).toFixed(1) + "%" : "0%";
+const sum = arr => arr.reduce((s, i) => s + i.t, 0);
+const formatBytes = b => b < 1024 ? b + " B" : (b / 1024).toFixed(1) + " KB";
+
+const STORE_COLORS_BASE = {
+  "Publix": "#4ade80",
+  "Costco": "#f87171",
+  "Costco (Online)": "#fb923c",
+  "Target": "#f43f5e",
+  "Walmart": "#60a5fa",
+  "Instacart (Sprouts)": "#34d399",
+  "Instacart (Ingles)": "#fb923c",
+  "Instacart (Costco)": "#f97316",
+  "Austell Farmers Market": "#fbbf24",
+};
+const STORE_COLORS_DYNAMIC = {};
+const STORE_COLOR_POOL = ["#06b6d4","#ec4899","#8b5cf6","#10b981","#eab308","#0ea5e9","#d946ef","#84cc16","#e11d48","#0891b2"];
+let storeColorIdx = 0;
+const STORE_COLORS = new Proxy({}, {
+  get(_, name) {
+    if (STORE_COLORS_BASE[name]) return STORE_COLORS_BASE[name];
+    if (!STORE_COLORS_DYNAMIC[name]) {
+      STORE_COLORS_DYNAMIC[name] = STORE_COLOR_POOL[storeColorIdx % STORE_COLOR_POOL.length];
+      storeColorIdx++;
+    }
+    return STORE_COLORS_DYNAMIC[name];
+  }
+});
+
+const PALETTE = [
+  "#22c55e","#3b82f6","#f59e0b","#ef4444","#a855f7",
+  "#06b6d4","#ec4899","#14b8a6","#f97316","#8b5cf6",
+  "#10b981","#6366f1","#eab308","#e11d48","#0ea5e9",
+  "#84cc16","#d946ef","#f43f5e","#0891b2","#a3e635",
+];
+
+const COMPARE_COLORS = ["#22c55e","#3b82f6","#f59e0b","#ef4444","#a855f7","#06b6d4","#ec4899","#14b8a6"];
+
+// ─────────── MONTH CONTEXT & STORAGE ───────────
+let ctx = null;
+let activeData = [];
+let groceries = [], toiletries = [], others = [];
+let grandTotal = 0, groceryTotal = 0, toiletryTotal = 0, otherTotal = 0;
+let allTrips = [];
+let ALL_CATEGORIES = [];
+let filtersInitialized = false;
+
+function buildMonthContext(monthKey) {
+  const [yearStr, monthStr] = monthKey.split("_");
+  const year = parseInt(yearStr);
+  const month = parseInt(monthStr);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const weeks = [];
+  for (let start = 1; start <= daysInMonth; start += 7) {
+    const end = Math.min(start + 6, daysInMonth);
+    weeks.push({
+      name: "Week " + (weeks.length + 1) + " (" + start + "-" + end + ")",
+      label: "Week " + (weeks.length + 1) + " \u2014 " + MONTH_ABBR[month - 1] + " " + start + "\u2013" + end,
+      min: start, max: end
+    });
+  }
+  return { month, year, monthName: MONTH_NAMES[month - 1], monthAbbr: MONTH_ABBR[month - 1], daysInMonth, weeks, editsKey: "edits_" + monthKey, storageKey: "data_" + monthKey, monthKey };
+}
+
+function getLoadedMonths() {
+  return JSON.parse(localStorage.getItem("grocery_months") || '["2026_01"]').sort();
+}
+
+function loadMonthData(monthKey) {
+  const stored = localStorage.getItem("data_" + monthKey);
+  if (stored) return JSON.parse(stored);
+  if (monthKey === "2026_01") return SEED_DATA.map(i => Object.assign({}, i));
+  return null;
+}
+
+function initMonthData(data) {
+  data.forEach((item, idx) => { item._idx = idx; item._origName = item.n; item._origCat = item.c; item._origNg = item.ng; });
+  const savedEdits = JSON.parse(localStorage.getItem(ctx.editsKey) || "{}");
+  Object.entries(savedEdits).forEach(([idx, edits]) => {
+    const i = parseInt(idx);
+    if (data[i]) {
+      if (edits.n !== undefined) data[i].n = edits.n;
+      if (edits.c !== undefined) data[i].c = edits.c;
+      if (edits.ng !== undefined) data[i].ng = edits.ng;
+    }
+  });
+}
+
+function recomputeAll() {
+  groceries = activeData.filter(i => itemType(i) === "grocery");
+  toiletries = activeData.filter(i => itemType(i) === "toiletry");
+  others = activeData.filter(i => itemType(i) === "other");
+  grandTotal = sum(activeData);
+  groceryTotal = sum(groceries);
+  toiletryTotal = sum(toiletries);
+  otherTotal = sum(others);
+  allTrips = buildTrips();
+  ALL_CATEGORIES = [...new Set(activeData.map(i => i._origCat))].sort();
+}
+
+function destroyAllCharts() {
+  Object.values(charts).forEach(c => { if (c && c.destroy) c.destroy(); });
+  charts = {};
+}
+
+function updateHeader() {
+  document.title = ctx.monthName + " " + ctx.year + " - Grocery & Toiletries Spend Dashboard";
+  document.getElementById("dashboard-title").textContent = ctx.monthName + " " + ctx.year + " Grocery & Toiletries Dashboard";
+  const stores = [...new Set(activeData.map(i => i.s))];
+  const trips = [...new Set(activeData.map(i => i.d + "|" + i.s))].length;
+  document.getElementById("dashboard-subtitle").innerHTML = "Family spend analysis across " + stores.length + " stores &bull; " + trips + " shopping trips &bull; " + activeData.length + " items purchased";
+  document.getElementById("cumulative-title").textContent = "Cumulative Spend Over " + ctx.monthName;
+}
+
+function buildMonthSelector() {
+  const months = getLoadedMonths();
+  const select = document.getElementById("month-select");
+  select.innerHTML = months.map(key => {
+    const [y, m] = key.split("_");
+    const name = MONTH_NAMES[parseInt(m) - 1] + " " + y;
+    return '<option value="' + key + '"' + (key === ctx.monthKey ? ' selected' : '') + '>' + name + '</option>';
+  }).join("");
+  select.onchange = function() { switchMonth(this.value); };
+}
+
+function switchMonth(monthKey) {
+  const data = loadMonthData(monthKey);
+  if (!data) { alert("No data found for this month."); return; }
+  localStorage.setItem("grocery_activeMonth", monthKey);
+  ctx = buildMonthContext(monthKey);
+  activeData = data;
+  initMonthData(activeData);
+  recomputeAll();
+  destroyAllCharts();
+  updateHeader();
+  buildMonthSelector();
+  filtersInitialized = false;
+  renderAll();
+  showView("overview");
+}
+
+function renderAll() {
+  renderOverview();
+  renderGroceries();
+  renderToiletries();
+  renderStores();
+  renderTrends();
+  renderTrips();
+  renderAllItems();
+  renderCompare();
+}
+
+// Migrate old edit key on first load
+(function migrateEdits() {
+  const old = localStorage.getItem("dashboardEdits");
+  if (old) {
+    localStorage.setItem("edits_2026_01", old);
+    localStorage.removeItem("dashboardEdits");
+  }
+})();
+
+function groupBy(arr, key) {
+  const m = {};
+  arr.forEach(i => {
+    const k = typeof key === "function" ? key(i) : i[key];
+    if (!m[k]) m[k] = { items: [], total: 0, qty: 0 };
+    m[k].items.push(i);
+    m[k].total += i.t;
+    m[k].qty += i.q;
+  });
+  return Object.entries(m).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.total - a.total);
+}
+
+function groupProducts(arr) {
+  const m = {};
+  arr.forEach(i => {
+    if (!m[i.n]) m[i.n] = { name: i.n, cat: i.c, total: 0, qty: 0, count: 0 };
+    m[i.n].total += i.t;
+    m[i.n].qty += i.q;
+    m[i.n].count++;
+  });
+  return Object.values(m).sort((a, b) => b.total - a.total);
+}
+
+// ─────────── CHART.JS DEFAULTS ───────────
+Chart.defaults.color = "#71717a";
+Chart.defaults.borderColor = "rgba(255,255,255,0.06)";
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.pointStyle = "circle";
+Chart.defaults.plugins.legend.labels.padding = 16;
+
+const isMobile = window.innerWidth <= 900;
+const legendPos = isMobile ? "bottom" : "right";
+
+// ─────────── TAB SWITCHING ───────────
+let charts = {};
+function showView(id, filterType, filterOpts) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  // Highlight the matching tab (trip-detail highlights "Trips" tab)
+  const tabId = id === 'trip-detail' ? 'trips' : id;
+  document.querySelectorAll('.tab').forEach(t => {
+    if (t.getAttribute('data-view') === tabId) t.classList.add('active');
+  });
+  // Apply filters when navigating to items view
+  if (id === 'items') {
+    // Reset filters first
+    document.getElementById('filter-date').value = "All";
+    document.getElementById('filter-store').value = "All";
+    document.getElementById('filter-cat').value = "All";
+    document.getElementById('filter-type').value = "All";
+    document.getElementById('filter-search').value = "";
+    if (filterType) document.getElementById('filter-type').value = filterType;
+    if (filterOpts) {
+      if (filterOpts.date) document.getElementById('filter-date').value = filterOpts.date;
+      if (filterOpts.store) document.getElementById('filter-store').value = filterOpts.store;
+      if (filterOpts.cat) document.getElementById('filter-cat').value = filterOpts.cat;
+    }
+    renderTable();
+  }
+  // Resize charts after view switch
+  setTimeout(() => { Object.values(charts).forEach(c => c.resize && c.resize()); }, 50);
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Helper to make a chart clickable - navigates to items filtered by the clicked segment
+function makeChartClickable(chart, canvas, labels, filterKey) {
+  canvas.style.cursor = "pointer";
+  canvas.addEventListener("click", (evt) => {
+    const points = chart.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
+    if (points.length > 0) {
+      const idx = points[0].index;
+      const label = labels[idx];
+      const opts = {};
+      opts[filterKey] = label;
+      showView("items", null, opts);
+    }
+  });
+}
+
+// ─────────── RENDER ON LOAD ───────────
+window.addEventListener("DOMContentLoaded", () => {
+  const activeMonthKey = localStorage.getItem("grocery_activeMonth") || "2026_01";
+  ctx = buildMonthContext(activeMonthKey);
+  activeData = loadMonthData(activeMonthKey) || SEED_DATA.map(i => Object.assign({}, i));
+  initMonthData(activeData);
+  recomputeAll();
+  updateHeader();
+  buildMonthSelector();
+  renderAll();
+});
+
+// ─────────── OVERVIEW ───────────
+function renderOverview() {
+  const stores = [...new Set(activeData.map(i => i.s))];
+  const trips = [...new Set(activeData.map(i => i.d + "|" + i.s))].length;
+
+  document.getElementById("kpi-overview").innerHTML = [
+    { label: "Total Spend", value: fmt(grandTotal), color: "var(--green)", sub: `${activeData.length} line items`, nav: "items", navLabel: "View all items" },
+    { label: "Groceries", value: fmt(groceryTotal), color: "var(--green)", sub: pct(groceryTotal, grandTotal) + " of total", nav: "groceries", navLabel: "View groceries" },
+    { label: "Toiletries", value: fmt(toiletryTotal), color: "var(--purple)", sub: pct(toiletryTotal, grandTotal) + " of total", nav: "toiletries", navLabel: "View toiletries" },
+    { label: "Other Non-Grocery", value: fmt(otherTotal), color: "var(--rose)", sub: pct(otherTotal, grandTotal) + " of total", nav: "items", filter: "Other", navLabel: "View other items" },
+    { label: "Shopping Trips", value: trips, color: "var(--cyan)", sub: `Avg ${fmt(grandTotal / trips)}/trip`, nav: "trends", navLabel: "View trends" },
+    { label: "Stores Visited", value: stores.length, color: "var(--amber)", sub: "Publix most frequent", nav: "stores", navLabel: "View stores" },
+  ].map(k => `
+    <div class="kpi-card" onclick="showView('${k.nav}'${k.filter ? ",'" + k.filter + "'" : ''})" title="${k.navLabel}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value" style="color:${k.color}">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join("");
+
+  // Category pie
+  const catGroups = groupBy(activeData, "c");
+  charts.catPie = new Chart(document.getElementById("chart-cat-pie"), {
+    type: "doughnut",
+    data: {
+      labels: catGroups.map(g => g.name),
+      datasets: [{ data: catGroups.map(g => +g.total.toFixed(2)), backgroundColor: catGroups.map((_, i) => PALETTE[i % PALETTE.length]), borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: "55%",
+      plugins: {
+        legend: { position: legendPos, labels: { font: { size: 11 }, padding: 8 } },
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, grandTotal)})` } }
+      }
+    }
+  });
+
+  makeChartClickable(charts.catPie, document.getElementById("chart-cat-pie"), catGroups.map(g => g.name), "cat");
+
+  // Store pie
+  const storeGroups = groupBy(activeData, "s");
+  charts.storePie = new Chart(document.getElementById("chart-store-pie"), {
+    type: "doughnut",
+    data: {
+      labels: storeGroups.map(g => g.name),
+      datasets: [{ data: storeGroups.map(g => +g.total.toFixed(2)), backgroundColor: storeGroups.map(g => STORE_COLORS[g.name] || "#888"), borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: "55%",
+      plugins: {
+        legend: { position: legendPos, labels: { font: { size: 11 }, padding: 8 } },
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, grandTotal)})` } }
+      }
+    }
+  });
+
+  makeChartClickable(charts.storePie, document.getElementById("chart-store-pie"), storeGroups.map(g => g.name), "store");
+
+  // Weekly bar
+  const weeks = ctx.weeks;
+  const weeklyData = weeks.map(w => {
+    const items = activeData.filter(i => { const day = parseInt(i.d.split("/")[1]); return day >= w.min && day <= w.max; });
+    const g = items.filter(i => itemType(i) === "grocery");
+    const t = items.filter(i => itemType(i) === "toiletry");
+    return { name: w.name, grocery: +sum(g).toFixed(2), toiletry: +sum(t).toFixed(2) };
+  });
+  charts.weekly = new Chart(document.getElementById("chart-weekly"), {
+    type: "bar",
+    data: {
+      labels: weeklyData.map(w => w.name),
+      datasets: [
+        { label: "Groceries", data: weeklyData.map(w => w.grocery), backgroundColor: "#22c55e", borderRadius: 6 },
+        { label: "Toiletries", data: weeklyData.map(w => w.toiletry), backgroundColor: "#a855f7", borderRadius: 6 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { stacked: true }, y: { stacked: true, ticks: { callback: v => "$" + v } } },
+      plugins: { tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt(ctx.raw)}` } } }
+    }
+  });
+
+  // Grocery/Toiletry/Other split
+  charts.split = new Chart(document.getElementById("chart-split"), {
+    type: "doughnut",
+    data: {
+      labels: ["Groceries", "Toiletries", "Other Non-Grocery"],
+      datasets: [{
+        data: [+groceryTotal.toFixed(2), +toiletryTotal.toFixed(2), +otherTotal.toFixed(2)],
+        backgroundColor: ["#22c55e", "#a855f7", "#f43f5e"],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: "60%",
+      plugins: {
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, grandTotal)})` } }
+      }
+    }
+  });
+
+  // Make split chart clickable - Groceries/Toiletries/Other navigate to respective tabs
+  const splitCanvas = document.getElementById("chart-split");
+  splitCanvas.style.cursor = "pointer";
+  splitCanvas.addEventListener("click", (evt) => {
+    const points = charts.split.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
+    if (points.length > 0) {
+      const idx = points[0].index;
+      if (idx === 0) showView("groceries");
+      else if (idx === 1) showView("toiletries");
+      else showView("items", "Other");
+    }
+  });
+
+  // Insights
+  const topCat = catGroups[0];
+  const topStore = storeGroups[0];
+  const products = groupProducts(activeData);
+  const topProduct = products[0];
+  const freqProducts = products.filter(p => p.count >= 2);
+  const avgTrip = grandTotal / [...new Set(activeData.map(i => i.d + "|" + i.s))].length;
+  const biggestDay = groupBy(activeData, "d").sort((a,b) => b.total - a.total)[0];
+
+  document.getElementById("insights").innerHTML = [
+    { title: "Top Category", text: `<span class="insight-val">${topCat.name}</span> at ${fmt(topCat.total)} (${pct(topCat.total, grandTotal)} of total spend)`, action: `showView('items',null,{cat:'${topCat.name}'})` },
+    { title: "Most Spent at Store", text: `<span class="insight-val">${topStore.name}</span> across ${topStore.items.length} items totaling ${fmt(topStore.total)}`, action: `showView('items',null,{store:'${topStore.name}'})` },
+    { title: "Costliest Single Product", text: `<span class="insight-val">${topProduct.name}</span> &mdash; ${fmt(topProduct.total)} total (qty ${topProduct.qty})`, action: `showView('items',null,{cat:'${topProduct.cat}'})` },
+    { title: "Biggest Shopping Day", text: `<span class="insight-val">${ctx.monthAbbr} ${parseInt(biggestDay.name.split("/")[1])}</span> &mdash; ${fmt(biggestDay.total)} spent across ${biggestDay.items.length} items`, action: `showView('items',null,{date:'${biggestDay.name}'})` },
+    { title: "Repeat Purchases", text: `<span class="insight-val">${freqProducts.length} products</span> bought 2+ times, totaling ${fmt(freqProducts.reduce((s,p) => s + p.total, 0))}`, action: `showView('groceries')` },
+    { title: "Toiletries Share", text: `Household, beauty & paper products accounted for <span class="insight-val">${fmt(toiletryTotal)}</span> (${pct(toiletryTotal, grandTotal)})`, action: `showView('toiletries')` },
+  ].map(ins => `<div class="insight" onclick="${ins.action}" style="cursor:pointer"><div class="insight-title">${ins.title}</div><div class="insight-text">${ins.text}</div></div>`).join("");
+}
+
+// ─────────── GROCERIES TAB ───────────
+function renderGroceries() {
+  const cats = groupBy(groceries, "c");
+  const products = groupProducts(groceries);
+  const trips = [...new Set(groceries.map(i => i.d + "|" + i.s))].length;
+
+  document.getElementById("kpi-grocery").innerHTML = [
+    { label: "Total Grocery Spend", value: fmt(groceryTotal), color: "var(--green)", sub: `${pct(groceryTotal, grandTotal)} of all spend`, nav: "items", filter: "Grocery" },
+    { label: "Grocery Items", value: groceries.reduce((s,i)=>s+i.q,0), color: "var(--cyan)", sub: `${groceries.length} line items`, nav: "items", filter: "Grocery" },
+    { label: "Categories", value: cats.length, color: "var(--amber)", sub: `Top: ${cats[0].name}`, nav: "overview" },
+    { label: "Avg Per Grocery Trip", value: fmt(groceryTotal / trips), color: "var(--teal)", sub: `${trips} trips with groceries`, nav: "trends" },
+  ].map(k => `<div class="kpi-card" onclick="showView('${k.nav}'${k.filter ? ",'" + k.filter + "'" : ''})"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:${k.color}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join("");
+
+  // Grocery category bar
+  charts.groceryCat = new Chart(document.getElementById("chart-grocery-cat"), {
+    type: "doughnut",
+    data: {
+      labels: cats.map(c => c.name),
+      datasets: [{ data: cats.map(c => +c.total.toFixed(2)), backgroundColor: cats.map((_, i) => PALETTE[i % PALETTE.length]), borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: "50%",
+      plugins: {
+        legend: { position: legendPos, labels: { font: { size: 11 }, padding: 8 } },
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, groceryTotal)})` } }
+      }
+    }
+  });
+
+  makeChartClickable(charts.groceryCat, document.getElementById("chart-grocery-cat"), cats.map(c => c.name), "cat");
+
+  // Top 15 grocery items
+  const top15 = products.slice(0, 15);
+  charts.groceryTop = new Chart(document.getElementById("chart-grocery-top"), {
+    type: "bar",
+    data: {
+      labels: top15.map(p => p.name.length > 30 ? p.name.slice(0,28) + "..." : p.name),
+      datasets: [{ data: top15.map(p => +p.total.toFixed(2)), backgroundColor: "#22c55e", borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: "y", responsive: true, maintainAspectRatio: false,
+      scales: { x: { ticks: { callback: v => "$" + v } } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `${fmt(ctx.raw)} (qty: ${top15[ctx.dataIndex].qty})` } }
+      }
+    }
+  });
+
+  // Frequently purchased table
+  const freq = products.filter(p => p.count >= 2);
+  let html = `<thead><tr><th>Product</th><th>Category</th><th class="text-center">Qty Bought</th><th class="text-right">Total Spent</th><th class="text-right">Avg/Unit</th></tr></thead><tbody>`;
+  freq.forEach(p => {
+    html += `<tr><td class="bold">${p.name}</td><td style="color:var(--text-muted)">${p.cat}</td><td class="text-center">${p.qty}</td><td class="text-right mono amt">${fmt(p.total)}</td><td class="text-right mono">${fmt(p.total / p.qty)}</td></tr>`;
+  });
+  html += `</tbody>`;
+  document.getElementById("table-grocery-freq").innerHTML = html;
+}
+
+// ─────────── TOILETRIES TAB ───────────
+function renderToiletries() {
+  const cats = groupBy(toiletries, "c");
+  const stores = groupBy(toiletries, "s");
+  const products = groupProducts(toiletries);
+
+  document.getElementById("kpi-toiletry").innerHTML = [
+    { label: "Total Toiletries Spend", value: fmt(toiletryTotal), color: "var(--purple)", sub: `${pct(toiletryTotal, grandTotal)} of all spend`, nav: "items", filter: "Toiletry" },
+    { label: "Items Purchased", value: toiletries.reduce((s,i)=>s+i.q,0), color: "var(--cyan)", sub: `${toiletries.length} line items`, nav: "items", filter: "Toiletry" },
+    { label: "Categories", value: cats.length, color: "var(--amber)", sub: cats.map(c => c.name).join(", "), nav: "overview" },
+    { label: "Avg Item Cost", value: fmt(toiletryTotal / toiletries.reduce((s,i)=>s+i.q,0)), color: "var(--teal)", sub: "per unit", nav: "stores" },
+  ].map(k => `<div class="kpi-card" onclick="showView('${k.nav}'${k.filter ? ",'" + k.filter + "'" : ''})"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:${k.color}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join("");
+
+  // Toiletry by category
+  const toilCatColors = ["#a855f7", "#d946ef", "#ec4899"];
+  charts.toilCat = new Chart(document.getElementById("chart-toiletry-cat"), {
+    type: "doughnut",
+    data: {
+      labels: cats.map(c => c.name),
+      datasets: [{ data: cats.map(c => +c.total.toFixed(2)), backgroundColor: toilCatColors, borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: "55%",
+      plugins: {
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, toiletryTotal)})` } }
+      }
+    }
+  });
+
+  makeChartClickable(charts.toilCat, document.getElementById("chart-toiletry-cat"), cats.map(c => c.name), "cat");
+
+  // Toiletry by store
+  charts.toilStore = new Chart(document.getElementById("chart-toiletry-store"), {
+    type: "bar",
+    data: {
+      labels: stores.map(s => s.name),
+      datasets: [{ data: stores.map(s => +s.total.toFixed(2)), backgroundColor: stores.map(s => STORE_COLORS[s.name] || "#888"), borderRadius: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { ticks: { callback: v => "$" + v } } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmt(ctx.raw) } } }
+    }
+  });
+
+  makeChartClickable(charts.toilStore, document.getElementById("chart-toiletry-store"), stores.map(s => s.name), "store");
+
+  // All toiletry items table
+  let html = `<thead><tr><th>Date</th><th>Store</th><th>Product</th><th>Category</th><th class="text-center">Qty</th><th class="text-right">Unit $</th><th class="text-right">Total</th></tr></thead><tbody>`;
+  toiletries.sort((a,b) => b.t - a.t).forEach(i => {
+    html += `<tr>
+      <td class="mono">${i.d}</td>
+      <td>${i.s}</td>
+      <td class="bold">${i.n}</td>
+      <td style="color:var(--text-muted)">${i.c}</td>
+      <td class="text-center">${i.q}</td>
+      <td class="text-right mono">${fmt(i.u)}</td>
+      <td class="text-right mono amt">${fmt(i.t)}</td>
+    </tr>`;
+  });
+  html += `</tbody>`;
+  document.getElementById("table-toiletry-all").innerHTML = html;
+}
+
+// ─────────── STORES TAB ───────────
+function renderStores() {
+  const storeGroups = groupBy(activeData, "s");
+
+  charts.storeBar = new Chart(document.getElementById("chart-store-bar"), {
+    type: "bar",
+    data: {
+      labels: storeGroups.map(s => s.name),
+      datasets: [
+        {
+          label: "Groceries",
+          data: storeGroups.map(s => +sum(s.items.filter(i => itemType(i) === "grocery")).toFixed(2)),
+          backgroundColor: "#22c55e", borderRadius: 4
+        },
+        {
+          label: "Toiletries",
+          data: storeGroups.map(s => +sum(s.items.filter(i => itemType(i) === "toiletry")).toFixed(2)),
+          backgroundColor: "#a855f7", borderRadius: 4
+        },
+        {
+          label: "Other",
+          data: storeGroups.map(s => +sum(s.items.filter(i => itemType(i) === "other")).toFixed(2)),
+          backgroundColor: "#f43f5e", borderRadius: 4
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { stacked: true }, y: { stacked: true, ticks: { callback: v => "$" + v } } },
+      plugins: { tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt(ctx.raw)}` } } }
+    }
+  });
+
+  makeChartClickable(charts.storeBar, document.getElementById("chart-store-bar"), storeGroups.map(s => s.name), "store");
+
+  // Store breakdown
+  const trips = {};
+  activeData.forEach(i => { const key = i.d + "|" + i.s; trips[key] = (trips[key] || { store: i.s, date: i.d }); });
+  const tripsByStore = {};
+  Object.values(trips).forEach(t => { tripsByStore[t.store] = (tripsByStore[t.store] || 0) + 1; });
+
+  document.getElementById("store-breakdown").innerHTML = storeGroups.map(s => {
+    const pctVal = (s.total / grandTotal * 100).toFixed(1);
+    const storeTrips = tripsByStore[s.name] || 0;
+    const color = STORE_COLORS[s.name] || "#888";
+    return `
+      <div class="store-row" onclick="showView('items',null,{store:'${s.name}'})" style="cursor:pointer">
+        <div class="store-info">
+          <div class="store-name"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${color};margin-right:8px;vertical-align:middle"></span>${s.name}</div>
+          <div class="store-meta">${storeTrips} trip${storeTrips>1?"s":""} &bull; ${s.qty} items</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pctVal}%;background:${color}"></div></div>
+        </div>
+        <div class="store-pct">${pctVal}%</div>
+        <div class="store-amount">${fmt(s.total)}</div>
+      </div>`;
+  }).join("");
+}
+
+// ─────────── TRENDS TAB ───────────
+function renderTrends() {
+  // Daily spending
+  const dailyMap = {};
+  activeData.forEach(i => { dailyMap[i.d] = (dailyMap[i.d] || 0) + i.t; });
+  const days = Object.entries(dailyMap).sort((a,b) => a[0].localeCompare(b[0]));
+
+  charts.daily = new Chart(document.getElementById("chart-daily"), {
+    type: "line",
+    data: {
+      labels: days.map(d => ctx.monthAbbr + " " + parseInt(d[0].split("/")[1])),
+      datasets: [{
+        label: "Daily Spend",
+        data: days.map(d => +d[1].toFixed(2)),
+        borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.1)",
+        fill: true, tension: 0.3, pointRadius: 5, pointBackgroundColor: "#22c55e"
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { ticks: { callback: v => "$" + v } } },
+      plugins: { tooltip: { callbacks: { label: ctx => fmt(ctx.raw) } } }
+    }
+  });
+
+  // Cumulative spend
+  let cum = 0;
+  const cumData = days.map(d => { cum += d[1]; return { date: ctx.monthAbbr + " " + parseInt(d[0].split("/")[1]), total: +cum.toFixed(2) }; });
+  charts.cumulative = new Chart(document.getElementById("chart-cumulative"), {
+    type: "line",
+    data: {
+      labels: cumData.map(d => d.date),
+      datasets: [{
+        label: "Cumulative Spend",
+        data: cumData.map(d => d.total),
+        borderColor: "#06b6d4", backgroundColor: "rgba(6,182,212,0.08)",
+        fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: "#06b6d4"
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { ticks: { callback: v => "$" + v } } },
+      plugins: { tooltip: { callbacks: { label: ctx => fmt(ctx.raw) } } }
+    }
+  });
+
+  // Trips per week
+  const weekNames = ctx.weeks.map(w => w.name);
+  const weekTrips = ctx.weeks.map(w => {
+    const tripSet = new Set();
+    activeData.forEach(i => {
+      const day = parseInt(i.d.split("/")[1]);
+      if (day >= w.min && day <= w.max) tripSet.add(i.d + "|" + i.s);
+    });
+    return tripSet.size;
+  });
+  charts.tripsWeek = new Chart(document.getElementById("chart-trips-week"), {
+    type: "bar",
+    data: {
+      labels: weekNames,
+      datasets: [{ label: "Trips", data: weekTrips, backgroundColor: "#3b82f6", borderRadius: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  // Avg spend per trip by store
+  const tripCounts = {};
+  const storeSpend = {};
+  activeData.forEach(i => {
+    const key = i.d + "|" + i.s;
+    if (!tripCounts[i.s]) { tripCounts[i.s] = new Set(); storeSpend[i.s] = 0; }
+    tripCounts[i.s].add(key);
+    storeSpend[i.s] += i.t;
+  });
+  const avgTripData = Object.keys(storeSpend).map(s => ({
+    name: s, avg: +(storeSpend[s] / tripCounts[s].size).toFixed(2)
+  })).sort((a,b) => b.avg - a.avg);
+
+  charts.avgTrip = new Chart(document.getElementById("chart-avg-trip"), {
+    type: "bar",
+    data: {
+      labels: avgTripData.map(d => d.name),
+      datasets: [{ label: "Avg/Trip", data: avgTripData.map(d => d.avg), backgroundColor: avgTripData.map(d => STORE_COLORS[d.name] || "#888"), borderRadius: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { ticks: { callback: v => "$" + v } } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmt(ctx.raw) + " avg per trip" } } }
+    }
+  });
+}
+
+// ─────────── TRIPS TAB ───────────
+function buildTrips() {
+  const tripMap = {};
+  activeData.forEach(i => {
+    const key = i.d + "|" + i.s;
+    if (!tripMap[key]) tripMap[key] = { date: i.d, store: i.s, items: [], total: 0, qty: 0 };
+    tripMap[key].items.push(i);
+    tripMap[key].total += i.t;
+    tripMap[key].qty += i.q;
+  });
+  return Object.values(tripMap).sort((a, b) => a.date.localeCompare(b.date) || a.store.localeCompare(b.store));
+}
+
+function renderTrips() {
+  const totalTrips = allTrips.length;
+  const avgPerTrip = grandTotal / totalTrips;
+  const bigTrip = allTrips.reduce((max, t) => t.total > max.total ? t : max, allTrips[0]);
+  const smallTrip = allTrips.reduce((min, t) => t.total < min.total ? t : min, allTrips[0]);
+
+  document.getElementById("kpi-trips").innerHTML = [
+    { label: "Total Trips", value: totalTrips, color: "var(--cyan)", sub: "across " + [...new Set(activeData.map(i=>i.s))].length + " stores" },
+    { label: "Avg Per Trip", value: fmt(avgPerTrip), color: "var(--green)", sub: `${fmt(grandTotal)} total` },
+    { label: "Biggest Trip", value: fmt(bigTrip.total), color: "var(--amber)", sub: `${bigTrip.store} on ${ctx.monthAbbr} ${parseInt(bigTrip.date.split("/")[1])}` },
+    { label: "Smallest Trip", value: fmt(smallTrip.total), color: "var(--teal)", sub: `${smallTrip.store} on ${ctx.monthAbbr} ${parseInt(smallTrip.date.split("/")[1])}` },
+  ].map(k => `<div class="kpi-card" style="cursor:default"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:${k.color}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join("");
+
+  let html = "";
+  let currentWeek = "";
+  allTrips.forEach((trip, idx) => {
+    const day = parseInt(trip.date.split("/")[1]);
+    let week = ctx.weeks[ctx.weeks.length - 1].label;
+    for (const w of ctx.weeks) { if (day >= w.min && day <= w.max) { week = w.label; break; } }
+
+    if (week !== currentWeek) {
+      const matchedWeek = ctx.weeks.find(w => w.label === week) || ctx.weeks[0];
+      const weekItems = allTrips.filter(t => {
+        const d = parseInt(t.date.split("/")[1]);
+        return d >= matchedWeek.min && d <= matchedWeek.max;
+      });
+      const weekTotal = weekItems.reduce((s, t) => s + t.total, 0);
+      currentWeek = week;
+      html += `<div style="display:flex;justify-content:space-between;align-items:baseline;margin:${idx > 0 ? '28px' : '8px'} 0 12px;padding-bottom:8px;border-bottom:1px solid var(--card-border)">
+        <div style="font-size:14px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px">${week}</div>
+        <div style="font-size:13px;color:var(--text-muted)">${weekItems.length} trips &bull; ${fmt(weekTotal)}</div>
+      </div>`;
+    }
+
+    const dayNum = parseInt(trip.date.split("/")[1]);
+    const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    const dateObj = new Date(ctx.year, ctx.month - 1, dayNum);
+    const dayName = dayNames[dateObj.getDay()];
+    const color = STORE_COLORS[trip.store] || "#888";
+    const preview = trip.items.slice(0, 4).map(i => `<span class="trip-item-chip">${i.n}</span>`).join("");
+    const more = trip.items.length > 4 ? `<span class="trip-item-chip" style="color:var(--green)">+${trip.items.length - 4} more</span>` : "";
+
+    html += `
+      <div class="trip-card" onclick="showTripDetail(${idx})">
+        <div class="trip-left">
+          <div class="trip-date">${ctx.monthAbbr} ${dayNum} <span style="font-size:12px;font-weight:500;color:var(--text-muted);margin-left:4px">${dayName}</span></div>
+          <div class="trip-store"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};margin-right:8px;vertical-align:middle"></span>${trip.store}</div>
+          <div class="trip-meta">${trip.items.length} item${trip.items.length > 1 ? 's' : ''} &bull; ${trip.qty} unit${trip.qty > 1 ? 's' : ''}</div>
+          <div class="trip-items-preview">${preview}${more}</div>
+        </div>
+        <div class="trip-right">
+          <div class="trip-total">${fmt(trip.total)}</div>
+          <div class="trip-arrow">→</div>
+        </div>
+      </div>`;
+  });
+
+  document.getElementById("trips-list").innerHTML = html;
+}
+
+function showTripDetail(tripIdx) {
+  const trip = allTrips[tripIdx];
+  const dayNum = parseInt(trip.date.split("/")[1]);
+  const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const dateObj = new Date(ctx.year, ctx.month - 1, dayNum);
+  const dayName = dayNames[dateObj.getDay()];
+  const color = STORE_COLORS[trip.store] || "#888";
+
+  const groceryItems = trip.items.filter(i => itemType(i) === "grocery");
+  const toiletryItems = trip.items.filter(i => itemType(i) === "toiletry");
+  const otherItems = trip.items.filter(i => itemType(i) === "other");
+
+  // Navigation to prev/next trip
+  const prevBtn = tripIdx > 0
+    ? `<button onclick="showTripDetail(${tripIdx - 1})" style="background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;padding:8px 14px;color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:12px">← Prev Trip</button>`
+    : `<span></span>`;
+  const nextBtn = tripIdx < allTrips.length - 1
+    ? `<button onclick="showTripDetail(${tripIdx + 1})" style="background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;padding:8px 14px;color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:12px">Next Trip →</button>`
+    : `<span></span>`;
+
+  let html = `
+    <div class="trip-detail-header">
+      <div>
+        <div class="trip-detail-title">${dayName}, ${ctx.monthName} ${dayNum}, ${ctx.year}</div>
+        <div class="trip-detail-store"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${color};margin-right:8px;vertical-align:middle"></span>${trip.store}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="trip-detail-total">${fmt(trip.total)}</div>
+        <div class="trip-detail-count">${trip.items.length} item${trip.items.length > 1 ? 's' : ''} &bull; ${trip.qty} unit${trip.qty > 1 ? 's' : ''}</div>
+      </div>
+    </div>`;
+
+  // Build item groups
+  function renderGroup(label, items, tagClass, tagLabel) {
+    if (items.length === 0) return "";
+    const groupTotal = items.reduce((s, i) => s + i.t, 0);
+    let g = `<div class="card">
+      <div class="card-title">${label} <span style="float:right;color:var(--amber)">${fmt(groupTotal)}</span></div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr>
+          <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:var(--green);border-bottom:1px solid var(--card-border);letter-spacing:1px;text-transform:uppercase">Product</th>
+          <th style="text-align:center;padding:8px 12px;font-size:11px;font-weight:700;color:var(--green);border-bottom:1px solid var(--card-border);letter-spacing:1px;text-transform:uppercase">Qty</th>
+          <th style="text-align:right;padding:8px 12px;font-size:11px;font-weight:700;color:var(--green);border-bottom:1px solid var(--card-border);letter-spacing:1px;text-transform:uppercase">Unit $</th>
+          <th style="text-align:right;padding:8px 12px;font-size:11px;font-weight:700;color:var(--green);border-bottom:1px solid var(--card-border);letter-spacing:1px;text-transform:uppercase">Total</th>
+        </tr></thead><tbody>`;
+    items.sort((a, b) => b.t - a.t).forEach(i => {
+      g += `<tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
+        <td style="padding:10px 12px;font-weight:500">${i.n} <span style="font-size:10px;color:var(--text-muted);margin-left:4px">${i.c}</span></td>
+        <td style="padding:10px 12px;text-align:center">${i.q}</td>
+        <td style="padding:10px 12px;text-align:right;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px">${fmt(i.u)}</td>
+        <td style="padding:10px 12px;text-align:right;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px;font-weight:700;color:var(--amber)">${fmt(i.t)}</td>
+      </tr>`;
+    });
+    g += `</tbody></table></div>`;
+    return g;
+  }
+
+  html += renderGroup("Grocery Items", groceryItems, "tag-grocery", "GROCERY");
+  html += renderGroup("Toiletries & Household", toiletryItems, "tag-toiletry", "TOILETRY");
+  html += renderGroup("Other Items", otherItems, "tag-nongrocery", "OTHER");
+
+  // Receipt total summary
+  html += `<div class="card" style="background:rgba(34,197,94,0.06);border-color:rgba(34,197,94,0.2)">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px">Trip Total</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${trip.items.length} item${trip.items.length > 1 ? 's' : ''} purchased at ${trip.store}</div>
+      </div>
+      <div style="font-size:28px;font-weight:700;color:var(--amber)">${fmt(trip.total)}</div>
+    </div>
+  </div>`;
+
+  // Prev/Next nav
+  html += `<div style="display:flex;justify-content:space-between;margin-top:8px">${prevBtn}${nextBtn}</div>`;
+
+  document.getElementById("trip-detail-content").innerHTML = html;
+  showView("trip-detail");
+}
+
+// ─────────── ALL ITEMS TAB ───────────
+let currentSort = { col: "t", dir: "desc" };
+
+function renderAllItems() {
+  // Populate filter dropdowns (clear first for month switches)
+  const dateSelect = document.getElementById("filter-date");
+  const storeSelect = document.getElementById("filter-store");
+  const catSelect = document.getElementById("filter-cat");
+  dateSelect.innerHTML = '<option value="All">All Dates</option>';
+  storeSelect.innerHTML = '<option value="All">All Stores</option>';
+  catSelect.innerHTML = '<option value="All">All Categories</option>';
+  [...new Set(activeData.map(i => i.d))].sort().forEach(d => {
+    const day = parseInt(d.split("/")[1]);
+    const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    const dateObj = new Date(ctx.year, ctx.month - 1, day);
+    const dayName = dayNames[dateObj.getDay()];
+    dateSelect.innerHTML += `<option value="${d}">${ctx.monthAbbr} ${day} (${dayName})</option>`;
+  });
+  [...new Set(activeData.map(i => i.s))].sort().forEach(s => {
+    storeSelect.innerHTML += `<option value="${s}">${s}</option>`;
+  });
+  [...new Set(activeData.map(i => i.c))].sort().forEach(c => {
+    catSelect.innerHTML += `<option value="${c}">${c}</option>`;
+  });
+
+  // Attach event listeners only once
+  if (!filtersInitialized) {
+    ["filter-date","filter-store","filter-cat","filter-type","filter-search"].forEach(id => {
+      document.getElementById(id).addEventListener(id === "filter-search" ? "input" : "change", renderTable);
+    });
+    filtersInitialized = true;
+  }
+
+  renderTable();
+}
+
+function clearFilters() {
+  document.getElementById("filter-date").value = "All";
+  document.getElementById("filter-store").value = "All";
+  document.getElementById("filter-cat").value = "All";
+  document.getElementById("filter-type").value = "All";
+  document.getElementById("filter-search").value = "";
+  renderTable();
+}
+
+function renderTable() {
+  const date = document.getElementById("filter-date").value;
+  const store = document.getElementById("filter-store").value;
+  const cat = document.getElementById("filter-cat").value;
+  const type = document.getElementById("filter-type").value;
+  const search = document.getElementById("filter-search").value.toLowerCase();
+
+  let data = activeData.filter(i => {
+    if (date !== "All" && i.d !== date) return false;
+    if (store !== "All" && i.s !== store) return false;
+    if (cat !== "All" && i.c !== cat) return false;
+    if (type === "Grocery" && itemType(i) !== "grocery") return false;
+    if (type === "Toiletry" && itemType(i) !== "toiletry") return false;
+    if (type === "Other" && itemType(i) === "grocery") return false;
+    if (search && !i.n.toLowerCase().includes(search) && !i.r.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  // Sort
+  data.sort((a, b) => {
+    let va = a[currentSort.col], vb = b[currentSort.col];
+    if (typeof va === "string") { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+    if (currentSort.dir === "asc") return va > vb ? 1 : va < vb ? -1 : 0;
+    return va < vb ? 1 : va > vb ? -1 : 0;
+  });
+
+  const total = sum(data);
+  document.getElementById("filter-count").textContent = `${data.length} items | ${fmt(total)}`;
+
+  const cols = [
+    { key: "d", label: "Date" },
+    { key: "s", label: "Store" },
+    { key: "n", label: "Product" },
+    { key: "c", label: "Category" },
+    { key: "q", label: "Qty" },
+    { key: "u", label: "Unit $" },
+    { key: "t", label: "Total" },
+  ];
+
+  let html = `<thead><tr>`;
+  cols.forEach(col => {
+    const arrow = currentSort.col === col.key ? (currentSort.dir === "asc" ? " ↑" : " ↓") : "";
+    html += `<th onclick="sortTable('${col.key}')">${col.label}${arrow}</th>`;
+  });
+  html += `</tr></thead><tbody>`;
+
+  data.forEach(i => {
+    const typ = itemType(i);
+    const tagClass = typ === "grocery" ? "tag-grocery" : typ === "toiletry" ? "tag-toiletry" : "tag-nongrocery";
+    const tagLabel = typ === "grocery" ? "GROCERY" : typ === "toiletry" ? "TOILETRY" : "OTHER";
+    const isEdited = i.n !== i._origName || i.c !== i._origCat || i.ng !== i._origNg;
+    const editDot = isEdited ? '<span class="edit-dot" title="Edited"></span>' : '';
+    html += `<tr onclick="openEditModal(${i._idx})" style="cursor:pointer">
+      <td class="mono">${i.d}</td>
+      <td>${i.s}</td>
+      <td class="bold">${i.n}${editDot} <span class="tag ${tagClass}">${tagLabel}</span><span class="edit-icon">&#9998;</span></td>
+      <td style="color:var(--text-muted)">${i.c}</td>
+      <td class="text-center">${i.q}</td>
+      <td class="text-right mono">${fmt(i.u)}</td>
+      <td class="text-right mono amt">${fmt(i.t)}</td>
+    </tr>`;
+  });
+  html += `</tbody>`;
+  document.getElementById("table-all").innerHTML = html;
+}
+
+function sortTable(col) {
+  if (currentSort.col === col) {
+    currentSort.dir = currentSort.dir === "asc" ? "desc" : "asc";
+  } else {
+    currentSort.col = col;
+    currentSort.dir = "desc";
+  }
+  renderTable();
+}
+
+// ─────────── EDIT MODAL ───────────
+let editIdx = null;
+
+function openEditModal(idx) {
+  editIdx = idx;
+  const item = activeData[idx];
+  document.getElementById("edit-modal-title").textContent = `Edit: ${item.r}`;
+  document.getElementById("edit-name").value = item.n;
+
+  // Populate category dropdown
+  const catSelect = document.getElementById("edit-category");
+  catSelect.innerHTML = ALL_CATEGORIES.map(c => `<option value="${c}"${c === item.c ? " selected" : ""}>${c}</option>`).join("");
+
+  document.getElementById("edit-type").value = String(item.ng);
+
+  // Show original values
+  const hasNameEdit = item.n !== item._origName;
+  const hasCatEdit = item.c !== item._origCat;
+  document.getElementById("edit-original-name").textContent = hasNameEdit ? `Original: ${item._origName}` : "";
+  document.getElementById("edit-original-cat").textContent = hasCatEdit ? `Original: ${item._origCat}` : "";
+
+  // Show/hide reset button
+  const hasAnyEdit = hasNameEdit || hasCatEdit || item.ng !== item._origNg;
+  document.getElementById("edit-reset-btn").style.display = hasAnyEdit ? "" : "none";
+
+  document.getElementById("edit-modal").classList.add("open");
+  document.getElementById("edit-name").focus();
+}
+
+function closeEditModal() {
+  document.getElementById("edit-modal").classList.remove("open");
+  editIdx = null;
+}
+
+function saveEdit() {
+  if (editIdx === null) return;
+  const item = activeData[editIdx];
+  const newName = document.getElementById("edit-name").value.trim();
+  const newCat = document.getElementById("edit-category").value;
+  const newNg = document.getElementById("edit-type").value === "true";
+
+  if (!newName) return;
+
+  item.n = newName;
+  item.c = newCat;
+  item.ng = newNg;
+
+  // Save to localStorage
+  const edits = JSON.parse(localStorage.getItem(ctx.editsKey) || "{}");
+  const hasChanges = newName !== item._origName || newCat !== item._origCat || newNg !== item._origNg;
+  if (hasChanges) {
+    edits[editIdx] = { n: newName, c: newCat, ng: newNg };
+  } else {
+    delete edits[editIdx];
+  }
+  localStorage.setItem(ctx.editsKey, JSON.stringify(edits));
+
+  closeEditModal();
+  renderTable();
+}
+
+function resetEdit() {
+  if (editIdx === null) return;
+  const item = activeData[editIdx];
+  item.n = item._origName;
+  item.c = item._origCat;
+  item.ng = item._origNg;
+
+  // Remove from localStorage
+  const edits = JSON.parse(localStorage.getItem(ctx.editsKey) || "{}");
+  delete edits[editIdx];
+  localStorage.setItem(ctx.editsKey, JSON.stringify(edits));
+
+  closeEditModal();
+  renderTable();
+}
+
+// ─────────── HELP MODAL ───────────
+function openHelpModal() { document.getElementById("help-modal").classList.add("open"); }
+function closeHelpModal() { document.getElementById("help-modal").classList.remove("open"); }
+
+// Close modal on Escape
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { closeEditModal(); closeUploadModal(); closeDataManager(); closeHelpModal(); }
+});
+
+// ─────────── UPLOAD MODAL ───────────
+let pendingUploadData = null;
+let pendingUploadKey = null;
+
+function openUploadModal() {
+  document.getElementById("upload-preview").style.display = "none";
+  document.getElementById("upload-actions").style.display = "none";
+  document.getElementById("drop-zone").style.display = "";
+  pendingUploadData = null;
+  pendingUploadKey = null;
+  document.getElementById("upload-modal").classList.add("open");
+}
+
+function closeUploadModal() {
+  document.getElementById("upload-modal").classList.remove("open");
+  document.getElementById("file-input").value = "";
+}
+
+// Wire up drop zone
+(function initDropZone() {
+  const dz = document.getElementById("drop-zone");
+  const fi = document.getElementById("file-input");
+  dz.addEventListener("click", () => fi.click());
+  dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("drag-over"); });
+  dz.addEventListener("dragleave", () => dz.classList.remove("drag-over"));
+  dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("drag-over"); if (e.dataTransfer.files.length) parseExcelFile(e.dataTransfer.files[0]); });
+  fi.addEventListener("change", () => { if (fi.files.length) parseExcelFile(fi.files[0]); });
+})();
+
+function normalizeDate(val) {
+  if (val instanceof Date) {
+    return String(val.getMonth() + 1).padStart(2, "0") + "/" + String(val.getDate()).padStart(2, "0");
+  }
+  if (typeof val === "number") {
+    const d = new Date((val - 25569) * 86400000);
+    return String(d.getMonth() + 1).padStart(2, "0") + "/" + String(d.getDate()).padStart(2, "0");
+  }
+  const str = String(val).trim();
+  const parts = str.split(/[\/\-]/);
+  if (parts.length >= 2) return parts[0].padStart(2, "0") + "/" + parts[1].padStart(2, "0");
+  return str;
+}
+
+function extractYear(val) {
+  if (val instanceof Date) return val.getFullYear();
+  if (typeof val === "number") return new Date((val - 25569) * 86400000).getFullYear();
+  const parts = String(val).trim().split(/[\/\-]/);
+  if (parts.length === 3 && parts[2].length === 4) return parseInt(parts[2]);
+  if (parts.length === 3 && parts[0].length === 4) return parseInt(parts[0]);
+  return new Date().getFullYear();
+}
+
+function parseBool(val) {
+  if (typeof val === "boolean") return val;
+  const s = String(val).trim().toLowerCase();
+  return s === "true" || s === "yes" || s === "1" || s === "y" || s === "x";
+}
+
+function autoDetectColumns(headers) {
+  const find = patterns => headers.find(h => patterns.some(p => h.toLowerCase().includes(p))) || null;
+  return {
+    date: find(["date"]) || headers[0],
+    store: find(["store"]) || headers[1],
+    receipt: find(["receipt", "desc"]) || headers[2],
+    name: find(["product", "full product", "item", "name"]) || headers[3],
+    category: find(["category", "cat"]) || headers[4],
+    qty: find(["qty", "quantity"]) || headers[5],
+    unitPrice: find(["unit price", "unit"]) || headers[6],
+    total: find(["line total", "total", "ext", "amount"]) || headers[7],
+    nonGrocery: find(["non-grocery", "nongrocery", "non grocery"]) || headers[8],
+  };
+}
+
+function parseExcelFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const workbook = XLSX.read(e.target.result, { type: "array", cellDates: true });
+      let sheetName = workbook.SheetNames.find(n =>
+        n.toLowerCase().includes("all transaction") || n.toLowerCase().includes("transactions")
+      ) || workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      if (rows.length === 0) { alert("No data found in sheet: " + sheetName); return; }
+
+      const headers = Object.keys(rows[0]);
+      const mapping = autoDetectColumns(headers);
+
+      let detectedYear = null;
+      const parsed = rows.map(row => {
+        const dateVal = row[mapping.date];
+        if (!detectedYear) detectedYear = extractYear(dateVal);
+        const d = normalizeDate(dateVal);
+        return {
+          d: d,
+          s: String(row[mapping.store] || "").trim(),
+          r: String(row[mapping.receipt] || "").trim(),
+          n: String(row[mapping.name] || "").trim(),
+          c: String(row[mapping.category] || "").trim(),
+          q: Number(row[mapping.qty]) || 1,
+          u: parseFloat(row[mapping.unitPrice]) || 0,
+          t: parseFloat(row[mapping.total]) || 0,
+          ng: parseBool(row[mapping.nonGrocery]),
+        };
+      }).filter(item => item.d && item.n && item.t > 0);
+
+      if (parsed.length === 0) { alert("No valid items found. Check column headers."); return; }
+
+      const monthNum = parseInt(parsed[0].d.split("/")[0]);
+      const year = detectedYear || new Date().getFullYear();
+      pendingUploadKey = year + "_" + String(monthNum).padStart(2, "0");
+      pendingUploadData = parsed;
+
+      showUploadPreview(parsed, pendingUploadKey, sheetName);
+    } catch(err) {
+      alert("Error parsing file: " + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function showUploadPreview(data, monthKey, sheetName) {
+  const [y, m] = monthKey.split("_");
+  const label = MONTH_NAMES[parseInt(m) - 1] + " " + y;
+  const total = data.reduce((s, i) => s + i.t, 0);
+  const stores = [...new Set(data.map(i => i.s))].length;
+  const trips = [...new Set(data.map(i => i.d + "|" + i.s))].length;
+  const existing = getLoadedMonths().includes(monthKey);
+
+  document.getElementById("upload-month-label").textContent = label + (existing ? " (will replace existing data)" : "");
+  document.getElementById("upload-stats").innerHTML = `Sheet: ${sheetName} | ${data.length} items | ${stores} stores | ${trips} trips | ${fmt(total)} total`;
+
+  let sampleHtml = '<table style="width:100%;font-size:11px"><thead><tr><th>Date</th><th>Store</th><th>Product</th><th>Category</th><th>Qty</th><th>Total</th></tr></thead><tbody>';
+  data.slice(0, 5).forEach(i => {
+    sampleHtml += `<tr><td>${i.d}</td><td>${i.s}</td><td>${i.n}</td><td>${i.c}</td><td>${i.q}</td><td>${fmt(i.t)}</td></tr>`;
+  });
+  if (data.length > 5) sampleHtml += `<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">... and ${data.length - 5} more items</td></tr>`;
+  sampleHtml += '</tbody></table>';
+  document.getElementById("upload-sample").innerHTML = sampleHtml;
+
+  document.getElementById("drop-zone").style.display = "none";
+  document.getElementById("upload-preview").style.display = "";
+  document.getElementById("upload-actions").style.display = "";
+}
+
+function confirmUpload() {
+  if (!pendingUploadData || !pendingUploadKey) return;
+  const existing = getLoadedMonths().includes(pendingUploadKey);
+  if (existing && !confirm("Data for this month already exists. Replace it?")) return;
+
+  localStorage.setItem("data_" + pendingUploadKey, JSON.stringify(pendingUploadData));
+  const months = getLoadedMonths();
+  if (!months.includes(pendingUploadKey)) {
+    months.push(pendingUploadKey);
+    months.sort();
+    localStorage.setItem("grocery_months", JSON.stringify(months));
+  }
+  closeUploadModal();
+  switchMonth(pendingUploadKey);
+}
+
+// ─────────── DATA MANAGER ───────────
+function openDataManager() {
+  const months = getLoadedMonths();
+  let totalBytes = 0;
+  let html = "";
+  months.forEach(key => {
+    const [y, m] = key.split("_");
+    const label = MONTH_NAMES[parseInt(m) - 1] + " " + y;
+    const dataStr = localStorage.getItem("data_" + key);
+    const bytes = dataStr ? new Blob([dataStr]).size : 0;
+    totalBytes += bytes;
+    const isActive = key === ctx.monthKey;
+    const isSeed = key === "2026_01" && !dataStr;
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid var(--card-border)">';
+    html += '<div><div style="font-weight:600">' + label;
+    if (isActive) html += ' <span style="font-size:10px;color:var(--green)">(ACTIVE)</span>';
+    html += '</div><div style="font-size:11px;color:var(--text-muted)">' + (isSeed ? "Embedded (default)" : formatBytes(bytes)) + '</div></div>';
+    if (months.length > 1) {
+      html += '<button onclick="deleteMonth(\'' + key + '\')" style="background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.25);color:var(--rose);border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:inherit">Delete</button>';
+    }
+    html += '</div>';
+  });
+  document.getElementById("manager-list").innerHTML = html;
+  document.getElementById("manager-usage").textContent = "Total storage: " + formatBytes(totalBytes) + " of ~5 MB available";
+  document.getElementById("manager-modal").classList.add("open");
+}
+
+function closeDataManager() {
+  document.getElementById("manager-modal").classList.remove("open");
+}
+
+function deleteMonth(key) {
+  if (!confirm("Delete all data for this month? This cannot be undone.")) return;
+  localStorage.removeItem("data_" + key);
+  localStorage.removeItem("edits_" + key);
+  let months = getLoadedMonths().filter(m => m !== key);
+  if (months.length === 0) months = ["2026_01"];
+  localStorage.setItem("grocery_months", JSON.stringify(months));
+  if (key === ctx.monthKey) switchMonth(months[0]);
+  buildMonthSelector();
+  openDataManager();
+}
+
+// ─────────── COMPARE TAB ───────────
+function renderCompare() {
+  const months = getLoadedMonths();
+  const container = document.getElementById("compare-content");
+
+  if (months.length < 2) {
+    container.innerHTML = '<div class="card" style="text-align:center;padding:60px 20px">' +
+      '<div style="font-size:16px;font-weight:700;color:var(--text-muted);margin-bottom:8px">No Comparison Data Yet</div>' +
+      '<div style="font-size:13px;color:var(--text-muted)">Upload a second month\'s data to see month-over-month comparisons.</div>' +
+      '<button onclick="openUploadModal()" class="month-nav-btn" style="margin-top:16px;background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3)">+ Upload Month</button></div>';
+    return;
+  }
+
+  // Load all months' summary
+  const allMonthData = months.map((key, idx) => {
+    const data = loadMonthData(key);
+    if (!data) return null;
+    const [y, m] = key.split("_");
+    const g = data.filter(i => itemType(i) === "grocery");
+    const t = data.filter(i => itemType(i) === "toiletry");
+    return {
+      key, label: MONTH_ABBR[parseInt(m) - 1] + " " + y,
+      fullLabel: MONTH_NAMES[parseInt(m) - 1] + " " + y,
+      color: COMPARE_COLORS[idx % COMPARE_COLORS.length],
+      total: data.reduce((s, i) => s + i.t, 0),
+      groceryTotal: sum(g), toiletryTotal: sum(t),
+      items: data.length,
+      trips: [...new Set(data.map(i => i.d + "|" + i.s))].length,
+      stores: [...new Set(data.map(i => i.s))].length,
+      categories: groupBy(data, "c"),
+      storeGroups: groupBy(data, "s"),
+    };
+  }).filter(Boolean);
+
+  if (allMonthData.length < 2) {
+    container.innerHTML = '<div class="card" style="text-align:center;padding:40px"><div style="color:var(--text-muted)">Not enough valid month data to compare.</div></div>';
+    return;
+  }
+
+  // Delta cards (compare last 2 months)
+  const curr = allMonthData[allMonthData.length - 1];
+  const prev = allMonthData[allMonthData.length - 2];
+  function deltaHtml(label, currVal, prevVal, isMoney) {
+    const diff = currVal - prevVal;
+    const pctChange = prevVal > 0 ? ((diff / prevVal) * 100).toFixed(1) : "0";
+    const cls = diff > 0 ? "delta-up" : diff < 0 ? "delta-down" : "delta-same";
+    const sign = diff > 0 ? "+" : "";
+    const valStr = isMoney ? fmt(currVal) : currVal;
+    const diffStr = isMoney ? sign + fmt(Math.abs(diff)) : sign + diff;
+    return '<div class="delta-card"><div class="kpi-label">' + label + '</div>' +
+      '<div class="delta-value" style="color:var(--text)">' + valStr + '</div>' +
+      '<div class="delta-change ' + cls + '">' + diffStr + ' (' + (diff > 0 ? "+" : "") + pctChange + '%) vs ' + prev.label + '</div></div>';
+  }
+
+  let html = '<div class="delta-grid">';
+  html += deltaHtml("Total Spend", curr.total, prev.total, true);
+  html += deltaHtml("Grocery Spend", curr.groceryTotal, prev.groceryTotal, true);
+  html += deltaHtml("Toiletry Spend", curr.toiletryTotal, prev.toiletryTotal, true);
+  html += deltaHtml("Shopping Trips", curr.trips, prev.trips, false);
+  html += deltaHtml("Items Purchased", curr.items, prev.items, false);
+  html += deltaHtml("Avg Per Trip", curr.total / curr.trips, prev.total / prev.trips, true);
+  html += '</div>';
+
+  // Spend trend chart
+  html += '<div class="card"><div class="card-title">Monthly Spend Trend</div><div class="chart-wrap"><canvas id="chart-compare-trend"></canvas></div></div>';
+
+  // Category comparison
+  html += '<div class="card"><div class="card-title">Category Comparison</div><div class="chart-wrap-tall"><canvas id="chart-compare-cats"></canvas></div></div>';
+
+  // Store comparison
+  html += '<div class="card"><div class="card-title">Store Comparison</div><div class="chart-wrap-tall"><canvas id="chart-compare-stores"></canvas></div></div>';
+
+  container.innerHTML = html;
+
+  // Render trend chart
+  charts.compareTrend = new Chart(document.getElementById("chart-compare-trend"), {
+    type: "line",
+    data: {
+      labels: allMonthData.map(m => m.label),
+      datasets: [
+        { label: "Total", data: allMonthData.map(m => +m.total.toFixed(2)), borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.1)", fill: true, tension: 0.3, pointRadius: 6, pointBackgroundColor: "#22c55e" },
+        { label: "Groceries", data: allMonthData.map(m => +m.groceryTotal.toFixed(2)), borderColor: "#3b82f6", tension: 0.3, pointRadius: 5, pointBackgroundColor: "#3b82f6" },
+        { label: "Toiletries", data: allMonthData.map(m => +m.toiletryTotal.toFixed(2)), borderColor: "#a855f7", tension: 0.3, pointRadius: 5, pointBackgroundColor: "#a855f7" },
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => "$" + v } } }, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmt(c.raw) } } } }
+  });
+
+  // Category comparison grouped bar
+  const allCats = [...new Set(allMonthData.flatMap(m => m.categories.map(c => c.name)))].sort();
+  charts.compareCats = new Chart(document.getElementById("chart-compare-cats"), {
+    type: "bar",
+    data: {
+      labels: allCats,
+      datasets: allMonthData.map((m, i) => ({
+        label: m.label,
+        data: allCats.map(cat => { const found = m.categories.find(c => c.name === cat); return found ? +found.total.toFixed(2) : 0; }),
+        backgroundColor: m.color,
+        borderRadius: 4,
+      }))
+    },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => "$" + v } } }, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmt(c.raw) } } } }
+  });
+
+  // Store comparison grouped bar
+  const allStores = [...new Set(allMonthData.flatMap(m => m.storeGroups.map(s => s.name)))].sort();
+  charts.compareStores = new Chart(document.getElementById("chart-compare-stores"), {
+    type: "bar",
+    data: {
+      labels: allStores,
+      datasets: allMonthData.map((m, i) => ({
+        label: m.label,
+        data: allStores.map(store => { const found = m.storeGroups.find(s => s.name === store); return found ? +found.total.toFixed(2) : 0; }),
+        backgroundColor: m.color,
+        borderRadius: 4,
+      }))
+    },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => "$" + v } } }, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmt(c.raw) } } } }
+  });
+}
+</script>
+</body>
+</html>
