@@ -477,6 +477,14 @@
     <div id="merchant-detail-content"></div>
   </div>
 
+  <!-- Category Detail -->
+  <div class="view" id="view-category-detail">
+    <div style="margin-bottom:16px">
+      <button id="category-detail-back" style="background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;padding:8px 16px;color:var(--blue);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">&larr; Back</button>
+    </div>
+    <div id="category-detail-content"></div>
+  </div>
+
   <!-- Overview -->
   <div class="view active" id="view-overview"></div>
   <!-- By Category -->
@@ -924,6 +932,9 @@ function showView(id, filterOpts) {
   }
   if (id === 'merchant-detail' && filterOpts && filterOpts.merchant) {
     showMerchantDetail(filterOpts.merchant, filterOpts.source || 'merchants');
+  }
+  if (id === 'category-detail' && filterOpts && filterOpts.category) {
+    showCategoryDetail(filterOpts.category, filterOpts.source || 'categories');
   }
 }
 
@@ -1617,6 +1628,19 @@ function renderOverview() {
     html += '</tbody></table></div>';
   }
 
+  // Anomaly Detection
+  const anomalies = detectAnomalies();
+  if (anomalies.length > 0) {
+    html += '<div class="card"><div class="card-title" style="color:var(--rose)">Unusual Transactions</div>';
+    anomalies.forEach(a => {
+      html += '<div class="insight" style="border-color:rgba(244,63,94,0.2);background:rgba(244,63,94,0.04);cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + a.merchant.replace(/'/g,"\\'") + '\',source:\'overview\'})">';
+      html += '<div class="insight-title" style="color:var(--rose)">' + a.merchant + ' \u2014 ' + fmt(a.amount) + '</div>';
+      html += '<div class="insight-text">' + a.message + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
   el.innerHTML = html;
 
   // Category pie
@@ -1685,7 +1709,7 @@ function renderCategories() {
   catGroups.forEach(g => {
     const pct = ((g.total / totalExpenses) * 100).toFixed(1);
     const avg = (g.total / g.count).toFixed(2);
-    html += '<div class="cat-card" onclick="showView(\'transactions\',{category:\'' + g.name.replace(/'/g,"\\'") + '\'})">';
+    html += '<div class="cat-card" onclick="showView(\'category-detail\',{category:\'' + g.name.replace(/'/g,"\\'") + '\',source:\'categories\'})">';
     html += '<div class="cat-card-name" style="color:' + getCatColor(g.name) + '">' + g.name + '</div>';
     html += '<div class="cat-card-amount">' + fmt(g.total) + '</div>';
     html += '<div class="cat-card-meta">' + g.count + ' transactions \u2022 ' + pct + '% of total \u2022 avg ' + fmt(parseFloat(avg)) + '</div>';
@@ -2251,6 +2275,158 @@ function showMerchantDetail(merchantName, source) {
   html += '</tbody></table></div>';
 
   container.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════
+// CATEGORY DETAIL VIEW
+// ══════════════════════════════════════════════════════════
+function showCategoryDetail(categoryName, source) {
+  source = source || 'categories';
+  const container = document.getElementById('category-detail-content');
+  const backBtn = document.getElementById('category-detail-back');
+
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-category-detail').classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+  const backMap = { categories: 'categories', overview: 'overview' };
+  backBtn.onclick = () => showView(backMap[source] || 'categories');
+
+  const txs = activeData.filter(t => t.category === categoryName).sort((a, b) => a.date < b.date ? -1 : 1);
+  if (txs.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-state-title">No transactions found</div></div>'; return; }
+
+  const total = txs.reduce((s, t) => s + t.amount, 0);
+  const avg = total / txs.length;
+  const pctOfTotal = ((total / totalExpenses) * 100).toFixed(1);
+  const merchants = {};
+  txs.forEach(t => {
+    if (!merchants[t.merchant]) merchants[t.merchant] = { name: t.merchant, total: 0, count: 0 };
+    merchants[t.merchant].total += t.amount;
+    merchants[t.merchant].count++;
+  });
+  const merchList = Object.values(merchants).sort((a, b) => b.total - a.total);
+  const dateRange = txs[0].date + ' \u2014 ' + txs[txs.length - 1].date;
+  const catColor = getCatColor(categoryName);
+
+  let html = '';
+
+  // Header
+  html += '<div class="card" style="border-left:4px solid ' + catColor + '">';
+  html += '<div style="font-size:22px;font-weight:700;margin-bottom:4px;color:' + catColor + '">' + categoryName + '</div>';
+  html += '<div style="font-size:13px;color:var(--text-muted)">' + merchList.length + ' merchants \u2022 ' + dateRange + '</div>';
+  html += '</div>';
+
+  // KPIs
+  html += '<div class="kpi-grid">';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Total Spent</div><div class="kpi-value amt">' + fmt(total) + '</div><div class="kpi-sub">' + pctOfTotal + '% of all expenses</div></div>';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Transactions</div><div class="kpi-value">' + txs.length + '</div><div class="kpi-sub">avg ' + fmt(avg) + ' each</div></div>';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Top Merchant</div><div class="kpi-value" style="font-size:18px">' + merchList[0].name + '</div><div class="kpi-sub">' + fmt(merchList[0].total) + ' (' + merchList[0].count + ' transactions)</div></div>';
+  html += '</div>';
+
+  // Top merchants in this category
+  html += '<div class="card"><div class="card-title">Merchants in ' + categoryName + '</div>';
+  html += '<table><thead><tr><th>Merchant</th><th class="text-right">Total</th><th class="text-right">Count</th><th class="text-right">Avg</th><th class="text-right">Share</th></tr></thead><tbody>';
+  merchList.forEach(m => {
+    const mPct = ((m.total / total) * 100).toFixed(1);
+    html += '<tr style="cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + m.name.replace(/'/g,"\\'") + '\',source:\'categories\'})">';
+    html += '<td style="font-weight:600">' + m.name + '</td>';
+    html += '<td class="text-right amt">' + fmt(m.total) + '</td>';
+    html += '<td class="text-right">' + m.count + '</td>';
+    html += '<td class="text-right mono">' + fmt(m.total / m.count) + '</td>';
+    html += '<td class="text-right">' + mPct + '%</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // Spending trend within month
+  if (ctx.daysInMonth) {
+    html += '<div class="card"><div class="card-title">Daily Spending in ' + categoryName + '</div><div class="chart-wrap"><canvas id="chart-cat-detail-daily"></canvas></div></div>';
+  }
+
+  // All transactions
+  html += '<div class="card"><div class="card-title">All Transactions (' + txs.length + ')</div>';
+  html += '<table><thead><tr><th>Date</th><th>Merchant</th><th>Description</th><th class="text-right">Amount</th><th>Source</th></tr></thead><tbody>';
+  txs.forEach(t => {
+    html += '<tr style="cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + t.merchant.replace(/'/g,"\\'") + '\',source:\'categories\'})">';
+    html += '<td class="mono">' + t.date + '</td>';
+    html += '<td style="font-weight:600">' + t.merchant + '</td>';
+    html += '<td style="font-size:12px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g,'&quot;') + '">' + (t.description || t.merchant) + '</td>';
+    html += '<td class="text-right amt">' + fmt(t.amount) + '</td>';
+    html += '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  container.innerHTML = html;
+
+  // Render daily chart
+  if (ctx.daysInMonth) {
+    const dailyData = new Array(ctx.daysInMonth).fill(0);
+    txs.forEach(t => { const day = parseInt(t.date.substring(8, 10)); if (day >= 1 && day <= ctx.daysInMonth) dailyData[day - 1] += t.amount; });
+    const labels = Array.from({ length: ctx.daysInMonth }, (_, i) => ctx.monthAbbr + ' ' + (i + 1));
+    new Chart(document.getElementById('chart-cat-detail-daily'), {
+      type: 'bar',
+      data: { labels, datasets: [{ data: dailyData, backgroundColor: catColor + '80', borderRadius: 3 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: { x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 10 }, maxRotation: 45 } },
+                 y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } }
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// ANOMALY DETECTION
+// ══════════════════════════════════════════════════════════
+function detectAnomalies() {
+  if (activeData.length < 5) return [];
+  const anomalies = [];
+
+  // Per-merchant anomalies: transactions significantly above average for that merchant
+  merchantGroups.forEach(mg => {
+    if (mg.count < 2) return;
+    const txs = activeData.filter(t => t.merchant === mg.name);
+    const avg = mg.total / mg.count;
+    const stdDev = Math.sqrt(txs.reduce((s, t) => s + Math.pow(t.amount - avg, 2), 0) / txs.length);
+    if (stdDev === 0) return;
+    txs.forEach(t => {
+      const zScore = (t.amount - avg) / stdDev;
+      if (zScore >= 1.8 && t.amount > avg * 1.5) {
+        anomalies.push({
+          type: 'merchant',
+          transaction: t,
+          merchant: t.merchant,
+          amount: t.amount,
+          avg: avg,
+          ratio: (t.amount / avg).toFixed(1),
+          message: fmt(t.amount) + ' at ' + t.merchant + ' is ' + (t.amount / avg).toFixed(1) + 'x your usual (' + fmt(avg) + ' avg)'
+        });
+      }
+    });
+  });
+
+  // Per-category anomalies: single transaction that's a large chunk of category total
+  catGroups.forEach(cg => {
+    if (cg.count < 3) return;
+    const txs = activeData.filter(t => t.category === cg.name);
+    const avg = cg.total / cg.count;
+    txs.forEach(t => {
+      const pctOfCat = t.amount / cg.total;
+      if (pctOfCat > 0.4 && t.amount > avg * 2) {
+        const exists = anomalies.find(a => a.transaction.id === t.id);
+        if (!exists) {
+          anomalies.push({
+            type: 'category',
+            transaction: t,
+            merchant: t.merchant,
+            amount: t.amount,
+            avg: avg,
+            ratio: (t.amount / avg).toFixed(1),
+            message: fmt(t.amount) + ' at ' + t.merchant + ' is ' + ((pctOfCat * 100).toFixed(0)) + '% of all ' + cg.name + ' spending'
+          });
+        }
+      }
+    });
+  });
+
+  return anomalies.sort((a, b) => parseFloat(b.ratio) - parseFloat(a.ratio)).slice(0, 5);
 }
 
 // ══════════════════════════════════════════════════════════
