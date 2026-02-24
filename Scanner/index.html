@@ -1598,8 +1598,9 @@ function resetAll() {
     if (this.value.trim()) localStorage.setItem('scanner_geminiKey', this.value.trim());
     else localStorage.removeItem('scanner_geminiKey');
   });
-  // Restore scan mode
-  const savedMode = localStorage.getItem('scanner_mode') || 'ai';
+  // Restore scan mode — reset old 'ocr' default to 'ai'
+  let savedMode = localStorage.getItem('scanner_mode');
+  if (!savedMode || savedMode === 'ocr') { savedMode = 'ai'; localStorage.setItem('scanner_mode', 'ai'); }
   selectMode(savedMode);
 })();
 </script>
