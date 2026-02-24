@@ -724,7 +724,9 @@
     </div>
     <div id="manager-list"></div>
     <div id="manager-usage" style="margin-top:12px;font-size:11px;color:var(--text-muted)"></div>
-    <div class="modal-actions" style="margin-top:16px">
+    <div class="modal-actions" style="margin-top:16px;flex-wrap:wrap">
+      <button class="modal-btn modal-btn-save" onclick="downloadAllData()" style="margin-right:auto">&#11015; Download Data</button>
+      <label class="modal-btn modal-btn-cancel" style="cursor:pointer">&#11014; Load Data <input type="file" accept=".json" onchange="loadDataFile(event)" style="display:none"></label>
       <button class="modal-btn modal-btn-cancel" onclick="closeDataManager()">Close</button>
     </div>
   </div>
@@ -3211,6 +3213,51 @@ function deleteMonth(key) {
   if (key === ctx.monthKey) switchMonth(months[0]);
   buildMonthSelector();
   openDataManager();
+}
+
+// ─────────── DOWNLOAD / LOAD DATA ───────────
+function downloadAllData() {
+  const keys = {};
+  const months = localStorage.getItem("grocery_months");
+  if (months) keys["grocery_months"] = months;
+  const active = localStorage.getItem("grocery_activeMonth");
+  if (active) keys["grocery_activeMonth"] = active;
+  const allMonths = JSON.parse(months || '["2026_01"]');
+  allMonths.forEach(mk => {
+    const d = localStorage.getItem("data_" + mk);
+    if (d) keys["data_" + mk] = d;
+    const e = localStorage.getItem("edits_" + mk);
+    if (e) keys["edits_" + mk] = e;
+  });
+  const blob = new Blob([JSON.stringify({ version: 1, type: "grocery", exported: new Date().toISOString(), keys }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "grocery_backup_" + new Date().toISOString().slice(0, 10) + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function loadDataFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = "";
+  const reader = new FileReader();
+  reader.onload = function() {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data.keys || data.type !== "grocery") { alert("Invalid grocery backup file."); return; }
+      const hasExisting = getLoadedMonths().some(mk => localStorage.getItem("data_" + mk));
+      if (hasExisting) {
+        if (!confirm("This will overwrite your existing grocery data on this device. Continue?")) return;
+      }
+      Object.entries(data.keys).forEach(([k, v]) => localStorage.setItem(k, v));
+      alert("Data loaded successfully! The page will now reload.");
+      location.reload();
+    } catch(e) {
+      alert("Error reading file: " + e.message);
+    }
+  };
+  reader.readAsText(file);
 }
 
 // ─────────── COMPARE TAB ───────────

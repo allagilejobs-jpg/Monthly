@@ -567,7 +567,9 @@
   <div class="modal">
     <div class="modal-title">Manage Expense Data</div>
     <div id="manager-content"></div>
-    <div class="modal-actions">
+    <div class="modal-actions" style="flex-wrap:wrap">
+      <button class="modal-btn modal-btn-save" onclick="downloadAllData()" style="margin-right:auto">&#11015; Download Data</button>
+      <label class="modal-btn modal-btn-cancel" style="cursor:pointer">&#11014; Load Data <input type="file" accept=".json" onchange="loadDataFile(event)" style="display:none"></label>
       <button class="modal-btn modal-btn-cancel" onclick="closeDataManager()">Close</button>
     </div>
   </div>
@@ -1393,6 +1395,55 @@ function deleteMonth(mk) {
     else { activeData = []; ctx = {}; recomputeAll(); destroyAllCharts(); updateSubtitle(); renderAll(); }
   }
   openDataManager(); // refresh
+}
+
+// ══════════════════════════════════════════════════════════
+// DOWNLOAD / LOAD DATA
+// ══════════════════════════════════════════════════════════
+function downloadAllData() {
+  const keys = {};
+  const months = localStorage.getItem("expenses_months");
+  if (months) keys["expenses_months"] = months;
+  const active = localStorage.getItem("expenses_activeMonth");
+  if (active) keys["expenses_activeMonth"] = active;
+  const rules = localStorage.getItem("expenses_categoryRules");
+  if (rules) keys["expenses_categoryRules"] = rules;
+  const allMonths = JSON.parse(months || '[]');
+  allMonths.forEach(mk => {
+    const d = localStorage.getItem("expenses_data_" + mk);
+    if (d) keys["expenses_data_" + mk] = d;
+    const e = localStorage.getItem("expenses_edits_" + mk);
+    if (e) keys["expenses_edits_" + mk] = e;
+  });
+  const blob = new Blob([JSON.stringify({ version: 1, type: "expenses", exported: new Date().toISOString(), keys }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "expenses_backup_" + new Date().toISOString().slice(0, 10) + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function loadDataFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = "";
+  const reader = new FileReader();
+  reader.onload = function() {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data.keys || data.type !== "expenses") { alert("Invalid expenses backup file."); return; }
+      const hasExisting = loadMonths().length > 0;
+      if (hasExisting) {
+        if (!confirm("This will overwrite your existing expense data on this device. Continue?")) return;
+      }
+      Object.entries(data.keys).forEach(([k, v]) => localStorage.setItem(k, v));
+      alert("Data loaded successfully! The page will now reload.");
+      location.reload();
+    } catch(e) {
+      alert("Error reading file: " + e.message);
+    }
+  };
+  reader.readAsText(file);
 }
 
 // ══════════════════════════════════════════════════════════
