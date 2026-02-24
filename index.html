@@ -93,7 +93,38 @@
       <div class="card-arrow">Open Scanner &rarr;</div>
     </a>
   </div>
+  <div class="demo-cta" style="margin-top:40px">
+    <div style="color:var(--text-muted);font-size:13px;margin-bottom:12px">Not ready to sign up? Explore with sample data.</div>
+    <button onclick="enterDemoMode()" style="
+      background:linear-gradient(135deg,rgba(34,197,94,0.15),rgba(59,130,246,0.15));
+      border:1px solid rgba(34,197,94,0.3);color:var(--green);border-radius:10px;
+      padding:12px 32px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;
+      transition:all 0.2s;
+    ">Try Demo</button>
+  </div>
 </div>
+<script src="demo-data.js"></script>
 <script src="firebase-sync.js"></script>
+<script>
+// Clear demo mode when user returns to landing page
+if (sessionStorage.getItem('demo_mode') === 'true') {
+  sessionStorage.removeItem('demo_mode');
+}
+// If ?signup=true, auto-open auth modal after Firebase loads
+if (new URLSearchParams(window.location.search).has('signup')) {
+  window.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+      if (typeof openAuthModal === 'function') {
+        openAuthModal();
+        if (typeof switchAuthTab === 'function') switchAuthTab('signup');
+      }
+    }, 500);
+  });
+}
+function enterDemoMode() {
+  sessionStorage.setItem('demo_mode', 'true');
+  window.location.href = 'Groceries/?demo=true';
+}
+</script>
 </body>
 </html>

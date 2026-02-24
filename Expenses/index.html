@@ -10,6 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore-compat.js"></script>
+<script src="../demo-data.js"></script>
 <style>
   :root {
     --bg: #0f1117;
@@ -781,26 +782,39 @@ function fmt(v) {
 }
 
 // ── localStorage helpers ──
+const _isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
 function loadMonths() {
-  try { return JSON.parse(localStorage.getItem("expenses_months")) || []; }
+  try { return JSON.parse((_isDemo ? demoGet("expenses_months") : localStorage.getItem("expenses_months")) || '[]'); }
   catch { return []; }
 }
-function saveMonths(arr) { localStorage.setItem("expenses_months", JSON.stringify(arr)); }
+function saveMonths(arr) {
+  if (_isDemo) demoSet("expenses_months", JSON.stringify(arr));
+  else localStorage.setItem("expenses_months", JSON.stringify(arr));
+}
 function loadData(key) {
-  try { return JSON.parse(localStorage.getItem("expenses_data_" + key)) || []; }
+  try { return JSON.parse((_isDemo ? demoGet("expenses_data_" + key) : localStorage.getItem("expenses_data_" + key)) || '[]'); }
   catch { return []; }
 }
-function saveData(key, data) { localStorage.setItem("expenses_data_" + key, JSON.stringify(data)); if (typeof syncToCloud === 'function') syncToCloud(); }
+function saveData(key, data) {
+  if (_isDemo) demoSet("expenses_data_" + key, JSON.stringify(data));
+  else { localStorage.setItem("expenses_data_" + key, JSON.stringify(data)); if (typeof syncToCloud === 'function') syncToCloud(); }
+}
 function loadEdits(key) {
-  try { return JSON.parse(localStorage.getItem("expenses_edits_" + key)) || {}; }
+  try { return JSON.parse((_isDemo ? demoGet("expenses_edits_" + key) : localStorage.getItem("expenses_edits_" + key)) || '{}'); }
   catch { return {}; }
 }
-function saveEdits(key, edits) { localStorage.setItem("expenses_edits_" + key, JSON.stringify(edits)); if (typeof syncToCloud === 'function') syncToCloud(); }
+function saveEdits(key, edits) {
+  if (_isDemo) demoSet("expenses_edits_" + key, JSON.stringify(edits));
+  else { localStorage.setItem("expenses_edits_" + key, JSON.stringify(edits)); if (typeof syncToCloud === 'function') syncToCloud(); }
+}
 function loadCategoryRules() {
-  try { return JSON.parse(localStorage.getItem("expenses_categoryRules")) || {}; }
+  try { return JSON.parse((_isDemo ? demoGet("expenses_categoryRules") : localStorage.getItem("expenses_categoryRules")) || '{}'); }
   catch { return {}; }
 }
-function saveCategoryRules(rules) { localStorage.setItem("expenses_categoryRules", JSON.stringify(rules)); if (typeof syncToCloud === 'function') syncToCloud(); }
+function saveCategoryRules(rules) {
+  if (_isDemo) demoSet("expenses_categoryRules", JSON.stringify(rules));
+  else { localStorage.setItem("expenses_categoryRules", JSON.stringify(rules)); if (typeof syncToCloud === 'function') syncToCloud(); }
+}
 
 // ── Global state ──
 let activeData = [];
@@ -886,7 +900,8 @@ function destroyAllCharts() {
 // ── Switch month ──
 function switchMonth(monthKey) {
   if (!monthKey) return;
-  localStorage.setItem("expenses_activeMonth", monthKey);
+  if (_isDemo) demoSet("expenses_activeMonth", monthKey);
+  else localStorage.setItem("expenses_activeMonth", monthKey);
   ctx = buildMonthContext(monthKey);
   activeData = applyEdits(loadData(monthKey), monthKey);
   filtersInitialized = false;
@@ -949,7 +964,7 @@ function showView(id, filterOpts) {
 function updateMonthNav() {
   const months = loadMonths();
   const sel = document.getElementById("month-select");
-  const active = localStorage.getItem("expenses_activeMonth") || "";
+  const active = (_isDemo ? demoGet("expenses_activeMonth") : localStorage.getItem("expenses_activeMonth")) || "";
   sel.innerHTML = "";
   if (months.length === 0) {
     sel.innerHTML = '<option value="">No data loaded</option>';
@@ -1228,6 +1243,7 @@ function detectMonthKey(transactions) {
 // UPLOAD MODAL
 // ══════════════════════════════════════════════════════════
 function openUploadModal() {
+  if (_isDemo) { showDemoUpgradePrompt("Upload your own bank statements by creating a free account."); return; }
   uploadFormat = null; uploadStep = 0; parsedTransactions = []; parsedMonthKey = null;
   document.getElementById('file-input').value = '';
   goUploadStep(0);
@@ -1355,6 +1371,7 @@ function confirmImport() {
 // DATA MANAGER
 // ══════════════════════════════════════════════════════════
 function openDataManager() {
+  if (_isDemo) { showDemoUpgradePrompt("Create an account to manage your own expense data."); return; }
   const months = loadMonths();
   const mc = document.getElementById('manager-content');
   if (months.length === 0) {
@@ -1388,6 +1405,7 @@ function openDataManager() {
 function closeDataManager() { document.getElementById('manager-modal').classList.remove('open'); }
 
 function deleteMonth(mk) {
+  if (_isDemo) { showDemoUpgradePrompt("Create an account to manage your own expense data."); return; }
   if (!confirm('Delete all data for this month? This cannot be undone.')) return;
   localStorage.removeItem('expenses_data_' + mk);
   localStorage.removeItem('expenses_edits_' + mk);
@@ -1405,6 +1423,7 @@ function deleteMonth(mk) {
 // DOWNLOAD / LOAD DATA
 // ══════════════════════════════════════════════════════════
 function downloadAllData() {
+  if (_isDemo) { showDemoUpgradePrompt("Sign up to download your expense data."); return; }
   const keys = {};
   const months = localStorage.getItem("expenses_months");
   if (months) keys["expenses_months"] = months;
@@ -1428,6 +1447,7 @@ function downloadAllData() {
 }
 
 function loadDataFile(event) {
+  if (_isDemo) { showDemoUpgradePrompt("Sign up to load your own data."); return; }
   const file = event.target.files[0];
   if (!file) return;
   event.target.value = "";
@@ -2284,7 +2304,8 @@ document.addEventListener('click', e => {
 // ══════════════════════════════════════════════════════════
 function toggleTheme() {
   const isLight = document.body.classList.toggle('light');
-  localStorage.setItem('expenses_theme', isLight ? 'light' : 'dark');
+  if (_isDemo) sessionStorage.setItem('demo_expenses_theme', isLight ? 'light' : 'dark');
+  else localStorage.setItem('expenses_theme', isLight ? 'light' : 'dark');
   document.getElementById('theme-toggle').innerHTML = isLight ? '&#9728;' : '&#127769;';
 }
 
@@ -2626,19 +2647,26 @@ function detectRecurring() {
 // ══════════════════════════════════════════════════════════
 (function init() {
   // Restore theme
-  if (localStorage.getItem('expenses_theme') === 'light') {
+  const savedTheme = _isDemo ? sessionStorage.getItem('demo_expenses_theme') : localStorage.getItem('expenses_theme');
+  if (savedTheme === 'light') {
     document.body.classList.add('light');
     document.getElementById('theme-toggle').innerHTML = '&#9728;';
   }
 
   const months = loadMonths();
   if (months.length > 0) {
-    const active = localStorage.getItem("expenses_activeMonth");
+    const active = _isDemo ? demoGet("expenses_activeMonth") : localStorage.getItem("expenses_activeMonth");
     const mk = (active && months.includes(active)) ? active : months.sort().reverse()[0];
     switchMonth(mk);
   } else {
     updateMonthNav();
     renderAll();
+  }
+
+  // Demo mode: inject banner and update links
+  if (_isDemo) {
+    injectDemoBanner('blue');
+    demofyLinks();
   }
 })();
 

@@ -9,6 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore-compat.js"></script>
+<script src="../demo-data.js"></script>
 <style>
   :root {
     --bg: #0f1117;
@@ -1249,18 +1250,24 @@ function buildMonthContext(monthKey) {
 }
 
 function getLoadedMonths() {
+  if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) return JSON.parse(demoGet("grocery_months") || '[]').sort();
   return JSON.parse(localStorage.getItem("grocery_months") || '[]').sort();
 }
 
 function loadMonthData(monthKey) {
-  const stored = localStorage.getItem("data_" + monthKey);
+  const stored = (typeof DEMO_MODE !== 'undefined' && DEMO_MODE)
+    ? demoGet("data_" + monthKey)
+    : localStorage.getItem("data_" + monthKey);
   if (stored) return JSON.parse(stored);
   return null;
 }
 
 function initMonthData(data) {
   data.forEach((item, idx) => { item._idx = idx; item._origName = item.n; item._origCat = item.c; item._origNg = item.ng; });
-  const savedEdits = JSON.parse(localStorage.getItem(ctx.editsKey) || "{}");
+  const editsStr = (typeof DEMO_MODE !== 'undefined' && DEMO_MODE)
+    ? (demoGet(ctx.editsKey) || "{}")
+    : (localStorage.getItem(ctx.editsKey) || "{}");
+  const savedEdits = JSON.parse(editsStr);
   Object.entries(savedEdits).forEach(([idx, edits]) => {
     const i = parseInt(idx);
     if (data[i]) {
@@ -1311,7 +1318,8 @@ function buildMonthSelector() {
 function switchMonth(monthKey) {
   const data = loadMonthData(monthKey);
   if (!data) { alert("No data found for this month."); return; }
-  localStorage.setItem("grocery_activeMonth", monthKey);
+  if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) demoSet("grocery_activeMonth", monthKey);
+  else localStorage.setItem("grocery_activeMonth", monthKey);
   ctx = buildMonthContext(monthKey);
   activeData = data;
   initMonthData(activeData);
@@ -1430,7 +1438,9 @@ function makeChartClickable(chart, canvas, labels, filterKey) {
 // ─────────── RENDER ON LOAD ───────────
 window.addEventListener("DOMContentLoaded", () => {
   const months = getLoadedMonths();
-  const activeMonthKey = localStorage.getItem("grocery_activeMonth") || (months.length ? months[0] : null);
+  const activeMonthKey = (typeof DEMO_MODE !== 'undefined' && DEMO_MODE)
+    ? (demoGet("grocery_activeMonth") || (months.length ? months[months.length - 1] : null))
+    : (localStorage.getItem("grocery_activeMonth") || (months.length ? months[0] : null));
   if (activeMonthKey) {
     ctx = buildMonthContext(activeMonthKey);
     activeData = loadMonthData(activeMonthKey) || [];
@@ -1449,6 +1459,11 @@ window.addEventListener("DOMContentLoaded", () => {
     if (main) {
       main.innerHTML = '<div style="text-align:center;padding:80px 20px"><div style="font-size:48px;margin-bottom:16px">&#128722;</div><div style="font-size:20px;font-weight:700;margin-bottom:8px">No Grocery Data Yet</div><div style="color:var(--text-muted);font-size:14px;margin-bottom:24px">Upload an Excel file or import from the Receipt Scanner to get started.</div><button onclick="openUploadModal()" class="month-nav-btn" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3);padding:10px 24px;font-size:14px">+ Upload Month</button></div>';
     }
+  }
+  // Demo mode: inject banner and update links
+  if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) {
+    injectDemoBanner('green');
+    demofyLinks();
   }
 });
 
@@ -1854,12 +1869,15 @@ function detectRegularPurchases() {
 // ─────────── THEME TOGGLE ───────────
 function toggleTheme() {
   const isLight = document.body.classList.toggle("light");
-  localStorage.setItem("grocery_theme", isLight ? "light" : "dark");
+  if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) sessionStorage.setItem("demo_grocery_theme", isLight ? "light" : "dark");
+  else localStorage.setItem("grocery_theme", isLight ? "light" : "dark");
   document.getElementById("theme-toggle").textContent = isLight ? "\u2600\uFE0F" : "\uD83C\uDF19";
 }
 // Apply saved theme on load
 (function() {
-  const saved = localStorage.getItem("grocery_theme");
+  const saved = (typeof DEMO_MODE !== 'undefined' && DEMO_MODE)
+    ? sessionStorage.getItem("demo_grocery_theme")
+    : localStorage.getItem("grocery_theme");
   if (saved === "light") {
     document.body.classList.add("light");
     document.getElementById("theme-toggle").textContent = "\u2600\uFE0F";
@@ -2987,19 +3005,21 @@ function saveEdit() {
   item.c = newCat;
   item.ng = newNg;
 
-  // Save to localStorage
-  const edits = JSON.parse(localStorage.getItem(ctx.editsKey) || "{}");
+  // Save edits
+  const _isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
+  const edits = JSON.parse((_isDemo ? demoGet(ctx.editsKey) : localStorage.getItem(ctx.editsKey)) || "{}");
   const hasChanges = newName !== item._origName || newCat !== item._origCat || newNg !== item._origNg;
   if (hasChanges) {
     edits[editIdx] = { n: newName, c: newCat, ng: newNg };
   } else {
     delete edits[editIdx];
   }
-  localStorage.setItem(ctx.editsKey, JSON.stringify(edits));
+  if (_isDemo) demoSet(ctx.editsKey, JSON.stringify(edits));
+  else localStorage.setItem(ctx.editsKey, JSON.stringify(edits));
 
   closeEditModal();
   renderTable();
-  if (typeof syncToCloud === 'function') syncToCloud();
+  if (!_isDemo && typeof syncToCloud === 'function') syncToCloud();
 }
 
 function resetEdit() {
@@ -3009,14 +3029,15 @@ function resetEdit() {
   item.c = item._origCat;
   item.ng = item._origNg;
 
-  // Remove from localStorage
-  const edits = JSON.parse(localStorage.getItem(ctx.editsKey) || "{}");
+  const _isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
+  const edits = JSON.parse((_isDemo ? demoGet(ctx.editsKey) : localStorage.getItem(ctx.editsKey)) || "{}");
   delete edits[editIdx];
-  localStorage.setItem(ctx.editsKey, JSON.stringify(edits));
+  if (_isDemo) demoSet(ctx.editsKey, JSON.stringify(edits));
+  else localStorage.setItem(ctx.editsKey, JSON.stringify(edits));
 
   closeEditModal();
   renderTable();
-  if (typeof syncToCloud === 'function') syncToCloud();
+  if (!_isDemo && typeof syncToCloud === 'function') syncToCloud();
 }
 
 // ─────────── HELP MODAL ───────────
@@ -3033,6 +3054,7 @@ let pendingUploadData = null;
 let pendingUploadKey = null;
 
 function openUploadModal() {
+  if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) { showDemoUpgradePrompt("Upload your own grocery data by creating a free account."); return; }
   document.getElementById("upload-preview").style.display = "none";
   document.getElementById("upload-actions").style.display = "none";
   document.getElementById("drop-zone").style.display = "";
@@ -3192,6 +3214,7 @@ function confirmUpload() {
 
 // ─────────── DATA MANAGER ───────────
 function openDataManager() {
+  if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) { showDemoUpgradePrompt("Create an account to manage your own data."); return; }
   const months = getLoadedMonths();
   let totalBytes = 0;
   let html = "";
@@ -3219,6 +3242,7 @@ function closeDataManager() {
 }
 
 function deleteMonth(key) {
+  if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) { showDemoUpgradePrompt("Create an account to manage your own data."); return; }
   if (!confirm("Delete all data for this month? This cannot be undone.")) return;
   localStorage.removeItem("data_" + key);
   localStorage.removeItem("edits_" + key);
@@ -3233,6 +3257,7 @@ function deleteMonth(key) {
 
 // ─────────── DOWNLOAD / LOAD DATA ───────────
 function downloadAllData() {
+  if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) { showDemoUpgradePrompt("Sign up to download your grocery data."); return; }
   const keys = {};
   const months = localStorage.getItem("grocery_months");
   if (months) keys["grocery_months"] = months;
@@ -3254,6 +3279,7 @@ function downloadAllData() {
 }
 
 function loadDataFile(event) {
+  if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) { showDemoUpgradePrompt("Sign up to load your own data."); return; }
   const file = event.target.files[0];
   if (!file) return;
   event.target.value = "";

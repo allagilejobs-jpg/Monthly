@@ -13,6 +13,13 @@ const FIREBASE_CONFIG = {
   appId: "1:295516575227:web:d7728a5640c9577683675e"
 };
 
+// ── Demo Mode Detection ──
+function isDemoMode() {
+  return (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) ||
+         sessionStorage.getItem('demo_mode') === 'true' ||
+         new URLSearchParams(window.location.search).has('demo');
+}
+
 // ── Keys that sync to cloud (by prefix) ──
 const SYNC_PREFIXES = [
   'grocery_months', 'grocery_activeMonth',
@@ -55,6 +62,8 @@ function initFirebase() {
           if (typeof recomputeAll === 'function') { recomputeAll(); renderAll(); }
         });
       } else {
+        // Skip redirect for demo mode users
+        if (isDemoMode()) return;
         // Redirect non-authenticated users to landing page
         const path = window.location.pathname;
         const isLandingPage = path.endsWith('/Monthly/') || path.endsWith('/Monthly/index.html') || path === '/Monthly';
@@ -280,12 +289,25 @@ function updateAuthUI() {
   const info = document.getElementById('fb-user-info');
   if (!btn || !info) return;
 
+  if (isDemoMode() && !fb_user) {
+    btn.style.display = 'inline-block';
+    btn.textContent = 'Sign Up';
+    btn.onclick = function() {
+      if (typeof exitDemoAndSignUp === 'function') exitDemoAndSignUp();
+      else { sessionStorage.removeItem('demo_mode'); window.location.href = '../'; }
+    };
+    info.style.display = 'none';
+    return;
+  }
+
   if (fb_user) {
     btn.style.display = 'none';
     info.style.display = 'inline';
     document.getElementById('fb-user-email').textContent = fb_user.email;
   } else {
     btn.style.display = 'inline-block';
+    btn.textContent = 'Sign In';
+    btn.onclick = function() { openAuthModal(); };
     info.style.display = 'none';
   }
 }
@@ -321,6 +343,7 @@ function getSyncableKeys() {
 
 // Push localStorage → Firestore
 async function syncToCloud() {
+  if (isDemoMode()) return;
   if (!fb_initialized || !fb_user || syncing) return;
   syncing = true;
   setSyncStatus('Syncing...');
@@ -392,6 +415,7 @@ async function syncToCloud() {
 
 // Pull Firestore → localStorage
 async function syncFromCloud() {
+  if (isDemoMode()) return;
   if (!fb_initialized || !fb_user || syncing) return;
   syncing = true;
   setSyncStatus('Loading...');
