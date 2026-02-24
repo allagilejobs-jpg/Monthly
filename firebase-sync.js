@@ -5,12 +5,12 @@
 // ── Firebase Config ──
 // Replace with your Firebase project config from console.firebase.google.com
 const FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCkuURRU-GC86vqKRXBz7X0-6rlAf6A2M0",
+  authDomain: "family-finance-778a5.firebaseapp.com",
+  projectId: "family-finance-778a5",
+  storageBucket: "family-finance-778a5.firebasestorage.app",
+  messagingSenderId: "295516575227",
+  appId: "1:295516575227:web:d7728a5640c9577683675e"
 };
 
 // ── Keys that sync to cloud (by prefix) ──
