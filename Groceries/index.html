@@ -1500,7 +1500,7 @@ function renderOverview() {
   document.getElementById("insights").innerHTML = [
     { title: "Top Category", text: `<span class="insight-val">${topCat.name}</span> at ${fmt(topCat.total)} (${pct(topCat.total, grandTotal)} of total spend)`, action: `showView('items',null,{cat:'${topCat.name}'})` },
     { title: "Most Spent at Store", text: `<span class="insight-val">${topStore.name}</span> across ${topStore.items.length} items totaling ${fmt(topStore.total)}`, action: `showView('items',null,{store:'${topStore.name}'})` },
-    { title: "Costliest Single Product", text: `<span class="insight-val">${topProduct.name}</span> &mdash; ${fmt(topProduct.total)} total (qty ${topProduct.qty})`, action: `showView('items',null,{cat:'${topProduct.cat}'})` },
+    { title: "Costliest Single Product", text: `<span class="insight-val">${topProduct.name}</span> &mdash; ${fmt(topProduct.total)} total (qty ${topProduct.qty})`, action: `showProductDetail('${topProduct.name.replace(/'/g, "\\'")}','overview')` },
     { title: "Biggest Shopping Day", text: `<span class="insight-val">${ctx.monthAbbr} ${parseInt(biggestDay.name.split("/")[1])}</span> &mdash; ${fmt(biggestDay.total)} spent across ${biggestDay.items.length} items`, action: `showView('items',null,{date:'${biggestDay.name}'})` },
     { title: "Repeat Purchases", text: `<span class="insight-val">${freqProducts.length} products</span> bought 2+ times, totaling ${fmt(freqProducts.reduce((s,p) => s + p.total, 0))}`, action: `showView('groceries')` },
     { title: "Toiletries Share", text: `Household, beauty & paper products accounted for <span class="insight-val">${fmt(toiletryTotal)}</span> (${pct(toiletryTotal, grandTotal)})`, action: `showView('toiletries')` },
@@ -1876,8 +1876,8 @@ function showProductDetail(productName, source) {
   const stores = [...new Set(items.map(i => i.s))];
   const dates = [...new Set(items.map(i => i.d))];
 
-  const backTab = productDetailSource === 'groceries' ? 'groceries' : productDetailSource === 'toiletries' ? 'toiletries' : 'items';
-  const backLabel = backTab === 'groceries' ? 'Groceries' : backTab === 'toiletries' ? 'Toiletries' : 'All Items';
+  const backMap = { groceries: ['groceries','Groceries'], toiletries: ['toiletries','Toiletries'], overview: ['overview','Overview'], items: ['items','All Items'] };
+  const [backTab, backLabel] = backMap[productDetailSource] || backMap.items;
   document.getElementById("product-detail-back").onclick = () => showView(backTab);
   document.getElementById("product-detail-back").textContent = "\u2190 Back to " + backLabel;
 
