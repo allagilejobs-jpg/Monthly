@@ -500,6 +500,33 @@ function extractDate(text) {
 // ============================================================
 // RECEIPT LINE PARSERS
 // ============================================================
+
+// Fix common OCR digit/letter swaps in price strings
+function fixOcrPrice(s) {
+  return s.replace(/[OoQ]/g, '0').replace(/[Il!]/g, '1').replace(/[Ss]/g, '5').replace(/[Bb]/g, '8').replace(/[,]/g, '.');
+}
+
+// Try to extract a price from the end of a line (handles OCR noise)
+function extractTrailingPrice(line) {
+  // Standard: "ITEM NAME   1.99" or "ITEM NAME   $1.99" or "ITEM NAME   1.99 N"
+  let m = line.match(/^(.+?)\s{2,}[\$]?(\d{1,3}[.,]\d{2})\s*[A-Za-z]?\s*$/);
+  if (m) return { name: m[1].trim(), price: parseFloat(fixOcrPrice(m[2])) };
+  // With single space: "ITEM NAME 1.99" (but require price-like ending)
+  m = line.match(/^(.{3,}?)\s+[\$]?(\d{1,3}\.\d{2})\s*[A-Za-z]?\s*$/);
+  if (m) return { name: m[1].trim(), price: parseFloat(m[2]) };
+  // OCR may read period as comma or space: "1 99" -> "1.99", "1,99" -> "1.99"
+  m = line.match(/^(.{3,}?)\s+[\$]?(\d{1,3})[,\s](\d{2})\s*[A-Za-z]?\s*$/);
+  if (m) return { name: m[1].trim(), price: parseFloat(m[2] + '.' + m[3]) };
+  // Price with dash (negative/refund): "ITEM NAME   -1.99"
+  m = line.match(/^(.+?)\s{2,}-[\$]?(\d{1,3}\.\d{2})\s*[A-Za-z]?\s*$/);
+  if (m) return { name: m[1].trim(), price: -parseFloat(m[2]) };
+  return null;
+}
+
+// Lines to skip (non-item content)
+const SKIP_RE = /subtotal|sub\s*total|^\s*total\b|sales?\s*tax|change\s*due|cash\s*tend|credit|debit|visa|master\s*card|amex|discover|account|balance|tend|thank|welcome|store\s*#|receipt|phone|address|www\.|\.com|\.net|member|saving|you\s*saved|regular\s*price|orig\s*price|price\s*reduced|loyalty|rewards|coupon|^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|^\s*\d{3,4}\s*$|ebt|snap|payment|approved|chip|swipe|pin|transaction|cashier|register|terminal|tc#|ref#|auth|appr|items?\s*sold|number of items/i;
+const SKIP_LINE_RE = /^\*|^\-{2,}|^={2,}|^#{2,}|^_+$|^\s*\d+\s*$/;
+
 function parseReceiptLines(text, store) {
   switch(store) {
     case 'Walmart': return parseWalmart(text);
@@ -513,52 +540,71 @@ function parseReceiptLines(text, store) {
 function parseWalmart(text) {
   const items = [];
   const lines = text.split('\n');
-  // Walmart format: ITEM NAME    PRICE (with possible letter code at end like N, T, X)
-  const priceRe = /^(.+?)\s+(\d+\.\d{2})\s*[A-Z]?\s*$/;
-  const qtyRe = /^(\d+)\s*@\s*(\d+\.\d{2})/;
+  const qtyRe = /^(\d+)\s*[@xX]\s*\$?(\d{1,3}[.,]\d{2})/;
   let pendingQty = null;
-  for (const line of lines) {
-    const trimmed = line.trim();
+  let pendingName = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
     if (!trimmed) continue;
-    // Skip subtotal/tax/total lines
-    if (/subtotal|total|tax|change|cash|credit|debit|visa|mastercard|amex|account|card|balance|tend/i.test(trimmed)) continue;
-    if (/^\*{2,}|^\-{2,}|^={2,}/.test(trimmed)) continue;
+    if (SKIP_RE.test(trimmed) || SKIP_LINE_RE.test(trimmed)) { pendingName = null; continue; }
 
+    // Check for quantity line
     const qm = trimmed.match(qtyRe);
-    if (qm) { pendingQty = { qty: parseInt(qm[1]), unit: parseFloat(qm[2]) }; continue; }
+    if (qm) { pendingQty = { qty: parseInt(qm[1]), unit: parseFloat(fixOcrPrice(qm[2])) }; continue; }
 
-    const pm = trimmed.match(priceRe);
-    if (pm) {
-      const name = pm[1].trim();
-      const price = parseFloat(pm[2]);
-      if (name.length < 2 || price > 500) continue;
+    // Try to extract price from this line
+    const result = extractTrailingPrice(trimmed);
+    if (result && result.price > 0 && result.price <= 500 && result.name.length >= 2) {
       const qty = pendingQty ? pendingQty.qty : 1;
-      const unit = pendingQty ? pendingQty.unit : price;
-      items.push({ rawName: name, qty, unitPrice: unit, total: price });
+      const unit = pendingQty ? pendingQty.unit : result.price;
+      items.push({ rawName: result.name, qty, unitPrice: unit, total: result.price });
       pendingQty = null;
+      pendingName = null;
+    } else if (trimmed.length >= 3 && !/^\d+$/.test(trimmed)) {
+      // Line with no price — could be item name with price on next line
+      pendingName = trimmed;
+    }
+
+    // Check if next line is just a price (multi-line item)
+    if (pendingName && i + 1 < lines.length) {
+      const nextTrimmed = lines[i + 1].trim();
+      const priceOnly = nextTrimmed.match(/^[\$]?(\d{1,3}[.,]\d{2})\s*[A-Za-z]?\s*$/);
+      if (priceOnly) {
+        const price = parseFloat(fixOcrPrice(priceOnly[1]));
+        if (price > 0 && price <= 500 && pendingName.length >= 2) {
+          const qty = pendingQty ? pendingQty.qty : 1;
+          const unit = pendingQty ? pendingQty.unit : price;
+          items.push({ rawName: pendingName, qty, unitPrice: unit, total: price });
+          pendingQty = null;
+          pendingName = null;
+          i++; // Skip the price line
+        }
+      }
     }
   }
   return items;
 }
 
 function parseTarget(text) {
-  // Target: similar to Walmart but uses letter codes more
   return parseGeneric(text);
 }
 
 function parseCostco(text) {
-  // Costco: item number + description + price
   const items = [];
   const lines = text.split('\n');
-  const re = /^\d{5,}\s+(.+?)\s+(\d+\.\d{2})\s*[A-Z]?\s*$/;
+  // Costco: item number (5-7 digits) + description + price
+  const re = /^\d{4,}\s+(.+?)\s{2,}[\$]?(\d{1,3}[.,]\d{2})\s*[A-Za-z]?\s*$/;
   for (const line of lines) {
     const trimmed = line.trim();
-    if (/subtotal|total|tax/i.test(trimmed)) continue;
+    if (SKIP_RE.test(trimmed)) continue;
     const m = trimmed.match(re);
     if (m) {
       const name = m[1].trim();
-      const price = parseFloat(m[2]);
-      if (name.length >= 2 && price <= 500) items.push({ rawName: name, qty: 1, unitPrice: price, total: price });
+      const price = parseFloat(fixOcrPrice(m[2]));
+      if (name.length >= 2 && price > 0 && price <= 500) {
+        items.push({ rawName: name, qty: 1, unitPrice: price, total: price });
+      }
     }
   }
   if (items.length === 0) return parseGeneric(text);
@@ -572,30 +618,58 @@ function parsePublix(text) {
 function parseGeneric(text) {
   const items = [];
   const lines = text.split('\n');
-  // Generic: look for lines ending in a price (X.XX)
-  const priceRe = /^(.+?)\s+\$?(\d+\.\d{2})\s*[A-Z]?\s*$/;
-  const qtyPriceRe = /^(\d+)\s*(?:@|x)\s*\$?(\d+\.\d{2})/i;
+  const qtyPriceRe = /^(\d+)\s*[@xX]\s*\$?(\d{1,3}[.,]\d{2})/i;
   let pendingQty = null;
+  let pendingName = null;
 
-  for (const line of lines) {
-    const trimmed = line.trim();
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
     if (!trimmed || trimmed.length < 3) continue;
-    // Skip non-item lines
-    if (/subtotal|sub\s*total|total|tax|change|cash|credit|debit|visa|master|amex|account|balance|tend|thank|welcome|store|receipt|phone|address|www\.|\.com|member|saving|you saved|regular price|^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/i.test(trimmed)) continue;
-    if (/^\*|^\-{3,}|^={3,}|^#{3,}/.test(trimmed)) continue;
+    if (SKIP_RE.test(trimmed) || SKIP_LINE_RE.test(trimmed)) { pendingName = null; continue; }
 
+    // Check for quantity line
     const qm = trimmed.match(qtyPriceRe);
-    if (qm) { pendingQty = { qty: parseInt(qm[1]), unit: parseFloat(qm[2]) }; continue; }
+    if (qm) { pendingQty = { qty: parseInt(qm[1]), unit: parseFloat(fixOcrPrice(qm[2])) }; continue; }
 
-    const pm = trimmed.match(priceRe);
-    if (pm) {
-      const name = pm[1].replace(/^\d{5,}\s*/, '').trim();
-      const price = parseFloat(pm[2]);
-      if (name.length < 2 || price > 500 || price === 0) continue;
-      const qty = pendingQty ? pendingQty.qty : 1;
-      const unit = pendingQty ? pendingQty.unit : price;
-      items.push({ rawName: name, qty, unitPrice: unit, total: price });
-      pendingQty = null;
+    // Try to extract price from this line
+    const result = extractTrailingPrice(trimmed);
+    if (result) {
+      let name = result.name.replace(/^\d{4,}\s*/, '').trim(); // Strip item codes
+      const price = result.price;
+      if (name.length >= 2 && Math.abs(price) > 0 && Math.abs(price) <= 500) {
+        const qty = pendingQty ? pendingQty.qty : 1;
+        const unit = pendingQty ? pendingQty.unit : Math.abs(price);
+        items.push({ rawName: name, qty, unitPrice: unit, total: Math.abs(price) });
+        pendingQty = null;
+        pendingName = null;
+        continue;
+      }
+    }
+
+    // No price found — might be item name with price on next line
+    if (trimmed.length >= 3 && !/^\d+$/.test(trimmed)) {
+      pendingName = trimmed;
+    }
+
+    // Check if next line is just a price (multi-line item: name on one line, price on next)
+    if (pendingName && i + 1 < lines.length) {
+      const nextTrimmed = lines[i + 1].trim();
+      const priceOnly = nextTrimmed.match(/^[\$]?(\d{1,3}[.,]\d{2})\s*[A-Za-z]?\s*$/);
+      if (priceOnly) {
+        const price = parseFloat(fixOcrPrice(priceOnly[1]));
+        if (price > 0 && price <= 500) {
+          let name = pendingName.replace(/^\d{4,}\s*/, '').trim();
+          if (name.length >= 2) {
+            const qty = pendingQty ? pendingQty.qty : 1;
+            const unit = pendingQty ? pendingQty.unit : price;
+            items.push({ rawName: name, qty, unitPrice: unit, total: price });
+            pendingQty = null;
+            pendingName = null;
+            i++; // Skip the price line
+            continue;
+          }
+        }
+      }
     }
   }
   return items;
@@ -604,29 +678,122 @@ function parseGeneric(text) {
 // ============================================================
 // IMAGE PREPROCESSING
 // ============================================================
-function preprocessImage(dataUrl) {
+
+// Otsu's method — finds optimal threshold by minimizing intra-class variance
+function otsuThreshold(histogram) {
+  const total = histogram.reduce((a, b) => a + b, 0);
+  let sum = 0;
+  for (let i = 0; i < 256; i++) sum += i * histogram[i];
+  let sumB = 0, wB = 0, wF = 0, maxVariance = 0, threshold = 128;
+  for (let t = 0; t < 256; t++) {
+    wB += histogram[t];
+    if (wB === 0) continue;
+    wF = total - wB;
+    if (wF === 0) break;
+    sumB += t * histogram[t];
+    const mB = sumB / wB;
+    const mF = (sum - sumB) / wF;
+    const variance = wB * wF * (mB - mF) * (mB - mF);
+    if (variance > maxVariance) { maxVariance = variance; threshold = t; }
+  }
+  return threshold;
+}
+
+// Adaptive local thresholding — uses mean of local window
+function adaptiveThreshold(grayPixels, w, h, blockSize, C) {
+  const out = new Uint8Array(w * h);
+  const half = Math.floor(blockSize / 2);
+  // Build integral image for fast local mean
+  const integral = new Float64Array((w + 1) * (h + 1));
+  for (let y = 0; y < h; y++) {
+    let rowSum = 0;
+    for (let x = 0; x < w; x++) {
+      rowSum += grayPixels[y * w + x];
+      integral[(y + 1) * (w + 1) + (x + 1)] = integral[y * (w + 1) + (x + 1)] + rowSum;
+    }
+  }
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const x1 = Math.max(0, x - half), y1 = Math.max(0, y - half);
+      const x2 = Math.min(w - 1, x + half), y2 = Math.min(h - 1, y + half);
+      const count = (x2 - x1 + 1) * (y2 - y1 + 1);
+      const sum = integral[(y2 + 1) * (w + 1) + (x2 + 1)]
+                - integral[y1 * (w + 1) + (x2 + 1)]
+                - integral[(y2 + 1) * (w + 1) + x1]
+                + integral[y1 * (w + 1) + x1];
+      const localMean = sum / count;
+      out[y * w + x] = grayPixels[y * w + x] > (localMean - C) ? 255 : 0;
+    }
+  }
+  return out;
+}
+
+function preprocessImage(dataUrl, mode) {
+  // mode: 'adaptive' (default), 'otsu', 'raw' (grayscale only, no threshold)
+  mode = mode || 'adaptive';
   return new Promise(resolve => {
     const img = new Image();
     img.onload = () => {
       let w = img.width, h = img.height;
-      // Scale up small images
-      const scale = w < 1000 ? 2 : 1;
+      // Scale up aggressively — receipts need high resolution for OCR
+      // Target at least 2400px wide for good Tesseract results
+      const scale = w < 1200 ? 3 : w < 2000 ? 2 : 1;
       w *= scale; h *= scale;
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
+      // Use high-quality interpolation
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(img, 0, 0, w, h);
-      // Grayscale + contrast + threshold
+
       const imageData = ctx.getImageData(0, 0, w, h);
       const d = imageData.data;
+      const grayPixels = new Uint8Array(w * h);
+
+      // Step 1: Convert to grayscale
       for (let i = 0; i < d.length; i += 4) {
-        let gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
-        // Increase contrast (1.5x)
-        gray = ((gray / 255 - 0.5) * 1.5 + 0.5) * 255;
-        gray = Math.max(0, Math.min(255, gray));
-        // Threshold
-        gray = gray > 128 ? 255 : 0;
-        d[i] = d[i+1] = d[i+2] = gray;
+        grayPixels[i / 4] = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+      }
+
+      // Step 2: Sharpen (3x3 unsharp kernel)
+      const sharpened = new Uint8Array(w * h);
+      for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          const idx = y * w + x;
+          // 3x3 sharpening: center*5 - neighbors
+          const val = 5 * grayPixels[idx]
+            - grayPixels[(y - 1) * w + x]
+            - grayPixels[(y + 1) * w + x]
+            - grayPixels[y * w + (x - 1)]
+            - grayPixels[y * w + (x + 1)];
+          sharpened[idx] = Math.max(0, Math.min(255, val));
+        }
+      }
+      // Copy edges
+      for (let x = 0; x < w; x++) { sharpened[x] = grayPixels[x]; sharpened[(h - 1) * w + x] = grayPixels[(h - 1) * w + x]; }
+      for (let y = 0; y < h; y++) { sharpened[y * w] = grayPixels[y * w]; sharpened[y * w + w - 1] = grayPixels[y * w + w - 1]; }
+
+      let finalPixels;
+      if (mode === 'raw') {
+        // No thresholding — just sharpened grayscale (lets Tesseract do its own binarization)
+        finalPixels = sharpened;
+      } else if (mode === 'otsu') {
+        // Otsu's global threshold
+        const histogram = new Array(256).fill(0);
+        for (let i = 0; i < sharpened.length; i++) histogram[sharpened[i]]++;
+        const thresh = otsuThreshold(histogram);
+        finalPixels = sharpened.map(v => v > thresh ? 255 : 0);
+      } else {
+        // Adaptive local threshold (best for receipts with uneven lighting)
+        const blockSize = Math.max(15, Math.round(Math.min(w, h) / 30) | 1);
+        finalPixels = adaptiveThreshold(sharpened, w, h, blockSize, 10);
+      }
+
+      // Write back to canvas
+      for (let i = 0; i < finalPixels.length; i++) {
+        const v = finalPixels[i];
+        d[i * 4] = v; d[i * 4 + 1] = v; d[i * 4 + 2] = v;
       }
       ctx.putImageData(imageData, 0, 0);
       resolve(canvas.toDataURL('image/png'));
@@ -749,7 +916,13 @@ async function startProcessing() {
           }
         }
       });
-      log('OCR engine ready', 'success');
+      // Receipt-optimized Tesseract settings
+      await tesseractWorker.setParameters({
+        tessedit_pageseg_mode: '6',          // Uniform text block (receipts are single-column)
+        preserve_interword_spaces: '1',       // Keep spacing for column alignment
+        tessedit_char_blacklist: '|~`{}[]',   // Remove chars never found on receipts
+      });
+      log('OCR engine ready (receipt mode)', 'success');
     } catch(e) {
       log('Failed to initialize OCR: ' + e.message, 'error');
       return;
@@ -810,37 +983,93 @@ async function startProcessing() {
   }
 }
 
-async function processWithTesseract(uf, doPreprocess, doAutoDetect) {
-  let imageData = uf.dataUrl;
-  if (doPreprocess) {
-    log('  Preprocessing image...');
-    imageData = await preprocessImage(imageData);
-  }
-  log('  Running OCR...');
+async function runOcrPass(imageData, label) {
+  log(`  OCR pass: ${label}...`);
   const result = await tesseractWorker.recognize(imageData);
-  const text = result.data.text;
-  const confidence = result.data.confidence;
+  const text = result.data.text || '';
+  const confidence = result.data.confidence || 0;
+  const lineCount = text.split('\n').filter(l => l.trim()).length;
+  log(`  → ${lineCount} lines, ${Math.round(confidence)}% confidence`);
+  return { text, confidence };
+}
 
-  if (!text || text.trim().length < 10) return [];
+async function processWithTesseract(uf, doPreprocess, doAutoDetect) {
+  // Multi-pass OCR strategy — try different preprocessing modes and pick best result
+  const passes = [];
 
-  // Detect store and date
-  let store = 'Unknown Store', date = extractDate(text);
-  if (doAutoDetect) {
-    store = detectStore(text);
-    log(`  Store: ${store}, Date: ${date}`);
+  if (doPreprocess) {
+    // Pass 1: Adaptive threshold (best for uneven lighting on thermal paper)
+    log('  Pass 1: Adaptive threshold...');
+    const img1 = await preprocessImage(uf.dataUrl, 'adaptive');
+    const r1 = await runOcrPass(img1, 'adaptive');
+    passes.push(r1);
+
+    // If first pass got few lines, try more strategies
+    const lines1 = r1.text.split('\n').filter(l => l.trim()).length;
+    if (lines1 < 5 || r1.confidence < 50) {
+      // Pass 2: Raw grayscale (let Tesseract handle binarization — sometimes better)
+      log('  Pass 2: Grayscale (Tesseract binarization)...');
+      const img2 = await preprocessImage(uf.dataUrl, 'raw');
+      const r2 = await runOcrPass(img2, 'grayscale');
+      passes.push(r2);
+    }
+
+    const bestSoFar = passes.reduce((a, b) => {
+      const aLines = a.text.split('\n').filter(l => l.trim()).length;
+      const bLines = b.text.split('\n').filter(l => l.trim()).length;
+      return (bLines > aLines || (bLines === aLines && b.confidence > a.confidence)) ? b : a;
+    });
+    const bestLines = bestSoFar.text.split('\n').filter(l => l.trim()).length;
+
+    if (bestLines < 5 || bestSoFar.confidence < 50) {
+      // Pass 3: Otsu threshold (good for high-contrast receipts)
+      log('  Pass 3: Otsu threshold...');
+      const img3 = await preprocessImage(uf.dataUrl, 'otsu');
+      const r3 = await runOcrPass(img3, 'otsu');
+      passes.push(r3);
+    }
+  } else {
+    // No preprocessing — use original image
+    const r = await runOcrPass(uf.dataUrl, 'original');
+    passes.push(r);
   }
 
-  // Parse items
-  const rawItems = parseReceiptLines(text, store);
-  log(`  Parsed ${rawItems.length} line(s) from OCR text`);
+  // Pick the pass that yields the most parsed items
+  let bestItems = [];
+  let bestText = '';
+  let bestConf = 0;
+  let bestStore = 'Unknown Store';
+  let bestDate = '';
 
-  // Convert to data model
-  return rawItems.map(ri => {
+  for (const pass of passes) {
+    if (!pass.text || pass.text.trim().length < 10) continue;
+    const store = doAutoDetect ? detectStore(pass.text) : 'Unknown Store';
+    const date = extractDate(pass.text);
+    const items = parseReceiptLines(pass.text, store);
+    if (items.length > bestItems.length || (items.length === bestItems.length && pass.confidence > bestConf)) {
+      bestItems = items;
+      bestText = pass.text;
+      bestConf = pass.confidence;
+      bestStore = store;
+      bestDate = date;
+    }
+  }
+
+  if (doAutoDetect) log(`  Store: ${bestStore}, Date: ${bestDate}`);
+  log(`  Best result: ${bestItems.length} item(s) from ${passes.length} pass(es)`);
+
+  // Log raw OCR text for debugging (truncated)
+  if (bestItems.length === 0 && bestText) {
+    const preview = bestText.split('\n').slice(0, 15).map(l => '    ' + l.trim()).join('\n');
+    log(`  Raw OCR preview:\n${preview}`, 'info');
+  }
+
+  return bestItems.map(ri => {
     const fullName = decodeAbbreviation(ri.rawName);
     const category = assignCategory(fullName);
     return {
-      d: date,
-      s: store,
+      d: bestDate,
+      s: bestStore,
       r: ri.rawName,
       n: fullName,
       c: category,
@@ -849,7 +1078,7 @@ async function processWithTesseract(uf, doPreprocess, doAutoDetect) {
       t: ri.total,
       ng: isNonGrocery(category),
       _file: uf.name,
-      _confidence: confidence
+      _confidence: bestConf
     };
   });
 }
