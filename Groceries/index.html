@@ -1528,6 +1528,8 @@ document.addEventListener("click", (e) => {
   }
 });
 
+let detectedAnomalies = [];
+
 // ─────────── CATEGORY DETAIL VIEW ───────────
 let categoryDetailSource = 'overview';
 function showCategoryDetail(categoryName, source) {
@@ -2076,6 +2078,7 @@ function renderOverview() {
   // Unusual Purchases (Anomaly Detection)
   try {
   const anomalies = detectAnomalies();
+  detectedAnomalies = anomalies;
   const anomalyEl = document.getElementById("anomaly-card");
   if (anomalies.length > 0) {
     let aHtml = '<div class="card"><div class="card-title" style="color:var(--rose)">Unusual Purchases</div>';
@@ -2580,6 +2583,48 @@ function showProductDetail(productName, source) {
       <div class="trip-detail-count">${totalQty} units across ${dates.length} shopping date${dates.length !== 1 ? 's' : ''}</div>
     </div>
   </div>`;
+
+  // Anomaly context (if navigated from anomaly card)
+  const matchedAnomaly = detectedAnomalies.find(a => a.product === productName);
+  if (matchedAnomaly) {
+    const a = matchedAnomaly;
+    const suggStart = '<div style="margin-top:10px;padding:10px 14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:8px"><div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Suggestions</div><div style="font-size:12px;color:var(--text-muted);line-height:1.7">';
+    const suggEnd = '</div></div>';
+    let aDesc = '';
+    let aSugg = '';
+    if (a.type === 'price') {
+      const overpay = a.amount - a.avg;
+      const otherStores = activeData.filter(i => i.n === a.product && i.s !== a.item.s);
+      const cheaperStore = otherStores.length > 0 ? otherStores.sort((x, y) => x.u - y.u)[0] : null;
+      aDesc = 'This item was purchased at <span style="color:var(--amber);font-weight:600">' + fmt(a.amount) + '/unit</span> on ' + a.item.d + ' at ' + a.item.s + ', which is <span style="color:var(--rose);font-weight:600">' + fmt(overpay) + ' more</span> per unit than your average price of ' + fmt(a.avg) + '. This could indicate a price increase, a different size/variant, or a one-time markup.';
+      aSugg = suggStart;
+      if (cheaperStore) aSugg += '\u2022 You paid less at <span style="color:var(--green);font-weight:600">' + cheaperStore.s + '</span> (' + fmt(cheaperStore.u) + '/unit) \u2014 consider buying there next time<br>';
+      aSugg += '\u2022 Check if a different size or brand was accidentally purchased<br>';
+      aSugg += '\u2022 Compare unit prices on your next trip to verify if the store raised prices';
+      aSugg += suggEnd;
+    } else if (a.type === 'category') {
+      const catMatch = groupBy(activeData, 'c').find(c => c.name === a.item.c);
+      const pctOfCat = catMatch ? ((a.item.t / catMatch.total) * 100).toFixed(0) : '?';
+      aDesc = 'This single purchase at <span style="color:var(--amber);font-weight:600">' + fmt(a.amount) + '</span> accounts for <span style="color:var(--rose);font-weight:600">' + pctOfCat + '%</span> of all ' + a.item.c + ' spending, which is ' + a.ratio + 'x the category average of ' + fmt(a.avg) + '. A single item dominating a category may skew your budget analysis.';
+      aSugg = suggStart;
+      aSugg += '\u2022 Consider whether this was a bulk or one-time purchase vs. a regular expense<br>';
+      aSugg += '\u2022 If bought in bulk, spreading the cost mentally over weeks may give a clearer budget picture<br>';
+      aSugg += '\u2022 Review if this item could be found cheaper at another store';
+      aSugg += suggEnd;
+    } else {
+      aDesc = 'At <span style="color:var(--amber);font-weight:600">' + fmt(a.amount) + '</span>, this is one of your most expensive single purchases this month \u2014 <span style="color:var(--rose);font-weight:600">' + a.ratio + 'x</span> the average item cost of ' + fmt(a.avg) + '.';
+      aSugg = suggStart;
+      aSugg += '\u2022 Check if a generic or store-brand alternative is available at a lower price<br>';
+      aSugg += '\u2022 Compare this price across other stores you visit<br>';
+      aSugg += '\u2022 Consider if buying in a different quantity or size offers better value';
+      aSugg += suggEnd;
+    }
+    html += '<div class="card" style="border-color:rgba(244,63,94,0.3);background:rgba(244,63,94,0.04)">';
+    html += '<div class="card-title" style="color:var(--rose)">Flagged as Unusual \u2014 ' + a.ratio + 'x Above Average</div>';
+    html += '<div style="font-size:13px;color:var(--text-muted);line-height:1.6">' + aDesc + '</div>';
+    html += aSugg;
+    html += '</div>';
+  }
 
   // Summary stats
   html += `<div class="kpi-grid" style="margin-bottom:20px">`;
