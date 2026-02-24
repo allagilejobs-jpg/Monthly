@@ -200,19 +200,13 @@
     table { font-size: 12px; }
     thead th { padding: 8px 10px; font-size: 10px; }
     tbody td { padding: 8px 10px; font-size: 12px; }
-    .filter-bar select, .filter-bar input { font-size: 12px; padding: 7px 10px; width: 100%; min-width: 0; }
+    .filter-bar select, .filter-bar input { font-size: 12px; padding: 7px 10px; width: 100%; }
     .filter-bar { gap: 8px; }
-    .store-amount { font-size: 15px; min-width: 60px; }
-    .store-pct { min-width: 35px; }
+    .store-amount { font-size: 15px; min-width: 70px; }
     .store-name { font-size: 13px; }
     .insight { padding: 12px 14px; }
     .insight-title { font-size: 12px; }
     .insight-text { font-size: 12px; }
-    .modal { padding: 20px; max-width: 95vw; }
-    .modal-actions { flex-wrap: wrap; }
-    .trip-item-chip { max-width: 140px; }
-    thead th { padding: 6px 8px; font-size: 9px; }
-    tbody td { padding: 6px 8px; font-size: 11px; }
   }
   @media (max-width: 480px) {
     .container { padding: 10px; }
@@ -228,33 +222,9 @@
     .chart-wrap-sm { height: 200px; }
     .chart-wrap-tall { height: 280px; }
     .tag { font-size: 8px; padding: 1px 5px; }
-    .store-amount { font-size: 14px; min-width: 50px; }
-    .store-pct { min-width: 28px; font-size: 11px; }
-    .store-name { font-size: 12px; }
-    .store-meta { font-size: 11px; }
-    .store-row { padding: 8px 6px; margin: 0 -6px; }
-    thead th { padding: 5px 6px; font-size: 9px; letter-spacing: 0.5px; }
-    tbody td { padding: 5px 6px; font-size: 10px; }
-    .modal { padding: 16px; }
-    .modal-overlay { padding: 10px; }
-    .modal-btn { padding: 8px 14px; font-size: 12px; }
-    .trip-item-chip { max-width: 110px; font-size: 10px; }
-    .filter-bar select, .filter-bar input { font-size: 11px; padding: 6px 8px; }
-    .search-result-amount { font-size: 12px; }
   }
   .view { display: none; }
   .view.active { display: block; }
-
-  /* Responsive table helpers */
-  @media (max-width: 900px) {
-    .hide-mobile { display: none !important; }
-    .heatmap-grid { gap: 3px !important; max-width: 100% !important; }
-    .heatmap-grid > div { font-size: 10px !important; }
-  }
-  @media (max-width: 480px) {
-    .heatmap-grid { gap: 2px !important; }
-    .heatmap-grid > div { font-size: 9px !important; padding: 2px !important; }
-  }
 
   /* Global search */
   #global-search:focus { border-color: var(--green); }
@@ -470,7 +440,7 @@
     padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.03);
     color: var(--text-muted); vertical-align: top;
   }
-  .help-table td:first-child { color: var(--text); font-weight: 600; }
+  .help-table td:first-child { color: var(--text); font-weight: 600; white-space: nowrap; }
   .help-chip {
     display: inline-block; font-size: 10px; font-weight: 600;
     padding: 2px 8px; border-radius: 4px; margin: 2px 3px 2px 0;
@@ -494,8 +464,6 @@
     .delta-grid { grid-template-columns: repeat(2, 1fr); }
     .help-table { font-size: 11px; }
     .help-table th, .help-table td { padding: 6px 8px; }
-    .help-table td:first-child { word-break: break-word; }
-    .help-modal-content { max-height: 80vh; overflow-y: auto; }
   }
 
   /* Light theme */
@@ -707,7 +675,7 @@
         <option value="Toiletry">Toiletries Only</option>
         <option value="Other">Other Non-Grocery</option>
       </select>
-      <input type="text" id="filter-search" placeholder="Search items...">
+      <input type="text" id="filter-search" placeholder="Search items..." style="min-width:180px">
       <button class="btn-clear" onclick="clearFilters()">Clear Filters</button>
       <span id="filter-count" style="font-size:13px;color:var(--text-muted)"></span>
     </div>
@@ -764,7 +732,7 @@
 
 <!-- Help Modal -->
 <div class="modal-overlay" id="help-modal" onclick="if(event.target===this)closeHelpModal()">
-  <div class="modal help-modal-content" style="max-width:740px;max-height:85vh;overflow-y:auto">
+  <div class="modal" style="max-width:740px;max-height:85vh;overflow-y:auto">
     <div class="modal-title" style="font-size:18px">Receipt Analysis Methodology</div>
     <div class="help-text" style="margin-bottom:20px">Reference guide for monthly receipt processing and Excel file preparation.</div>
 
@@ -1630,19 +1598,19 @@ function showCategoryDetail(categoryName, source) {
 
   // Products table
   html += '<div class="card"><div class="card-title">Products in ' + categoryName + '</div>';
-  html += '<div style="overflow-x:auto"><table><thead><tr><th>Product</th><th class="hide-mobile">Store(s)</th><th class="text-center hide-mobile">Qty</th><th class="text-right">Total</th><th class="text-right hide-mobile">Avg/Unit</th><th class="text-right">Share</th></tr></thead><tbody>';
+  html += '<table><thead><tr><th>Product</th><th>Store(s)</th><th class="text-center">Qty</th><th class="text-right">Total</th><th class="text-right">Avg/Unit</th><th class="text-right">Share</th></tr></thead><tbody>';
   prodList.forEach(p => {
     const pPct = ((p.total / total) * 100).toFixed(1);
     const escaped = p.name.replace(/'/g, "\\'");
     html += '<tr style="cursor:pointer" onclick="showProductDetail(\'' + escaped + '\',\'category-detail\')">';
     html += '<td style="font-weight:600">' + p.name + ' <span style="float:right;color:var(--text-muted);font-size:11px">\u2192</span></td>';
-    html += '<td class="hide-mobile" style="font-size:12px;color:var(--text-muted)">' + [...p.stores].join(', ') + '</td>';
-    html += '<td class="text-center hide-mobile">' + p.qty + '</td>';
+    html += '<td style="font-size:12px;color:var(--text-muted)">' + [...p.stores].join(', ') + '</td>';
+    html += '<td class="text-center">' + p.qty + '</td>';
     html += '<td class="text-right amt">' + fmt(p.total) + '</td>';
-    html += '<td class="text-right mono hide-mobile">' + fmt(p.total / p.qty) + '</td>';
+    html += '<td class="text-right mono">' + fmt(p.total / p.qty) + '</td>';
     html += '<td class="text-right">' + pPct + '%</td></tr>';
   });
-  html += '</tbody></table></div></div>';
+  html += '</tbody></table></div>';
 
   // Store breakdown for this category
   if (storeList.length > 1) {
@@ -1666,20 +1634,20 @@ function showCategoryDetail(categoryName, source) {
 
   // All items list
   html += '<div class="card"><div class="card-title">All Items (' + items.length + ')</div>';
-  html += '<div style="overflow-x:auto"><table><thead><tr><th class="hide-mobile">Date</th><th>Store</th><th>Product</th><th class="text-center hide-mobile">Qty</th><th class="text-right">Unit $</th><th class="text-right">Total</th></tr></thead><tbody>';
+  html += '<table><thead><tr><th>Date</th><th>Store</th><th>Product</th><th class="text-center">Qty</th><th class="text-right">Unit $</th><th class="text-right">Total</th></tr></thead><tbody>';
   items.forEach(i => {
     const escaped = i.n.replace(/'/g, "\\'");
     const dayNum = parseInt(i.d.split('/')[1]);
     const dateLabel = ctx.monthName ? ctx.monthName + ' ' + dayNum + ', ' + ctx.year : i.d;
     html += '<tr style="cursor:pointer" onclick="showProductDetail(\'' + escaped + '\',\'category-detail\')">';
-    html += '<td class="mono hide-mobile">' + dateLabel + '</td>';
+    html += '<td class="mono">' + dateLabel + '</td>';
     html += '<td>' + i.s + '</td>';
     html += '<td class="bold">' + i.n + '</td>';
-    html += '<td class="text-center hide-mobile">' + i.q + '</td>';
+    html += '<td class="text-center">' + i.q + '</td>';
     html += '<td class="text-right mono">' + fmt(i.u) + '</td>';
     html += '<td class="text-right mono amt">' + fmt(i.t) + '</td></tr>';
   });
-  html += '</tbody></table></div></div>';
+  html += '</tbody></table></div>';
 
   container.innerHTML = html;
 
@@ -2229,10 +2197,10 @@ function renderGroceries() {
 
   // Frequently purchased table
   const freq = products.filter(p => p.count >= 2);
-  let html = `<thead><tr><th>Product</th><th class="hide-mobile">Category</th><th class="text-center">Qty</th><th class="text-right">Total</th><th class="text-right hide-mobile">Avg/Unit</th></tr></thead><tbody>`;
+  let html = `<thead><tr><th>Product</th><th>Category</th><th class="text-center">Qty Bought</th><th class="text-right">Total Spent</th><th class="text-right">Avg/Unit</th></tr></thead><tbody>`;
   freq.forEach(p => {
     const escaped = p.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-    html += `<tr style="cursor:pointer" onclick="showProductDetail('${escaped}','groceries')"><td class="bold">${p.name}<span style="float:right;color:var(--text-muted);font-size:11px">&rarr;</span></td><td class="hide-mobile" style="color:var(--text-muted)">${p.cat}</td><td class="text-center">${p.qty}</td><td class="text-right mono amt">${fmt(p.total)}</td><td class="text-right mono hide-mobile">${fmt(p.total / p.qty)}</td></tr>`;
+    html += `<tr style="cursor:pointer" onclick="showProductDetail('${escaped}','groceries')"><td class="bold">${p.name}<span style="float:right;color:var(--text-muted);font-size:11px">&rarr;</span></td><td style="color:var(--text-muted)">${p.cat}</td><td class="text-center">${p.qty}</td><td class="text-right mono amt">${fmt(p.total)}</td><td class="text-right mono">${fmt(p.total / p.qty)}</td></tr>`;
   });
   html += `</tbody>`;
   document.getElementById("table-grocery-freq").innerHTML = html;
@@ -2286,15 +2254,15 @@ function renderToiletries() {
   makeChartClickable(charts.toilStore, document.getElementById("chart-toiletry-store"), stores.map(s => s.name), "store");
 
   // All toiletry items table
-  let html = `<thead><tr><th class="hide-mobile">Date</th><th>Store</th><th>Product</th><th class="hide-mobile">Category</th><th class="text-center hide-mobile">Qty</th><th class="text-right">Unit $</th><th class="text-right">Total</th></tr></thead><tbody>`;
+  let html = `<thead><tr><th>Date</th><th>Store</th><th>Product</th><th>Category</th><th class="text-center">Qty</th><th class="text-right">Unit $</th><th class="text-right">Total</th></tr></thead><tbody>`;
   toiletries.sort((a,b) => b.t - a.t).forEach(i => {
     const escaped = i.n.replace(/'/g, "\\'").replace(/"/g, "&quot;");
     html += `<tr style="cursor:pointer" onclick="showProductDetail('${escaped}','toiletries')">
-      <td class="mono hide-mobile">${i.d}</td>
+      <td class="mono">${i.d}</td>
       <td>${i.s}</td>
       <td class="bold">${i.n}<span style="float:right;color:var(--text-muted);font-size:11px">&rarr;</span></td>
-      <td class="hide-mobile" style="color:var(--text-muted)">${i.c}</td>
-      <td class="text-center hide-mobile">${i.q}</td>
+      <td style="color:var(--text-muted)">${i.c}</td>
+      <td class="text-center">${i.q}</td>
       <td class="text-right mono">${fmt(i.u)}</td>
       <td class="text-right mono amt">${fmt(i.t)}</td>
     </tr>`;
@@ -2490,7 +2458,7 @@ function renderTrends() {
   // Calendar heatmap
   streakHtml += `<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Daily Spending Calendar</div>`;
   const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  streakHtml += `<div class="heatmap-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:500px">`;
+  streakHtml += `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:500px">`;
   dayNames.forEach(d => { streakHtml += `<div style="text-align:center;font-size:10px;color:var(--text-muted);padding:4px">${d}</div>`; });
   // Pad first week
   const firstDow = new Date(ctx.year, ctx.month - 1, 1).getDay();
@@ -2717,14 +2685,14 @@ function showProductDetail(productName, source) {
     if (savings > 0.001) {
       html += `<div class="insight" style="cursor:default;margin-bottom:14px"><div class="insight-title">Best Price</div><div class="insight-text"><span class="insight-val">${cheapest.name}</span> is cheapest at <span class="insight-val">${fmt(cheapest.avgPrice)}/unit</span> avg &mdash; you save <span class="insight-val">${fmt(savings)}/unit</span> vs the most expensive store</div></div>`;
     }
-    html += `<div style="overflow-x:auto"><table><thead><tr><th>Store</th><th class="text-right">Avg Price</th><th class="text-right hide-mobile">Min</th><th class="text-right hide-mobile">Max</th><th class="text-center hide-mobile">Qty</th><th class="text-right">Total</th></tr></thead><tbody>`;
+    html += `<div style="overflow-x:auto"><table><thead><tr><th>Store</th><th class="text-right">Avg Price</th><th class="text-right">Min</th><th class="text-right">Max</th><th class="text-center">Qty</th><th class="text-right">Total</th></tr></thead><tbody>`;
     storeArr.forEach((s, idx) => {
       const isCheapest = idx === 0 && storeArr.length > 1;
       html += `<tr><td style="font-weight:600;${isCheapest ? 'color:var(--green)' : ''}">${s.name}${isCheapest ? ' <span style="font-size:10px;background:rgba(34,197,94,0.12);color:var(--green);padding:2px 6px;border-radius:4px;margin-left:4px">BEST</span>' : ''}</td>`;
       html += `<td class="text-right mono amt">${fmt(s.avgPrice)}</td>`;
-      html += `<td class="text-right mono hide-mobile">${fmt(s.minPrice)}</td>`;
-      html += `<td class="text-right mono hide-mobile">${fmt(s.maxPrice)}</td>`;
-      html += `<td class="text-center hide-mobile">${s.qty}</td>`;
+      html += `<td class="text-right mono">${fmt(s.minPrice)}</td>`;
+      html += `<td class="text-right mono">${fmt(s.maxPrice)}</td>`;
+      html += `<td class="text-center">${s.qty}</td>`;
       html += `<td class="text-right mono amt">${fmt(s.total)}</td></tr>`;
     });
     html += `</tbody></table></div></div>`;
@@ -2910,8 +2878,8 @@ function renderTable() {
     { key: "d", label: "Date" },
     { key: "s", label: "Store" },
     { key: "n", label: "Product" },
-    { key: "c", label: "Category", hide: true },
-    { key: "q", label: "Qty", hide: true },
+    { key: "c", label: "Category" },
+    { key: "q", label: "Qty" },
     { key: "u", label: "Unit $" },
     { key: "t", label: "Total" },
   ];
@@ -2919,7 +2887,7 @@ function renderTable() {
   let html = `<thead><tr>`;
   cols.forEach(col => {
     const arrow = currentSort.col === col.key ? (currentSort.dir === "asc" ? " ↑" : " ↓") : "";
-    html += `<th${col.hide ? ' class="hide-mobile"' : ''} onclick="sortTable('${col.key}')">${col.label}${arrow}</th>`;
+    html += `<th onclick="sortTable('${col.key}')">${col.label}${arrow}</th>`;
   });
   html += `<th style="width:50px"></th></tr></thead><tbody>`;
 
@@ -2934,8 +2902,8 @@ function renderTable() {
       <td class="mono">${i.d}</td>
       <td>${i.s}</td>
       <td class="bold">${i.n}${editDot} <span class="tag ${tagClass}">${tagLabel}</span></td>
-      <td class="hide-mobile" style="color:var(--text-muted)">${i.c}</td>
-      <td class="text-center hide-mobile">${i.q}</td>
+      <td style="color:var(--text-muted)">${i.c}</td>
+      <td class="text-center">${i.q}</td>
       <td class="text-right mono">${fmt(i.u)}</td>
       <td class="text-right mono amt">${fmt(i.t)}</td>
       <td class="text-center"><span onclick="event.stopPropagation();openEditModal(${i._idx})" title="Edit item" style="cursor:pointer;font-size:14px;color:var(--text-muted);padding:4px 8px;border-radius:6px;transition:all 0.2s" onmouseover="this.style.color='var(--green)';this.style.background='rgba(34,197,94,0.1)'" onmouseout="this.style.color='var(--text-muted)';this.style.background='none'">&#9998;</span></td>

@@ -346,19 +346,6 @@
   .view { display: none; }
   .view.active { display: block; }
 
-  /* Responsive table helpers */
-  @media (max-width: 900px) {
-    .hide-mobile { display: none !important; }
-    .heatmap-grid { gap: 3px; }
-    .heatmap-cell { font-size: 10px; }
-    .heatmap-label { font-size: 9px; padding: 2px; }
-  }
-  @media (max-width: 480px) {
-    .heatmap-grid { gap: 2px; }
-    .heatmap-cell { font-size: 9px; }
-    .heatmap-label { font-size: 8px; }
-  }
-
   /* Sortable th */
   th.sorted-asc::after { content: " \u25B2"; font-size: 9px; }
   th.sorted-desc::after { content: " \u25BC"; font-size: 9px; }
@@ -422,7 +409,7 @@
     table { font-size: 12px; }
     thead th { padding: 8px 10px; font-size: 10px; }
     tbody td { padding: 8px 10px; font-size: 12px; }
-    .filter-bar select, .filter-bar input { font-size: 12px; padding: 7px 10px; width: 100%; min-width: 0; }
+    .filter-bar select, .filter-bar input { font-size: 12px; padding: 7px 10px; width: 100%; }
     .filter-bar { gap: 8px; }
     .format-grid { grid-template-columns: 1fr; }
     .insight { padding: 12px 14px; }
@@ -430,11 +417,6 @@
     .insight-text { font-size: 12px; }
     .cat-card { padding: 14px 16px; }
     .cat-card-amount { font-size: 18px; }
-    .modal { padding: 20px; max-width: 95vw; }
-    .modal-wide { max-width: 95vw; }
-    .modal-actions { flex-wrap: wrap; }
-    thead th { padding: 6px 8px; font-size: 9px; }
-    tbody td { padding: 6px 8px; font-size: 11px; }
   }
   @media (max-width: 480px) {
     .container { padding: 10px; }
@@ -450,14 +432,6 @@
     .chart-wrap-sm { height: 200px; }
     .chart-wrap-tall { height: 280px; }
     .tag { font-size: 8px; padding: 1px 5px; }
-    .modal { padding: 16px; }
-    .modal-overlay { padding: 10px; }
-    .modal-btn { padding: 8px 14px; font-size: 12px; }
-    .merchant-row { padding: 8px 6px; margin: 0 -6px; }
-    thead th { padding: 5px 6px; font-size: 9px; letter-spacing: 0.5px; }
-    tbody td { padding: 5px 6px; font-size: 10px; }
-    .filter-bar select, .filter-bar input { font-size: 11px; padding: 6px 8px; }
-    .search-result-amount { font-size: 12px; }
   }
 </style>
 </head>
@@ -2001,9 +1975,9 @@ function renderTransactions() {
   html += '<div class="card" style="overflow-x:auto"><table id="tx-table"><thead><tr>';
   html += '<th onclick="sortTxTable(\'date\')">Date</th>';
   html += '<th onclick="sortTxTable(\'merchant\')">Merchant</th>';
-  html += '<th onclick="sortTxTable(\'category\')" class="hide-mobile">Category</th>';
+  html += '<th onclick="sortTxTable(\'category\')">Category</th>';
   html += '<th onclick="sortTxTable(\'amount\')" class="text-right">Amount</th>';
-  html += '<th class="text-center hide-mobile">Source</th>';
+  html += '<th class="text-center">Source</th>';
   html += '<th></th>';
   html += '</tr></thead><tbody id="tx-tbody"></tbody></table></div>';
   html += '<div id="tx-count" style="font-size:12px;color:var(--text-muted);margin-top:-12px;margin-bottom:20px"></div>';
@@ -2044,9 +2018,9 @@ function renderTxRows() {
     const editDot = edited ? '<span class="edit-dot" title="Edited"></span>' : '';
     return '<tr><td class="mono">' + t.date + '</td>' +
       '<td style="font-weight:600">' + t.merchant + editDot + '</td>' +
-      '<td class="hide-mobile"><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>' +
+      '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>' +
       '<td class="text-right amt">' + fmt(t.amount) + '</td>' +
-      '<td class="text-center hide-mobile"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td>' +
+      '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td>' +
       '<td><span class="edit-icon" onclick="event.stopPropagation();openEditModal(\'' + t.id + '\')">&#9998;</span></td></tr>';
   }).join('');
   const countEl = document.getElementById('tx-count');
@@ -2306,7 +2280,7 @@ function showMerchantDetail(merchantName, source) {
   // Price tracker (if multiple transactions)
   if (txs.length > 1) {
     html += '<div class="card"><div class="card-title">Amount Tracker</div>';
-    html += '<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th class="hide-mobile">Category</th><th class="text-right">Amount</th><th class="text-right">Change</th></tr></thead><tbody>';
+    html += '<table><thead><tr><th>Date</th><th>Category</th><th class="text-right">Amount</th><th class="text-right">Change</th></tr></thead><tbody>';
     txs.forEach((t, i) => {
       let changeHtml = '<span style="color:var(--text-muted)">\u2014</span>';
       if (i > 0) {
@@ -2317,24 +2291,24 @@ function showMerchantDetail(merchantName, source) {
         else changeHtml = '<span style="color:var(--text-muted)">\u2014 no change</span>';
       }
       html += '<tr><td class="mono">' + t.date + '</td>';
-      html += '<td class="hide-mobile"><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>';
+      html += '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>';
       html += '<td class="text-right amt">' + fmt(t.amount) + '</td>';
       html += '<td class="text-right" style="font-size:12px">' + changeHtml + '</td></tr>';
     });
-    html += '</tbody></table></div></div>';
+    html += '</tbody></table></div>';
   }
 
   // All transactions
   html += '<div class="card"><div class="card-title">All Transactions (' + txs.length + ')</div>';
-  html += '<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th class="hide-mobile">Description</th><th>Category</th><th class="text-right">Amount</th><th class="hide-mobile">Source</th></tr></thead><tbody>';
+  html += '<table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th class="text-right">Amount</th><th>Source</th></tr></thead><tbody>';
   txs.forEach(t => {
     html += '<tr><td class="mono">' + t.date + '</td>';
-    html += '<td class="hide-mobile" style="font-size:12px;color:var(--text-muted);max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g, '&quot;') + '">' + (t.description || t.merchant) + '</td>';
+    html += '<td style="font-size:12px;color:var(--text-muted);max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g, '&quot;') + '">' + (t.description || t.merchant) + '</td>';
     html += '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>';
     html += '<td class="text-right amt">' + fmt(t.amount) + '</td>';
-    html += '<td class="text-center hide-mobile"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td></tr>';
+    html += '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td></tr>';
   });
-  html += '</tbody></table></div></div>';
+  html += '</tbody></table></div>';
 
   container.innerHTML = html;
 }
@@ -2406,16 +2380,16 @@ function showCategoryDetail(categoryName, source) {
 
   // All transactions
   html += '<div class="card"><div class="card-title">All Transactions (' + txs.length + ')</div>';
-  html += '<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Merchant</th><th class="hide-mobile">Description</th><th class="text-right">Amount</th><th class="hide-mobile">Source</th></tr></thead><tbody>';
+  html += '<table><thead><tr><th>Date</th><th>Merchant</th><th>Description</th><th class="text-right">Amount</th><th>Source</th></tr></thead><tbody>';
   txs.forEach(t => {
     html += '<tr style="cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + t.merchant.replace(/'/g,"\\'") + '\',source:\'categories\'})">';
     html += '<td class="mono">' + t.date + '</td>';
     html += '<td style="font-weight:600">' + t.merchant + '</td>';
-    html += '<td class="hide-mobile" style="font-size:12px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g,'&quot;') + '">' + (t.description || t.merchant) + '</td>';
+    html += '<td style="font-size:12px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g,'&quot;') + '">' + (t.description || t.merchant) + '</td>';
     html += '<td class="text-right amt">' + fmt(t.amount) + '</td>';
-    html += '<td class="text-center hide-mobile"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td></tr>';
+    html += '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td></tr>';
   });
-  html += '</tbody></table></div></div>';
+  html += '</tbody></table></div>';
 
   container.innerHTML = html;
 
