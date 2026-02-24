@@ -1570,20 +1570,33 @@ function renderOverview() {
   const largeTx = activeData.filter(t => t.amount >= 100);
   html += '<div class="insight" onclick="showView(\'transactions\')"><div class="insight-title">Transaction Breakdown</div><div class="insight-text"><span class="insight-val">' + smallTx.length + '</span> small (under $20) vs <span class="insight-val">' + largeTx.length + '</span> large ($100+) transactions</div></div>';
 
-  // 10. Spending streaks
+  html += '</div></div>';
+
+  // Spending Streaks — separate card
   if (ctx.daysInMonth) {
     const streakDays = new Set();
     activeData.forEach(t => { const day = parseInt(t.date.substring(8, 10)); if (day >= 1 && day <= ctx.daysInMonth) streakDays.add(day); });
-    let mxSpend = 0, cSpend = 0, mxNoSpend = 0, cNoSpend = 0;
+    let mxS = 0, cS = 0, mxN = 0, cN = 0, sStart = 0, bestSStart = 0, nStart = 0, bestNStart = 0;
     for (let d = 1; d <= ctx.daysInMonth; d++) {
-      if (streakDays.has(d)) { cSpend++; cNoSpend = 0; } else { cNoSpend++; cSpend = 0; }
-      if (cSpend > mxSpend) mxSpend = cSpend;
-      if (cNoSpend > mxNoSpend) mxNoSpend = cNoSpend;
+      if (streakDays.has(d)) {
+        cS++; if (cS === 1) sStart = d;
+        if (cS > mxS) { mxS = cS; bestSStart = sStart; }
+        if (cN > mxN) { mxN = cN; bestNStart = nStart; }
+        cN = 0;
+      } else {
+        cN++; if (cN === 1) nStart = d;
+        if (cN > mxN) { mxN = cN; bestNStart = nStart; }
+        if (cS > mxS) { mxS = cS; bestSStart = sStart; }
+        cS = 0;
+      }
     }
-    html += '<div class="insight" onclick="showView(\'trends\')"><div class="insight-title">Spending Streaks</div><div class="insight-text">Longest spend streak: <span class="insight-val">' + mxSpend + ' days</span> \u2022 Longest no-spend: <span class="insight-val">' + mxNoSpend + ' days</span> \u2022 ' + streakDays.size + '/' + ctx.daysInMonth + ' active days</div></div>';
+    html += '<div class="card" style="cursor:pointer" onclick="showView(\'trends\')"><div class="card-title">Spending Streaks</div>';
+    html += '<div class="grid-3" style="margin-top:8px">';
+    html += '<div class="insight" style="cursor:pointer"><div class="insight-title">Longest Spend Streak</div><div class="insight-text"><span class="insight-val">' + mxS + ' day' + (mxS !== 1 ? 's' : '') + '</span> in a row' + (mxS > 0 ? ' (' + ctx.monthAbbr + ' ' + bestSStart + '\u2013' + (bestSStart + mxS - 1) + ')' : '') + '</div></div>';
+    html += '<div class="insight" style="cursor:pointer"><div class="insight-title">Longest No-Spend Streak</div><div class="insight-text"><span class="insight-val">' + mxN + ' day' + (mxN !== 1 ? 's' : '') + '</span> without spending' + (mxN > 0 ? ' (' + ctx.monthAbbr + ' ' + bestNStart + '\u2013' + (bestNStart + mxN - 1) + ')' : '') + '</div></div>';
+    html += '<div class="insight" style="cursor:pointer"><div class="insight-title">Active Spending Days</div><div class="insight-text"><span class="insight-val">' + streakDays.size + '/' + ctx.daysInMonth + '</span> days with expenses (' + ((streakDays.size / ctx.daysInMonth) * 100).toFixed(0) + '% of the month)</div></div>';
+    html += '</div></div>';
   }
-
-  html += '</div></div>';
 
   // Recurring & Subscriptions
   const recurring = detectRecurring();
@@ -1857,7 +1870,9 @@ function renderTrends() {
     else if (intensity < 0.5) { bg = 'rgba(59,130,246,0.3)'; color = '#60a5fa'; }
     else if (intensity < 0.75) { bg = 'rgba(59,130,246,0.5)'; color = '#3b82f6'; }
     else { bg = 'rgba(59,130,246,0.7)'; color = '#fff'; }
-    streakHtml += '<div class="heatmap-cell" style="background:' + bg + ';color:' + color + '" title="' + ctx.monthAbbr + ' ' + d + ': ' + fmt(val) + '">' + d + '</div>';
+    var dateKey = ctx.year + '-' + String(ctx.month).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    var clickAttr = val > 0 ? ' style="background:' + bg + ';color:' + color + ';cursor:pointer;transition:transform 0.15s" onclick="showView(\'transactions\',{date:\'' + dateKey + '\'})" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'scale(1)\'"' : ' style="background:' + bg + ';color:' + color + '"';
+    streakHtml += '<div class="heatmap-cell"' + clickAttr + ' title="' + ctx.monthAbbr + ' ' + d + ': ' + fmt(val) + '">' + d + '</div>';
   }
   streakHtml += '</div>';
   streakHtml += '<div style="display:flex;align-items:center;gap:8px;margin-top:12px;justify-content:center">';
@@ -1875,7 +1890,7 @@ function renderTrends() {
 // RENDER: ALL TRANSACTIONS
 // ══════════════════════════════════════════════════════════
 let txFilterCat = 'All', txFilterMerchant = '', txFilterDate = 'All';
-let txSortCol = 'date', txSortDir = 'desc';
+let txSortCol = 'date', txSortDir = 'asc';
 
 function renderTransactions() {
   const el = document.getElementById('view-transactions');
