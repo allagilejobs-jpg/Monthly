@@ -1319,14 +1319,9 @@ function switchMonth(monthKey) {
 }
 
 function renderAll() {
-  renderOverview();
-  renderGroceries();
-  renderToiletries();
-  renderStores();
-  renderTrends();
-  renderTrips();
-  renderAllItems();
-  renderCompare();
+  [renderOverview, renderGroceries, renderToiletries, renderStores, renderTrends, renderTrips, renderAllItems, renderCompare].forEach(fn => {
+    try { fn(); } catch(e) { console.error(fn.name + ' error:', e); }
+  });
 }
 
 // Migrate old edit key on first load
@@ -1670,17 +1665,33 @@ function detectAnomalies() {
   if (activeData.length < 5) return [];
   const anomalies = [];
 
-  // Per-product anomalies: unit prices significantly above average for that product
+  // Per-product anomalies: unit prices notably above average for that product
   const products = groupProducts(activeData);
   products.forEach(p => {
     if (p.count < 2) return;
     const items = activeData.filter(i => i.n === p.name);
     const avgUnit = items.reduce((s, i) => s + i.u, 0) / items.length;
+    // For 2-item products, use simple ratio check instead of z-score
+    if (items.length === 2) {
+      const hi = items[0].u >= items[1].u ? items[0] : items[1];
+      if (hi.u > avgUnit * 1.3 && (hi.u - avgUnit) > 0.50) {
+        anomalies.push({
+          type: 'price',
+          item: hi,
+          product: hi.n,
+          amount: hi.u,
+          avg: avgUnit,
+          ratio: (hi.u / avgUnit).toFixed(1),
+          message: hi.n + ' at ' + fmt(hi.u) + '/unit is ' + (hi.u / avgUnit).toFixed(1) + 'x your usual (' + fmt(avgUnit) + ' avg) \u2014 ' + hi.s + ' on ' + hi.d
+        });
+      }
+      return;
+    }
     const stdDev = Math.sqrt(items.reduce((s, i) => s + Math.pow(i.u - avgUnit, 2), 0) / items.length);
     if (stdDev === 0) return;
     items.forEach(i => {
       const zScore = (i.u - avgUnit) / stdDev;
-      if (zScore >= 1.8 && i.u > avgUnit * 1.5) {
+      if (zScore >= 1.2 && i.u > avgUnit * 1.3) {
         anomalies.push({
           type: 'price',
           item: i,
@@ -1701,7 +1712,7 @@ function detectAnomalies() {
     const avg = cg.total / cg.items.length;
     cg.items.forEach(i => {
       const pctOfCat = i.t / cg.total;
-      if (pctOfCat > 0.4 && i.t > avg * 2) {
+      if (pctOfCat > 0.25 && i.t > avg * 1.8) {
         const exists = anomalies.find(a => a.item && a.item._idx === i._idx);
         if (!exists) {
           anomalies.push({
@@ -1717,6 +1728,23 @@ function detectAnomalies() {
       }
     });
   });
+
+  // Top expensive items that stand out from the overall average
+  if (anomalies.length === 0) {
+    const overallAvg = grandTotal / activeData.length;
+    const expensive = activeData.filter(i => i.t > overallAvg * 3).sort((a, b) => b.t - a.t).slice(0, 3);
+    expensive.forEach(i => {
+      anomalies.push({
+        type: 'expensive',
+        item: i,
+        product: i.n,
+        amount: i.t,
+        avg: overallAvg,
+        ratio: (i.t / overallAvg).toFixed(1),
+        message: i.n + ' at ' + fmt(i.t) + ' is ' + (i.t / overallAvg).toFixed(1) + 'x the average item cost (' + fmt(overallAvg) + ') \u2014 ' + i.s + ' on ' + i.d
+      });
+    });
+  }
 
   return anomalies.sort((a, b) => parseFloat(b.ratio) - parseFloat(a.ratio)).slice(0, 5);
 }
@@ -2050,6 +2078,7 @@ function renderOverview() {
   }
 
   // Unusual Purchases (Anomaly Detection)
+  try {
   const anomalies = detectAnomalies();
   const anomalyEl = document.getElementById("anomaly-card");
   if (anomalies.length > 0) {
@@ -2057,38 +2086,43 @@ function renderOverview() {
     aHtml += '<div style="font-size:12px;color:var(--text-muted);margin:-8px 0 14px">Items with prices or amounts significantly above their average</div>';
     anomalies.forEach(a => {
       const escaped = a.product.replace(/'/g, "\\'");
-      // Build description and suggestions based on anomaly type
       let description = '';
       let suggestions = '';
+      const suggStart = '<div style="margin-top:10px;padding:10px 14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:8px"><div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Suggestions</div><div style="font-size:12px;color:var(--text-muted);line-height:1.7">';
+      const suggEnd = '</div></div>';
       if (a.type === 'price') {
         const overpay = (a.amount - a.avg).toFixed(2);
         const otherStores = activeData.filter(i => i.n === a.product && i.s !== a.item.s);
         const cheaperStore = otherStores.length > 0 ? otherStores.sort((x, y) => x.u - y.u)[0] : null;
-        description = 'This item was purchased at <span style="color:var(--amber);font-weight:600">' + fmt(a.amount) + '/unit</span> on ' + a.item.d + ' at ' + a.item.s + ', which is <span style="color:var(--rose);font-weight:600">' + fmt(overpay) + ' more</span> per unit than your average price of ' + fmt(a.avg) + '. This could indicate a price increase at this store, a different size/variant, or a one-time markup.';
-        suggestions = '<div style="margin-top:10px;padding:10px 14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:8px">';
-        suggestions += '<div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Suggestions</div>';
-        suggestions += '<div style="font-size:12px;color:var(--text-muted);line-height:1.7">';
-        if (cheaperStore) {
-          suggestions += '\u2022 You paid less at <span style="color:var(--green);font-weight:600">' + cheaperStore.s + '</span> (' + fmt(cheaperStore.u) + '/unit) \u2014 consider buying there next time<br>';
-        }
+        description = 'This item was purchased at <span style="color:var(--amber);font-weight:600">' + fmt(a.amount) + '/unit</span> on ' + a.item.d + ' at ' + a.item.s + ', which is <span style="color:var(--rose);font-weight:600">' + fmt(overpay) + ' more</span> per unit than your average price of ' + fmt(a.avg) + '. This could indicate a price increase, a different size/variant, or a one-time markup.';
+        suggestions = suggStart;
+        if (cheaperStore) suggestions += '\u2022 You paid less at <span style="color:var(--green);font-weight:600">' + cheaperStore.s + '</span> (' + fmt(cheaperStore.u) + '/unit) \u2014 consider buying there next time<br>';
         suggestions += '\u2022 Check if a different size or brand was accidentally purchased<br>';
         suggestions += '\u2022 Compare unit prices on your next trip to verify if the store raised prices<br>';
         suggestions += '\u2022 Click to view full price history for this product';
-        suggestions += '</div></div>';
-      } else {
-        const pctOfCat = ((a.item.t / groupBy(activeData, 'c').find(c => c.name === a.item.c).total) * 100).toFixed(0);
+        suggestions += suggEnd;
+      } else if (a.type === 'category') {
+        const catMatch = groupBy(activeData, 'c').find(c => c.name === a.item.c);
+        const pctOfCat = catMatch ? ((a.item.t / catMatch.total) * 100).toFixed(0) : '?';
         description = 'This single purchase of <span style="color:var(--amber);font-weight:600">' + a.product + '</span> at <span style="color:var(--amber);font-weight:600">' + fmt(a.amount) + '</span> accounts for <span style="color:var(--rose);font-weight:600">' + pctOfCat + '%</span> of all ' + a.item.c + ' spending, which is ' + a.ratio + 'x the category average of ' + fmt(a.avg) + '. A single item dominating a category may skew your budget analysis.';
-        suggestions = '<div style="margin-top:10px;padding:10px 14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:8px">';
-        suggestions += '<div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Suggestions</div>';
-        suggestions += '<div style="font-size:12px;color:var(--text-muted);line-height:1.7">';
+        suggestions = suggStart;
         suggestions += '\u2022 Consider whether this was a bulk or one-time purchase vs. a regular expense<br>';
         suggestions += '\u2022 If bought in bulk, spreading the cost mentally over weeks may give a clearer budget picture<br>';
         suggestions += '\u2022 Review if this item could be found cheaper at another store<br>';
         suggestions += '\u2022 Click to view full purchase history and price trends';
-        suggestions += '</div></div>';
+        suggestions += suggEnd;
+      } else {
+        description = '<span style="color:var(--amber);font-weight:600">' + a.product + '</span> at <span style="color:var(--amber);font-weight:600">' + fmt(a.amount) + '</span> is one of your most expensive single purchases this month \u2014 <span style="color:var(--rose);font-weight:600">' + a.ratio + 'x</span> the average item cost of ' + fmt(a.avg) + '. Purchased at ' + a.item.s + ' on ' + a.item.d + '.';
+        suggestions = suggStart;
+        suggestions += '\u2022 Check if a generic or store-brand alternative is available at a lower price<br>';
+        suggestions += '\u2022 Compare this price across other stores you visit<br>';
+        suggestions += '\u2022 Consider if buying in a different quantity or size offers better value<br>';
+        suggestions += '\u2022 Click to view full details and price history';
+        suggestions += suggEnd;
       }
+      const typeLabel = a.type === 'price' ? '\u26A0\uFE0F Price Spike' : a.type === 'category' ? '\uD83D\uDCC8 Category Dominance' : '\uD83D\uDCB0 High-Cost Item';
       aHtml += '<div class="insight" style="cursor:pointer;border-color:rgba(244,63,94,0.2);background:rgba(244,63,94,0.04)" onclick="showProductDetail(\'' + escaped + '\',\'overview\')">';
-      aHtml += '<div class="insight-title" style="color:var(--rose)">' + (a.type === 'price' ? '\u26A0\uFE0F Price Spike' : '\uD83D\uDCC8 Category Dominance') + ' \u2014 ' + a.ratio + 'x above average</div>';
+      aHtml += '<div class="insight-title" style="color:var(--rose)">' + typeLabel + ' \u2014 ' + a.ratio + 'x above average</div>';
       aHtml += '<div class="insight-text" style="margin-bottom:6px">' + description + '</div>';
       aHtml += suggestions;
       aHtml += '</div>';
@@ -2098,6 +2132,7 @@ function renderOverview() {
   } else {
     anomalyEl.innerHTML = '';
   }
+  } catch(e) { console.error('Anomaly detection error:', e); }
 }
 
 // ─────────── GROCERIES TAB ───────────

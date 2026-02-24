@@ -1629,6 +1629,7 @@ function renderOverview() {
   }
 
   // Anomaly Detection
+  try {
   const anomalies = detectAnomalies();
   if (anomalies.length > 0) {
     html += '<div class="card"><div class="card-title" style="color:var(--rose)">Unusual Transactions</div>';
@@ -1636,29 +1637,29 @@ function renderOverview() {
     anomalies.forEach(a => {
       let description = '';
       let suggestions = '';
+      const suggStart = '<div style="margin-top:10px;padding:10px 14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:8px"><div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Suggestions</div><div style="font-size:12px;color:var(--text-muted);line-height:1.7">';
+      const suggEnd = '</div></div>';
       if (a.type === 'merchant') {
         const overpay = (a.amount - a.avg).toFixed(2);
         const txCount = activeData.filter(t => t.merchant === a.merchant).length;
         description = 'A charge of <span style="color:var(--amber);font-weight:600">' + fmt(a.amount) + '</span> at <span style="font-weight:600">' + a.merchant + '</span> is <span style="color:var(--rose);font-weight:600">' + fmt(overpay) + ' more</span> than your usual average of ' + fmt(a.avg) + ' across ' + txCount + ' transactions. This is ' + a.ratio + 'x your typical spend at this merchant.';
-        suggestions = '<div style="margin-top:10px;padding:10px 14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:8px">';
-        suggestions += '<div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Suggestions</div>';
-        suggestions += '<div style="font-size:12px;color:var(--text-muted);line-height:1.7">';
+        suggestions = suggStart;
         suggestions += '\u2022 Verify this charge is legitimate and not a billing error or duplicate<br>';
         suggestions += '\u2022 Check if this was a one-time purchase (annual renewal, bulk buy) vs. a recurring increase<br>';
         suggestions += '\u2022 If this merchant is a subscription, confirm you weren\'t upgraded to a higher tier<br>';
         suggestions += '\u2022 Click to view full transaction history for this merchant';
-        suggestions += '</div></div>';
+        suggestions += suggEnd;
       } else {
-        const pctOfCat = ((a.amount / catGroups.find(c => c.name === a.transaction.category).total) * 100).toFixed(0);
-        description = 'A single transaction of <span style="color:var(--amber);font-weight:600">' + fmt(a.amount) + '</span> at <span style="font-weight:600">' + a.merchant + '</span> makes up <span style="color:var(--rose);font-weight:600">' + pctOfCat + '%</span> of all ' + a.transaction.category + ' spending. This is ' + a.ratio + 'x the category average of ' + fmt(a.avg) + ', heavily skewing your ' + a.transaction.category + ' budget.';
-        suggestions = '<div style="margin-top:10px;padding:10px 14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:8px">';
-        suggestions += '<div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Suggestions</div>';
-        suggestions += '<div style="font-size:12px;color:var(--text-muted);line-height:1.7">';
+        const catMatch = catGroups.find(c => c.name === (a.transaction ? a.transaction.category : ''));
+        const pctOfCat = catMatch ? ((a.amount / catMatch.total) * 100).toFixed(0) : '?';
+        const catName = a.transaction ? a.transaction.category : 'this category';
+        description = 'A single transaction of <span style="color:var(--amber);font-weight:600">' + fmt(a.amount) + '</span> at <span style="font-weight:600">' + a.merchant + '</span> makes up <span style="color:var(--rose);font-weight:600">' + pctOfCat + '%</span> of all ' + catName + ' spending. This is ' + a.ratio + 'x the category average of ' + fmt(a.avg) + ', heavily skewing your ' + catName + ' budget.';
+        suggestions = suggStart;
         suggestions += '\u2022 Consider if this belongs in a different category \u2014 click to edit if miscategorized<br>';
         suggestions += '\u2022 If this is an annual or infrequent expense, note it won\'t repeat monthly<br>';
         suggestions += '\u2022 Review whether this category needs a higher budget allocation<br>';
         suggestions += '\u2022 Click to view all transactions at this merchant';
-        suggestions += '</div></div>';
+        suggestions += suggEnd;
       }
       html += '<div class="insight" style="border-color:rgba(244,63,94,0.2);background:rgba(244,63,94,0.04);cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + a.merchant.replace(/'/g,"\\'") + '\',source:\'overview\'})">';
       html += '<div class="insight-title" style="color:var(--rose)">' + (a.type === 'merchant' ? '\u26A0\uFE0F Unusual Amount' : '\uD83D\uDCC8 Category Dominance') + ' \u2014 ' + a.ratio + 'x above average</div>';
@@ -1668,6 +1669,7 @@ function renderOverview() {
     });
     html += '</div>';
   }
+  } catch(e) { console.error('Anomaly detection error:', e); }
 
   el.innerHTML = html;
 
