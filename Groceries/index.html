@@ -1465,6 +1465,23 @@ window.addEventListener("DOMContentLoaded", () => {
     injectDemoBanner('green');
     demofyLinks();
   }
+
+  // One-time seed for founding user — loads original January 2026 data
+  if (typeof fb_auth !== 'undefined' && !(typeof DEMO_MODE !== 'undefined' && DEMO_MODE)) {
+    const _seedCheck = setInterval(() => {
+      if (fb_auth.currentUser) {
+        clearInterval(_seedCheck);
+        if (fb_auth.currentUser.email === 'allagilejobs@gmail.com' && getLoadedMonths().length === 0) {
+          localStorage.setItem('data_2026_01', JSON.stringify(SEED_DATA));
+          localStorage.setItem('grocery_months', JSON.stringify(['2026_01']));
+          localStorage.setItem('grocery_activeMonth', '2026_01');
+          if (typeof syncToCloud === 'function') syncToCloud();
+          location.reload();
+        }
+      }
+    }, 500);
+    setTimeout(() => clearInterval(_seedCheck), 10000);
+  }
 });
 
 // ─────────── GLOBAL SEARCH ───────────
