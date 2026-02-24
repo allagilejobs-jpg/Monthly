@@ -224,6 +224,24 @@
   .view { display: none; }
   .view.active { display: block; }
 
+  /* Global search */
+  #global-search:focus { border-color: var(--green); }
+  .search-result {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 16px; cursor: pointer; transition: background 0.15s;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .search-result:last-child { border-bottom: none; }
+  .search-result:hover { background: rgba(255,255,255,0.04); }
+  .search-result-name { font-size: 13px; font-weight: 600; }
+  .search-result-name mark { background: rgba(34,197,94,0.3); color: var(--text); border-radius: 2px; padding: 0 2px; }
+  .search-result-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .search-result-amount { font-size: 13px; font-weight: 700; color: var(--amber); white-space: nowrap; }
+  .search-group-header {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--green); padding: 10px 16px 4px; background: rgba(255,255,255,0.02);
+  }
+
   /* Progress bars */
   .progress-bar {
     height: 8px; border-radius: 4px; background: rgba(255,255,255,0.05);
@@ -445,16 +463,40 @@
     .help-table { font-size: 11px; }
     .help-table th, .help-table td { padding: 6px 8px; }
   }
+
+  /* Light theme */
+  body.light {
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --card-border: #e0e0e5;
+    --text: #1a1a2e;
+    --text-muted: #6b6b80;
+  }
+  body.light .modal { box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+  body.light .modal-select option, body.light .filter-bar select option,
+  body.light .month-nav select option { background: #fff; }
+  body.light .search-result-name mark { background: rgba(34,197,94,0.25); color: #1a1a2e; }
+
+  /* Theme toggle */
+  .theme-toggle {
+    background: rgba(255,255,255,0.06); border: 1px solid var(--card-border);
+    border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 16px;
+    line-height: 1; transition: all 0.2s; color: var(--text);
+  }
+  .theme-toggle:hover { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
     <div>
-      <h1 id="dashboard-title">Grocery & Toiletries Dashboard</h1>
+      <h1 id="dashboard-title">Monthly Grocery & Toiletries Dashboard</h1>
       <p id="dashboard-subtitle">Family spend analysis</p>
     </div>
-    <a href="expenses.html" style="font-size:13px;color:var(--blue);text-decoration:none;font-weight:600;padding:8px 16px;border:1px solid rgba(59,130,246,0.3);border-radius:8px;background:rgba(59,130,246,0.08);transition:all 0.2s;white-space:nowrap">All Expenses &rarr;</a>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">&#127769;</button>
+      <a href="../Expenses/" style="font-size:13px;color:var(--blue);text-decoration:none;font-weight:600;padding:8px 16px;border:1px solid rgba(59,130,246,0.3);border-radius:8px;background:rgba(59,130,246,0.08);transition:all 0.2s;white-space:nowrap">All Expenses &rarr;</a>
+    </div>
   </div>
 
   <div class="month-nav" id="month-nav">
@@ -473,6 +515,13 @@
     <button class="tab" data-view="trips" onclick="showView('trips')">Trips</button>
     <button class="tab" data-view="items" onclick="showView('items')">All Items</button>
     <button class="tab" data-view="compare" onclick="showView('compare')">Compare</button>
+  </div>
+
+  <!-- Global Search -->
+  <div id="global-search-wrap" style="position:relative;margin-bottom:20px">
+    <input type="text" id="global-search" placeholder="Search products, stores, categories..." oninput="onGlobalSearch(this.value)" onfocus="onGlobalSearch(this.value)" style="width:100%;max-width:500px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;padding:10px 16px 10px 38px;color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:border-color 0.2s">
+    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:16px;pointer-events:none">&#128269;</span>
+    <div id="global-search-results" style="display:none;position:absolute;top:100%;left:0;width:100%;max-width:500px;max-height:400px;overflow-y:auto;background:var(--card);border:1px solid var(--card-border);border-radius:10px;margin-top:4px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:100"></div>
   </div>
 
   <!-- ==================== OVERVIEW ==================== -->
@@ -502,6 +551,7 @@
       <div class="card-title">Key Insights</div>
       <div class="grid-3" id="insights"></div>
     </div>
+    <div id="recurring-card"></div>
   </div>
 
   <!-- ==================== GROCERIES ==================== -->
@@ -576,12 +626,21 @@
         <div class="chart-wrap-sm"><canvas id="chart-avg-trip"></canvas></div>
       </div>
     </div>
+    <div class="card" id="spending-streaks"></div>
   </div>
 
   <!-- ==================== TRIPS ==================== -->
   <div id="view-trips" class="view">
     <div class="kpi-grid" id="kpi-trips"></div>
     <div id="trips-list"></div>
+  </div>
+
+  <!-- ==================== PRODUCT DETAIL ==================== -->
+  <div id="view-product-detail" class="view">
+    <div style="margin-bottom:16px">
+      <button id="product-detail-back" style="background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;padding:8px 16px;color:var(--green);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">&larr; Back</button>
+    </div>
+    <div id="product-detail-content"></div>
   </div>
 
   <!-- ==================== TRIP DETAIL ==================== -->
@@ -1214,8 +1273,8 @@ function destroyAllCharts() {
 }
 
 function updateHeader() {
-  document.title = ctx.monthName + " " + ctx.year + " - Grocery & Toiletries Spend Dashboard";
-  document.getElementById("dashboard-title").textContent = ctx.monthName + " " + ctx.year + " Grocery & Toiletries Dashboard";
+  document.title = "Monthly Grocery & Toiletries Dashboard";
+  document.getElementById("dashboard-title").textContent = "Monthly Grocery & Toiletries Dashboard";
   const stores = [...new Set(activeData.map(i => i.s))];
   const trips = [...new Set(activeData.map(i => i.d + "|" + i.s))].length;
   document.getElementById("dashboard-subtitle").innerHTML = "Family spend analysis across " + stores.length + " stores &bull; " + trips + " shopping trips &bull; " + activeData.length + " items purchased";
@@ -1364,6 +1423,192 @@ window.addEventListener("DOMContentLoaded", () => {
   renderAll();
 });
 
+// ─────────── GLOBAL SEARCH ───────────
+let searchTimeout = null;
+function onGlobalSearch(query) {
+  clearTimeout(searchTimeout);
+  const resultsEl = document.getElementById("global-search-results");
+  if (!query || query.length < 2) { resultsEl.style.display = "none"; return; }
+  searchTimeout = setTimeout(() => {
+    const q = query.toLowerCase();
+    const results = { products: [], stores: [], categories: [] };
+
+    // Search products
+    const products = groupProducts(activeData);
+    products.forEach(p => {
+      if (p.name.toLowerCase().includes(q)) {
+        results.products.push(p);
+      }
+    });
+
+    // Search stores
+    const storeGroups = groupBy(activeData, "s");
+    storeGroups.forEach(s => {
+      if (s.name.toLowerCase().includes(q)) {
+        results.stores.push(s);
+      }
+    });
+
+    // Search categories
+    const catGroups = groupBy(activeData, "c");
+    catGroups.forEach(c => {
+      if (c.name.toLowerCase().includes(q)) {
+        results.categories.push(c);
+      }
+    });
+
+    const total = results.products.length + results.stores.length + results.categories.length;
+    if (total === 0) {
+      resultsEl.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px">No results found</div>';
+      resultsEl.style.display = "block";
+      return;
+    }
+
+    let html = '';
+    const highlight = (text) => text.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'), '<mark>$1</mark>');
+
+    if (results.products.length) {
+      html += '<div class="search-group-header">Products (' + results.products.length + ')</div>';
+      results.products.slice(0, 8).forEach(p => {
+        const escaped = p.name.replace(/'/g, "\\'");
+        html += '<div class="search-result" onclick="closeSearch();showProductDetail(\'' + escaped + '\',\'overview\')">';
+        html += '<div><div class="search-result-name">' + highlight(p.name) + '</div>';
+        html += '<div class="search-result-meta">' + p.cat + ' &bull; qty ' + p.qty + ' &bull; bought ' + p.count + 'x</div></div>';
+        html += '<div class="search-result-amount">' + fmt(p.total) + '</div></div>';
+      });
+    }
+
+    if (results.stores.length) {
+      html += '<div class="search-group-header">Stores (' + results.stores.length + ')</div>';
+      results.stores.forEach(s => {
+        const escaped = s.name.replace(/'/g, "\\'");
+        html += '<div class="search-result" onclick="closeSearch();showView(\'items\',null,{store:\'' + escaped + '\'})">';
+        html += '<div><div class="search-result-name">' + highlight(s.name) + '</div>';
+        html += '<div class="search-result-meta">' + s.items.length + ' items &bull; ' + s.qty + ' units</div></div>';
+        html += '<div class="search-result-amount">' + fmt(s.total) + '</div></div>';
+      });
+    }
+
+    if (results.categories.length) {
+      html += '<div class="search-group-header">Categories (' + results.categories.length + ')</div>';
+      results.categories.forEach(c => {
+        const escaped = c.name.replace(/'/g, "\\'");
+        html += '<div class="search-result" onclick="closeSearch();showView(\'items\',null,{cat:\'' + escaped + '\'})">';
+        html += '<div><div class="search-result-name">' + highlight(c.name) + '</div>';
+        html += '<div class="search-result-meta">' + c.items.length + ' items &bull; ' + pct(c.total, grandTotal) + ' of total</div></div>';
+        html += '<div class="search-result-amount">' + fmt(c.total) + '</div></div>';
+      });
+    }
+
+    resultsEl.innerHTML = html;
+    resultsEl.style.display = "block";
+  }, 150);
+}
+
+function closeSearch() {
+  document.getElementById("global-search").value = '';
+  document.getElementById("global-search-results").style.display = "none";
+}
+
+// Close search on click outside
+document.addEventListener("click", (e) => {
+  const wrap = document.getElementById("global-search-wrap");
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById("global-search-results").style.display = "none";
+  }
+});
+
+// ─────────── REGULAR PURCHASE DETECTION ───────────
+function detectRegularPurchases() {
+  const results = [];
+  const seen = new Set();
+  const months = getLoadedMonths();
+
+  // Cross-month detection (high confidence): items appearing in 2+ months
+  if (months.length >= 2) {
+    const allMonthProducts = {};
+    months.forEach(mk => {
+      const data = loadMonthData(mk);
+      if (!data) return;
+      allMonthProducts[mk] = {};
+      data.forEach(i => {
+        if (!allMonthProducts[mk][i.n]) allMonthProducts[mk][i.n] = { prices: [], qty: 0, cat: i.c, stores: new Set() };
+        allMonthProducts[mk][i.n].prices.push(i.u);
+        allMonthProducts[mk][i.n].qty += i.q;
+        allMonthProducts[mk][i.n].stores.add(i.s);
+      });
+    });
+
+    const allNames = new Set();
+    months.forEach(mk => { if (allMonthProducts[mk]) Object.keys(allMonthProducts[mk]).forEach(n => allNames.add(n)); });
+
+    allNames.forEach(name => {
+      const monthsPresent = months.filter(mk => allMonthProducts[mk] && allMonthProducts[mk][name]);
+      if (monthsPresent.length < 2) return;
+
+      const allPrices = monthsPresent.flatMap(mk => allMonthProducts[mk][name].prices);
+      const avg = allPrices.reduce((s, p) => s + p, 0) / allPrices.length;
+      const stores = new Set();
+      let cat = '';
+      monthsPresent.forEach(mk => { allMonthProducts[mk][name].stores.forEach(s => stores.add(s)); cat = allMonthProducts[mk][name].cat; });
+
+      results.push({
+        name,
+        avgPrice: avg,
+        frequency: monthsPresent.length + '/' + months.length + ' months',
+        confidence: 'high',
+        category: cat,
+        stores: [...stores].join(', ')
+      });
+      seen.add(name);
+    });
+  }
+
+  // Single-month detection: items bought on multiple separate days
+  const products = groupProducts(activeData);
+  products.forEach(p => {
+    if (seen.has(p.name)) return;
+    // Get unique purchase dates
+    const dates = [...new Set(activeData.filter(i => i.n === p.name).map(i => i.d))];
+    if (dates.length < 2) return;
+
+    const prices = activeData.filter(i => i.n === p.name).map(i => i.u);
+    const avg = prices.reduce((s, v) => s + v, 0) / prices.length;
+    const maxDev = Math.max(...prices.map(v => Math.abs(v - avg)));
+    const isStable = avg > 0 && (maxDev / avg) <= 0.15;
+    const storeSet = new Set(activeData.filter(i => i.n === p.name).map(i => i.s));
+    const cat = activeData.find(i => i.n === p.name).c;
+
+    if (isStable || dates.length >= 3) {
+      results.push({
+        name: p.name,
+        avgPrice: avg,
+        frequency: dates.length + 'x this month',
+        confidence: isStable && dates.length >= 3 ? 'high' : 'medium',
+        category: cat,
+        stores: [...storeSet].join(', ')
+      });
+    }
+  });
+
+  return results.sort((a, b) => b.avgPrice - a.avgPrice);
+}
+
+// ─────────── THEME TOGGLE ───────────
+function toggleTheme() {
+  const isLight = document.body.classList.toggle("light");
+  localStorage.setItem("grocery_theme", isLight ? "light" : "dark");
+  document.getElementById("theme-toggle").textContent = isLight ? "\u2600\uFE0F" : "\uD83C\uDF19";
+}
+// Apply saved theme on load
+(function() {
+  const saved = localStorage.getItem("grocery_theme");
+  if (saved === "light") {
+    document.body.classList.add("light");
+    document.getElementById("theme-toggle").textContent = "\u2600\uFE0F";
+  }
+})();
+
 // ─────────── OVERVIEW ───────────
 function renderOverview() {
   const stores = [...new Set(activeData.map(i => i.s))];
@@ -1480,23 +1725,99 @@ function renderOverview() {
     }
   });
 
-  // Insights
+  // Smart Insights
   const topCat = catGroups[0];
   const topStore = storeGroups[0];
   const products = groupProducts(activeData);
   const topProduct = products[0];
   const freqProducts = products.filter(p => p.count >= 2);
-  const avgTrip = grandTotal / [...new Set(activeData.map(i => i.d + "|" + i.s))].length;
-  const biggestDay = groupBy(activeData, "d").sort((a,b) => b.total - a.total)[0];
+  const tripKeys = [...new Set(activeData.map(i => i.d + "|" + i.s))];
+  const avgTrip = grandTotal / tripKeys.length;
+  const dayGroups = groupBy(activeData, "d").sort((a,b) => b.total - a.total);
+  const biggestDay = dayGroups[0];
+  const cheapestDay = dayGroups[dayGroups.length - 1];
 
-  document.getElementById("insights").innerHTML = [
-    { title: "Top Category", text: `<span class="insight-val">${topCat.name}</span> at ${fmt(topCat.total)} (${pct(topCat.total, grandTotal)} of total spend)`, action: `showView('items',null,{cat:'${topCat.name}'})` },
-    { title: "Most Spent at Store", text: `<span class="insight-val">${topStore.name}</span> across ${topStore.items.length} items totaling ${fmt(topStore.total)}`, action: `showView('items',null,{store:'${topStore.name}'})` },
-    { title: "Costliest Single Product", text: `<span class="insight-val">${topProduct.name}</span> &mdash; ${fmt(topProduct.total)} total (qty ${topProduct.qty})`, action: `showView('items',null,{cat:'${topProduct.cat}'})` },
-    { title: "Biggest Shopping Day", text: `<span class="insight-val">${ctx.monthAbbr} ${parseInt(biggestDay.name.split("/")[1])}</span> &mdash; ${fmt(biggestDay.total)} spent across ${biggestDay.items.length} items`, action: `showView('items',null,{date:'${biggestDay.name}'})` },
-    { title: "Repeat Purchases", text: `<span class="insight-val">${freqProducts.length} products</span> bought 2+ times, totaling ${fmt(freqProducts.reduce((s,p) => s + p.total, 0))}`, action: `showView('groceries')` },
-    { title: "Toiletries Share", text: `Household, beauty & paper products accounted for <span class="insight-val">${fmt(toiletryTotal)}</span> (${pct(toiletryTotal, grandTotal)})`, action: `showView('toiletries')` },
-  ].map(ins => `<div class="insight" onclick="${ins.action}" style="cursor:pointer"><div class="insight-title">${ins.title}</div><div class="insight-text">${ins.text}</div></div>`).join("");
+  // Spending concentration: what % of spend comes from top 3 categories
+  const top3CatTotal = catGroups.slice(0, 3).reduce((s, c) => s + c.total, 0);
+  const top3CatPct = pct(top3CatTotal, grandTotal);
+  const top3CatNames = catGroups.slice(0, 3).map(c => c.name).join(", ");
+
+  // Store loyalty: what % at top store
+  const topStorePct = pct(topStore.total, grandTotal);
+
+  // Most expensive single item purchase
+  const priciest = [...activeData].sort((a, b) => b.u - a.u)[0];
+
+  // Busiest day of week
+  const dowCounts = [0,0,0,0,0,0,0];
+  const dowSpend = [0,0,0,0,0,0,0];
+  const dowNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  activeData.forEach(i => {
+    const day = parseInt(i.d.split("/")[1]);
+    const d = new Date(ctx.year, ctx.month - 1, day);
+    if (!isNaN(d)) { dowCounts[d.getDay()]++; dowSpend[d.getDay()] += i.t; }
+  });
+  const busiestDow = dowCounts.indexOf(Math.max(...dowCounts));
+  const biggestSpendDow = dowSpend.indexOf(Math.max(...dowSpend));
+
+  // Average items per trip
+  const avgItemsPerTrip = (activeData.length / tripKeys.length).toFixed(1);
+
+  // Build insights array — pick the most interesting ones dynamically
+  const insights = [
+    { title: "Spending Concentration", text: `Your top 3 categories (<span class="insight-val">${top3CatNames}</span>) account for <span class="insight-val">${top3CatPct}</span> of all spending`, action: `showView('items',null,{cat:'${topCat.name}'})` },
+    { title: "Store Loyalty", text: `<span class="insight-val">${topStorePct}</span> of your budget goes to <span class="insight-val">${topStore.name}</span> (${fmt(topStore.total)} across ${topStore.items.length} items)`, action: `showView('items',null,{store:'${topStore.name}'})` },
+    { title: "Costliest Single Product", text: `<span class="insight-val">${topProduct.name}</span> &mdash; ${fmt(topProduct.total)} total (qty ${topProduct.qty})`, action: `showProductDetail('${topProduct.name.replace(/'/g, "\\'")}','overview')` },
+    { title: "Biggest Shopping Day", text: `<span class="insight-val">${ctx.monthAbbr} ${parseInt(biggestDay.name.split("/")[1])}</span> &mdash; ${fmt(biggestDay.total)} across ${biggestDay.items.length} items (${pct(biggestDay.total, grandTotal)} of monthly total)`, action: `showView('items',null,{date:'${biggestDay.name}'})` },
+    { title: "Most Expensive Unit Price", text: `<span class="insight-val">${priciest.n}</span> at <span class="insight-val">${fmt(priciest.u)}/unit</span> from ${priciest.s}`, action: `showProductDetail('${priciest.n.replace(/'/g, "\\'")}','overview')` },
+    { title: "Shopping Pattern", text: `You shop most on <span class="insight-val">${dowNames[busiestDow]}s</span> (${dowCounts[busiestDow]} items) and spend most on <span class="insight-val">${dowNames[biggestSpendDow]}s</span> (${fmt(dowSpend[biggestSpendDow])})`, action: `showView('trends')` },
+    { title: "Trip Efficiency", text: `<span class="insight-val">${avgItemsPerTrip} items/trip</span> average across ${tripKeys.length} trips at <span class="insight-val">${fmt(avgTrip)}/trip</span>`, action: `showView('trips')` },
+    { title: "Repeat Purchases", text: `<span class="insight-val">${freqProducts.length} products</span> bought 2+ times, totaling ${fmt(freqProducts.reduce((s,p) => s + p.total, 0))} (${pct(freqProducts.reduce((s,p) => s + p.total, 0), grandTotal)} of spend)`, action: `showView('groceries')` },
+    { title: "Toiletries vs Groceries", text: `For every <span class="insight-val">$1</span> on toiletries, you spend <span class="insight-val">${fmt(toiletryTotal > 0 ? groceryTotal / toiletryTotal : 0).replace('$','')}</span> on groceries`, action: `showView('toiletries')` },
+  ];
+
+  // 10. Spending streaks
+  if (ctx.daysInMonth) {
+    const streakDays = new Set();
+    activeData.forEach(i => { const day = parseInt(i.d.split("/")[1]); if (day >= 1 && day <= ctx.daysInMonth) streakDays.add(day); });
+    let mxS = 0, cS = 0, mxN = 0, cN = 0;
+    for (let d = 1; d <= ctx.daysInMonth; d++) {
+      if (streakDays.has(d)) { cS++; cN = 0; } else { cN++; cS = 0; }
+      if (cS > mxS) mxS = cS;
+      if (cN > mxN) mxN = cN;
+    }
+    insights.push({ title: "Shopping Streaks", text: `Longest shopping streak: <span class="insight-val">${mxS} days</span> &bull; Longest gap: <span class="insight-val">${mxN} days</span> &bull; ${streakDays.size}/${ctx.daysInMonth} active days`, action: `showView('trends')` });
+  }
+
+  document.getElementById("insights").innerHTML = insights.map(ins =>
+    `<div class="insight" onclick="${ins.action}" style="cursor:pointer"><div class="insight-title">${ins.title}</div><div class="insight-text">${ins.text}</div></div>`
+  ).join("");
+
+  // Recurring / Regular Purchases
+  const recurring = detectRegularPurchases();
+  const recurringEl = document.getElementById("recurring-card");
+  if (recurring.length > 0) {
+    let rHtml = '<div class="card"><div class="card-title">Regular Purchases</div>';
+    rHtml += '<table><thead><tr><th>Product</th><th>Category</th><th>Store(s)</th><th class="text-right">Avg Price</th><th>Frequency</th><th>Confidence</th></tr></thead><tbody>';
+    recurring.forEach(r => {
+      const confColor = r.confidence === 'high' ? 'var(--green)' : r.confidence === 'medium' ? 'var(--amber)' : 'var(--text-muted)';
+      const confBg = r.confidence === 'high' ? 'rgba(34,197,94,0.12)' : r.confidence === 'medium' ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.05)';
+      rHtml += `<tr style="cursor:pointer" onclick="showProductDetail('${r.name.replace(/'/g, "\\'")}','overview')">`;
+      rHtml += `<td style="font-weight:600">${r.name}</td>`;
+      const catIdx = ALL_CATEGORIES.indexOf(r.category);
+      const catClr = PALETTE[(catIdx >= 0 ? catIdx : 0) % PALETTE.length];
+      rHtml += `<td><span class="tag" style="background:${catClr}22;color:${catClr}">${r.category}</span></td>`;
+      rHtml += `<td style="font-size:12px;color:var(--text-muted)">${r.stores}</td>`;
+      rHtml += `<td class="text-right amt">${fmt(r.avgPrice)}</td>`;
+      rHtml += `<td style="font-size:12px">${r.frequency}</td>`;
+      rHtml += `<td><span class="tag" style="background:${confBg};color:${confColor}">${r.confidence}</span></td>`;
+      rHtml += '</tr>';
+    });
+    rHtml += '</tbody></table></div>';
+    recurringEl.innerHTML = rHtml;
+  } else {
+    recurringEl.innerHTML = '';
+  }
 }
 
 // ─────────── GROCERIES TAB ───────────
@@ -1532,7 +1853,8 @@ function renderGroceries() {
 
   // Top 15 grocery items
   const top15 = products.slice(0, 15);
-  charts.groceryTop = new Chart(document.getElementById("chart-grocery-top"), {
+  const groceryTopCanvas = document.getElementById("chart-grocery-top");
+  charts.groceryTop = new Chart(groceryTopCanvas, {
     type: "bar",
     data: {
       labels: top15.map(p => p.name.length > 30 ? p.name.slice(0,28) + "..." : p.name),
@@ -1547,12 +1869,18 @@ function renderGroceries() {
       }
     }
   });
+  groceryTopCanvas.style.cursor = 'pointer';
+  groceryTopCanvas.onclick = e => {
+    const pts = charts.groceryTop.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
+    if (pts.length) showProductDetail(top15[pts[0].index].name, 'groceries');
+  };
 
   // Frequently purchased table
   const freq = products.filter(p => p.count >= 2);
   let html = `<thead><tr><th>Product</th><th>Category</th><th class="text-center">Qty Bought</th><th class="text-right">Total Spent</th><th class="text-right">Avg/Unit</th></tr></thead><tbody>`;
   freq.forEach(p => {
-    html += `<tr><td class="bold">${p.name}</td><td style="color:var(--text-muted)">${p.cat}</td><td class="text-center">${p.qty}</td><td class="text-right mono amt">${fmt(p.total)}</td><td class="text-right mono">${fmt(p.total / p.qty)}</td></tr>`;
+    const escaped = p.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    html += `<tr style="cursor:pointer" onclick="showProductDetail('${escaped}','groceries')"><td class="bold">${p.name}<span style="float:right;color:var(--text-muted);font-size:11px">&rarr;</span></td><td style="color:var(--text-muted)">${p.cat}</td><td class="text-center">${p.qty}</td><td class="text-right mono amt">${fmt(p.total)}</td><td class="text-right mono">${fmt(p.total / p.qty)}</td></tr>`;
   });
   html += `</tbody>`;
   document.getElementById("table-grocery-freq").innerHTML = html;
@@ -1608,10 +1936,11 @@ function renderToiletries() {
   // All toiletry items table
   let html = `<thead><tr><th>Date</th><th>Store</th><th>Product</th><th>Category</th><th class="text-center">Qty</th><th class="text-right">Unit $</th><th class="text-right">Total</th></tr></thead><tbody>`;
   toiletries.sort((a,b) => b.t - a.t).forEach(i => {
-    html += `<tr>
+    const escaped = i.n.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    html += `<tr style="cursor:pointer" onclick="showProductDetail('${escaped}','toiletries')">
       <td class="mono">${i.d}</td>
       <td>${i.s}</td>
-      <td class="bold">${i.n}</td>
+      <td class="bold">${i.n}<span style="float:right;color:var(--text-muted);font-size:11px">&rarr;</span></td>
       <td style="color:var(--text-muted)">${i.c}</td>
       <td class="text-center">${i.q}</td>
       <td class="text-right mono">${fmt(i.u)}</td>
@@ -1774,6 +2103,64 @@ function renderTrends() {
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmt(ctx.raw) + " avg per trip" } } }
     }
   });
+
+  // Spending streaks
+  const shoppingDays = new Set();
+  activeData.forEach(i => { const d = parseInt(i.d.split("/")[1]); shoppingDays.add(d); });
+
+  // Longest spending streak (consecutive days with purchases)
+  let maxSpend = 0, curSpend = 0, spendStart = 0, bestSpendStart = 0;
+  // Longest no-spend streak
+  let maxNoSpend = 0, curNoSpend = 0, noSpendStart = 0, bestNoSpendStart = 0;
+
+  for (let d = 1; d <= ctx.daysInMonth; d++) {
+    if (shoppingDays.has(d)) {
+      curSpend++;
+      if (curSpend === 1) spendStart = d;
+      if (curSpend > maxSpend) { maxSpend = curSpend; bestSpendStart = spendStart; }
+      if (curNoSpend > maxNoSpend) { maxNoSpend = curNoSpend; bestNoSpendStart = noSpendStart; }
+      curNoSpend = 0;
+    } else {
+      curNoSpend++;
+      if (curNoSpend === 1) noSpendStart = d;
+      if (curNoSpend > maxNoSpend) { maxNoSpend = curNoSpend; bestNoSpendStart = noSpendStart; }
+      if (curSpend > maxSpend) { maxSpend = curSpend; bestSpendStart = spendStart; }
+      curSpend = 0;
+    }
+  }
+
+  let streakHtml = `<div class="card-title">Spending Streaks</div>`;
+  streakHtml += `<div class="grid-2" style="margin-bottom:16px">`;
+  streakHtml += `<div class="insight" style="cursor:default"><div class="insight-title">Longest Spending Streak</div><div class="insight-text"><span class="insight-val">${maxSpend} day${maxSpend !== 1 ? 's' : ''}</span> in a row (${ctx.monthAbbr} ${bestSpendStart}&ndash;${bestSpendStart + maxSpend - 1})</div></div>`;
+  streakHtml += `<div class="insight" style="cursor:default"><div class="insight-title">Longest No-Spend Streak</div><div class="insight-text"><span class="insight-val">${maxNoSpend} day${maxNoSpend !== 1 ? 's' : ''}</span> without shopping${maxNoSpend > 0 ? ' (' + ctx.monthAbbr + ' ' + bestNoSpendStart + '\u2013' + (bestNoSpendStart + maxNoSpend - 1) + ')' : ''}</div></div>`;
+  streakHtml += `</div>`;
+
+  // Calendar heatmap
+  streakHtml += `<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Daily Spending Calendar</div>`;
+  const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  streakHtml += `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:500px">`;
+  dayNames.forEach(d => { streakHtml += `<div style="text-align:center;font-size:10px;color:var(--text-muted);padding:4px">${d}</div>`; });
+  // Pad first week
+  const firstDow = new Date(ctx.year, ctx.month - 1, 1).getDay();
+  for (let p = 0; p < firstDow; p++) streakHtml += `<div></div>`;
+  // Daily cells
+  const maxDaySpend = Math.max(...Array.from({ length: ctx.daysInMonth }, (_, i) => {
+    let t = 0; activeData.forEach(item => { if (parseInt(item.d.split("/")[1]) === i + 1) t += item.t; }); return t;
+  }));
+  for (let d = 1; d <= ctx.daysInMonth; d++) {
+    let dayTotal = 0;
+    activeData.forEach(i => { if (parseInt(i.d.split("/")[1]) === d) dayTotal += i.t; });
+    const intensity = maxDaySpend > 0 ? dayTotal / maxDaySpend : 0;
+    const bg = dayTotal === 0 ? 'rgba(255,255,255,0.03)' : `rgba(34,197,94,${0.15 + intensity * 0.6})`;
+    const textColor = dayTotal === 0 ? 'var(--text-muted)' : intensity > 0.5 ? '#fff' : 'var(--text)';
+    streakHtml += `<div style="aspect-ratio:1;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:${bg};font-size:11px" title="${ctx.monthAbbr} ${d}: ${dayTotal > 0 ? fmt(dayTotal) : 'No spending'}">`;
+    streakHtml += `<span style="font-weight:700;color:${textColor}">${d}</span>`;
+    if (dayTotal > 0) streakHtml += `<span style="font-size:8px;color:${textColor};opacity:0.8">${fmt(dayTotal)}</span>`;
+    streakHtml += `</div>`;
+  }
+  streakHtml += `</div>`;
+
+  document.getElementById("spending-streaks").innerHTML = streakHtml;
 }
 
 // ─────────── TRIPS TAB ───────────
@@ -1847,6 +2234,126 @@ function renderTrips() {
   });
 
   document.getElementById("trips-list").innerHTML = html;
+}
+
+let productDetailSource = 'groceries';
+function showProductDetail(productName, source) {
+  productDetailSource = source || 'groceries';
+  const items = activeData.filter(i => i.n === productName).sort((a, b) => a.d.localeCompare(b.d));
+  if (!items.length) return;
+  const total = items.reduce((s, i) => s + i.t, 0);
+  const totalQty = items.reduce((s, i) => s + i.q, 0);
+  const cat = items[0].c;
+  const stores = [...new Set(items.map(i => i.s))];
+  const dates = [...new Set(items.map(i => i.d))];
+  const prices = items.map(i => i.u);
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+
+  const backMap = { groceries: ['groceries','Groceries'], toiletries: ['toiletries','Toiletries'], overview: ['overview','Overview'], items: ['items','All Items'] };
+  const [backTab, backLabel] = backMap[productDetailSource] || backMap.items;
+  document.getElementById("product-detail-back").onclick = () => showView(backTab);
+  document.getElementById("product-detail-back").textContent = "\u2190 Back to " + backLabel;
+
+  let html = `<div class="trip-detail-header">
+    <div>
+      <div class="trip-detail-title">${productName}</div>
+      <div class="trip-detail-store">${cat} \u2022 ${stores.join(", ")}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="trip-detail-total">${fmt(total)}</div>
+      <div class="trip-detail-count">${totalQty} units across ${dates.length} shopping date${dates.length !== 1 ? 's' : ''}</div>
+    </div>
+  </div>`;
+
+  // Summary stats
+  html += `<div class="kpi-grid" style="margin-bottom:20px">`;
+  html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Times Purchased</div><div class="kpi-value" style="color:var(--green)">${dates.length}</div><div class="kpi-sub">${dates.length === 1 ? '1 date' : dates.length + ' different dates'}</div></div>`;
+  html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Total Quantity</div><div class="kpi-value" style="color:var(--cyan)">${totalQty}</div><div class="kpi-sub">units bought</div></div>`;
+  html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Avg Unit Price</div><div class="kpi-value" style="color:var(--amber)">${fmt(total / totalQty)}</div><div class="kpi-sub">per unit</div></div>`;
+  // Price range KPI
+  if (minPrice !== maxPrice) {
+    html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Price Range</div><div class="kpi-value" style="font-size:18px;color:var(--teal)">${fmt(minPrice)} &mdash; ${fmt(maxPrice)}</div><div class="kpi-sub">${fmt(maxPrice - minPrice)} spread</div></div>`;
+  } else {
+    html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Consistent Price</div><div class="kpi-value" style="color:var(--teal)">${fmt(minPrice)}</div><div class="kpi-sub">same price every time</div></div>`;
+  }
+  html += `</div>`;
+
+  // Price tracker (only if bought more than once)
+  if (items.length > 1) {
+    html += `<div class="card"><div class="card-title">Price Tracker</div>`;
+    html += `<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Store</th><th class="text-right">Unit Price</th><th class="text-right">Change</th></tr></thead><tbody>`;
+    items.forEach((item, idx) => {
+      const dayNum = parseInt(item.d.split("/")[1]);
+      const dateLabel = ctx.monthName ? ctx.monthName + " " + dayNum + ", " + ctx.year : item.d;
+      let changeHtml = '';
+      if (idx > 0) {
+        const diff = item.u - items[idx - 1].u;
+        if (diff > 0.001) changeHtml = `<span style="color:var(--rose);font-weight:700">&uarr; +${fmt(diff)}</span>`;
+        else if (diff < -0.001) changeHtml = `<span style="color:var(--green);font-weight:700">&darr; ${fmt(diff)}</span>`;
+        else changeHtml = `<span style="color:var(--text-muted)">&mdash; same</span>`;
+      } else {
+        changeHtml = `<span style="color:var(--text-muted)">&mdash;</span>`;
+      }
+      html += `<tr><td class="mono">${dateLabel}</td><td>${item.s}</td><td class="text-right mono amt">${fmt(item.u)}</td><td class="text-right">${changeHtml}</td></tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  }
+
+  // Store comparison (only if bought at multiple stores)
+  if (stores.length > 1) {
+    html += `<div class="card"><div class="card-title">Store Price Comparison</div>`;
+    const storeStats = {};
+    items.forEach(i => {
+      if (!storeStats[i.s]) storeStats[i.s] = { prices: [], qty: 0, total: 0 };
+      storeStats[i.s].prices.push(i.u);
+      storeStats[i.s].qty += i.q;
+      storeStats[i.s].total += i.t;
+    });
+    const storeArr = Object.entries(storeStats).map(([name, s]) => ({
+      name, avgPrice: s.total / s.qty, minPrice: Math.min(...s.prices),
+      maxPrice: Math.max(...s.prices), qty: s.qty, total: s.total
+    })).sort((a, b) => a.avgPrice - b.avgPrice);
+    const cheapest = storeArr[0];
+    const savings = storeArr.length > 1 ? storeArr[storeArr.length - 1].avgPrice - cheapest.avgPrice : 0;
+
+    if (savings > 0.001) {
+      html += `<div class="insight" style="cursor:default;margin-bottom:14px"><div class="insight-title">Best Price</div><div class="insight-text"><span class="insight-val">${cheapest.name}</span> is cheapest at <span class="insight-val">${fmt(cheapest.avgPrice)}/unit</span> avg &mdash; you save <span class="insight-val">${fmt(savings)}/unit</span> vs the most expensive store</div></div>`;
+    }
+    html += `<div style="overflow-x:auto"><table><thead><tr><th>Store</th><th class="text-right">Avg Price</th><th class="text-right">Min</th><th class="text-right">Max</th><th class="text-center">Qty</th><th class="text-right">Total</th></tr></thead><tbody>`;
+    storeArr.forEach((s, idx) => {
+      const isCheapest = idx === 0 && storeArr.length > 1;
+      html += `<tr><td style="font-weight:600;${isCheapest ? 'color:var(--green)' : ''}">${s.name}${isCheapest ? ' <span style="font-size:10px;background:rgba(34,197,94,0.12);color:var(--green);padding:2px 6px;border-radius:4px;margin-left:4px">BEST</span>' : ''}</td>`;
+      html += `<td class="text-right mono amt">${fmt(s.avgPrice)}</td>`;
+      html += `<td class="text-right mono">${fmt(s.minPrice)}</td>`;
+      html += `<td class="text-right mono">${fmt(s.maxPrice)}</td>`;
+      html += `<td class="text-center">${s.qty}</td>`;
+      html += `<td class="text-right mono amt">${fmt(s.total)}</td></tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  }
+
+  // Purchase history table
+  html += `<div class="card"><div class="card-title">Purchase History</div>`;
+  html += `<div style="overflow-x:auto"><table>`;
+  html += `<thead><tr><th>Date</th><th>Store</th><th class="text-center">Qty</th><th class="text-right">Unit Price</th><th class="text-right">Total</th></tr></thead><tbody>`;
+  items.forEach(i => {
+    const dayNum = parseInt(i.d.split("/")[1]);
+    const dateLabel = ctx.monthName ? ctx.monthName + " " + dayNum + ", " + ctx.year : i.d;
+    html += `<tr>
+      <td class="mono">${dateLabel}</td>
+      <td>${i.s}</td>
+      <td class="text-center">${i.q}</td>
+      <td class="text-right mono">${fmt(i.u)}</td>
+      <td class="text-right mono amt">${fmt(i.t)}</td>
+    </tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+
+  document.getElementById("product-detail-content").innerHTML = html;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-product-detail').classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
 }
 
 function showTripDetail(tripIdx) {
@@ -2017,7 +2524,7 @@ function renderTable() {
     const arrow = currentSort.col === col.key ? (currentSort.dir === "asc" ? " ↑" : " ↓") : "";
     html += `<th onclick="sortTable('${col.key}')">${col.label}${arrow}</th>`;
   });
-  html += `</tr></thead><tbody>`;
+  html += `<th style="width:50px"></th></tr></thead><tbody>`;
 
   data.forEach(i => {
     const typ = itemType(i);
@@ -2025,14 +2532,16 @@ function renderTable() {
     const tagLabel = typ === "grocery" ? "GROCERY" : typ === "toiletry" ? "TOILETRY" : "OTHER";
     const isEdited = i.n !== i._origName || i.c !== i._origCat || i.ng !== i._origNg;
     const editDot = isEdited ? '<span class="edit-dot" title="Edited"></span>' : '';
-    html += `<tr onclick="openEditModal(${i._idx})" style="cursor:pointer">
+    const escaped = i.n.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    html += `<tr onclick="showProductDetail('${escaped}','items')" style="cursor:pointer" title="View purchase history">
       <td class="mono">${i.d}</td>
       <td>${i.s}</td>
-      <td class="bold">${i.n}${editDot} <span class="tag ${tagClass}">${tagLabel}</span><span class="edit-icon">&#9998;</span></td>
+      <td class="bold">${i.n}${editDot} <span class="tag ${tagClass}">${tagLabel}</span></td>
       <td style="color:var(--text-muted)">${i.c}</td>
       <td class="text-center">${i.q}</td>
       <td class="text-right mono">${fmt(i.u)}</td>
       <td class="text-right mono amt">${fmt(i.t)}</td>
+      <td class="text-center"><span onclick="event.stopPropagation();openEditModal(${i._idx})" title="Edit item" style="cursor:pointer;font-size:14px;color:var(--text-muted);padding:4px 8px;border-radius:6px;transition:all 0.2s" onmouseover="this.style.color='var(--green)';this.style.background='rgba(34,197,94,0.1)'" onmouseout="this.style.color='var(--text-muted)';this.style.background='none'">&#9998;</span></td>
     </tr>`;
   });
   html += `</tbody>`;
@@ -2460,5 +2969,11 @@ function renderCompare() {
   });
 }
 </script>
+<div style="text-align:center;padding:32px 20px 24px;font-size:12px;color:var(--text-muted);border-top:1px solid var(--card-border);margin-top:40px">
+  <span style="font-weight:600;color:var(--text)">Family Finance Dashboards</span><br>
+  <a href="https://allagilejobs-jpg.github.io/Monthly/Groceries/" style="color:var(--green);text-decoration:none;margin:0 8px">Groceries</a> &bull;
+  <a href="https://allagilejobs-jpg.github.io/Monthly/Expenses/" style="color:var(--blue);text-decoration:none;margin:0 8px">All Expenses</a> &bull;
+  <a href="https://allagilejobs-jpg.github.io/Monthly/" style="color:var(--text-muted);text-decoration:none;margin:0 8px">Home</a>
+</div>
 </body>
 </html>

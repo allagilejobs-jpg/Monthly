@@ -551,6 +551,7 @@
       <div class="card-title">Key Insights</div>
       <div class="grid-3" id="insights"></div>
     </div>
+    <div id="recurring-card"></div>
   </div>
 
   <!-- ==================== GROCERIES ==================== -->
@@ -1517,6 +1518,82 @@ document.addEventListener("click", (e) => {
   }
 });
 
+// ─────────── REGULAR PURCHASE DETECTION ───────────
+function detectRegularPurchases() {
+  const results = [];
+  const seen = new Set();
+  const months = getLoadedMonths();
+
+  // Cross-month detection (high confidence): items appearing in 2+ months
+  if (months.length >= 2) {
+    const allMonthProducts = {};
+    months.forEach(mk => {
+      const data = loadMonthData(mk);
+      if (!data) return;
+      allMonthProducts[mk] = {};
+      data.forEach(i => {
+        if (!allMonthProducts[mk][i.n]) allMonthProducts[mk][i.n] = { prices: [], qty: 0, cat: i.c, stores: new Set() };
+        allMonthProducts[mk][i.n].prices.push(i.u);
+        allMonthProducts[mk][i.n].qty += i.q;
+        allMonthProducts[mk][i.n].stores.add(i.s);
+      });
+    });
+
+    const allNames = new Set();
+    months.forEach(mk => { if (allMonthProducts[mk]) Object.keys(allMonthProducts[mk]).forEach(n => allNames.add(n)); });
+
+    allNames.forEach(name => {
+      const monthsPresent = months.filter(mk => allMonthProducts[mk] && allMonthProducts[mk][name]);
+      if (monthsPresent.length < 2) return;
+
+      const allPrices = monthsPresent.flatMap(mk => allMonthProducts[mk][name].prices);
+      const avg = allPrices.reduce((s, p) => s + p, 0) / allPrices.length;
+      const stores = new Set();
+      let cat = '';
+      monthsPresent.forEach(mk => { allMonthProducts[mk][name].stores.forEach(s => stores.add(s)); cat = allMonthProducts[mk][name].cat; });
+
+      results.push({
+        name,
+        avgPrice: avg,
+        frequency: monthsPresent.length + '/' + months.length + ' months',
+        confidence: 'high',
+        category: cat,
+        stores: [...stores].join(', ')
+      });
+      seen.add(name);
+    });
+  }
+
+  // Single-month detection: items bought on multiple separate days
+  const products = groupProducts(activeData);
+  products.forEach(p => {
+    if (seen.has(p.name)) return;
+    // Get unique purchase dates
+    const dates = [...new Set(activeData.filter(i => i.n === p.name).map(i => i.d))];
+    if (dates.length < 2) return;
+
+    const prices = activeData.filter(i => i.n === p.name).map(i => i.u);
+    const avg = prices.reduce((s, v) => s + v, 0) / prices.length;
+    const maxDev = Math.max(...prices.map(v => Math.abs(v - avg)));
+    const isStable = avg > 0 && (maxDev / avg) <= 0.15;
+    const storeSet = new Set(activeData.filter(i => i.n === p.name).map(i => i.s));
+    const cat = activeData.find(i => i.n === p.name).c;
+
+    if (isStable || dates.length >= 3) {
+      results.push({
+        name: p.name,
+        avgPrice: avg,
+        frequency: dates.length + 'x this month',
+        confidence: isStable && dates.length >= 3 ? 'high' : 'medium',
+        category: cat,
+        stores: [...storeSet].join(', ')
+      });
+    }
+  });
+
+  return results.sort((a, b) => b.avgPrice - a.avgPrice);
+}
+
 // ─────────── THEME TOGGLE ───────────
 function toggleTheme() {
   const isLight = document.body.classList.toggle("light");
@@ -1699,9 +1776,48 @@ function renderOverview() {
     { title: "Toiletries vs Groceries", text: `For every <span class="insight-val">$1</span> on toiletries, you spend <span class="insight-val">${fmt(toiletryTotal > 0 ? groceryTotal / toiletryTotal : 0).replace('$','')}</span> on groceries`, action: `showView('toiletries')` },
   ];
 
+  // 10. Spending streaks
+  if (ctx.daysInMonth) {
+    const streakDays = new Set();
+    activeData.forEach(i => { const day = parseInt(i.d.split("/")[1]); if (day >= 1 && day <= ctx.daysInMonth) streakDays.add(day); });
+    let mxS = 0, cS = 0, mxN = 0, cN = 0;
+    for (let d = 1; d <= ctx.daysInMonth; d++) {
+      if (streakDays.has(d)) { cS++; cN = 0; } else { cN++; cS = 0; }
+      if (cS > mxS) mxS = cS;
+      if (cN > mxN) mxN = cN;
+    }
+    insights.push({ title: "Shopping Streaks", text: `Longest shopping streak: <span class="insight-val">${mxS} days</span> &bull; Longest gap: <span class="insight-val">${mxN} days</span> &bull; ${streakDays.size}/${ctx.daysInMonth} active days`, action: `showView('trends')` });
+  }
+
   document.getElementById("insights").innerHTML = insights.map(ins =>
     `<div class="insight" onclick="${ins.action}" style="cursor:pointer"><div class="insight-title">${ins.title}</div><div class="insight-text">${ins.text}</div></div>`
   ).join("");
+
+  // Recurring / Regular Purchases
+  const recurring = detectRegularPurchases();
+  const recurringEl = document.getElementById("recurring-card");
+  if (recurring.length > 0) {
+    let rHtml = '<div class="card"><div class="card-title">Regular Purchases</div>';
+    rHtml += '<table><thead><tr><th>Product</th><th>Category</th><th>Store(s)</th><th class="text-right">Avg Price</th><th>Frequency</th><th>Confidence</th></tr></thead><tbody>';
+    recurring.forEach(r => {
+      const confColor = r.confidence === 'high' ? 'var(--green)' : r.confidence === 'medium' ? 'var(--amber)' : 'var(--text-muted)';
+      const confBg = r.confidence === 'high' ? 'rgba(34,197,94,0.12)' : r.confidence === 'medium' ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.05)';
+      rHtml += `<tr style="cursor:pointer" onclick="showProductDetail('${r.name.replace(/'/g, "\\'")}','overview')">`;
+      rHtml += `<td style="font-weight:600">${r.name}</td>`;
+      const catIdx = ALL_CATEGORIES.indexOf(r.category);
+      const catClr = PALETTE[(catIdx >= 0 ? catIdx : 0) % PALETTE.length];
+      rHtml += `<td><span class="tag" style="background:${catClr}22;color:${catClr}">${r.category}</span></td>`;
+      rHtml += `<td style="font-size:12px;color:var(--text-muted)">${r.stores}</td>`;
+      rHtml += `<td class="text-right amt">${fmt(r.avgPrice)}</td>`;
+      rHtml += `<td style="font-size:12px">${r.frequency}</td>`;
+      rHtml += `<td><span class="tag" style="background:${confBg};color:${confColor}">${r.confidence}</span></td>`;
+      rHtml += '</tr>';
+    });
+    rHtml += '</tbody></table></div>';
+    recurringEl.innerHTML = rHtml;
+  } else {
+    recurringEl.innerHTML = '';
+  }
 }
 
 // ─────────── GROCERIES TAB ───────────
