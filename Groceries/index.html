@@ -451,7 +451,7 @@
 <div class="container">
   <div class="header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
     <div>
-      <h1 id="dashboard-title">Grocery & Toiletries Dashboard</h1>
+      <h1 id="dashboard-title">Monthly Grocery & Toiletries Dashboard</h1>
       <p id="dashboard-subtitle">Family spend analysis</p>
     </div>
     <a href="../Expenses/" style="font-size:13px;color:var(--blue);text-decoration:none;font-weight:600;padding:8px 16px;border:1px solid rgba(59,130,246,0.3);border-radius:8px;background:rgba(59,130,246,0.08);transition:all 0.2s;white-space:nowrap">All Expenses &rarr;</a>
@@ -1214,8 +1214,8 @@ function destroyAllCharts() {
 }
 
 function updateHeader() {
-  document.title = ctx.monthName + " " + ctx.year + " - Grocery & Toiletries Spend Dashboard";
-  document.getElementById("dashboard-title").textContent = ctx.monthName + " " + ctx.year + " Grocery & Toiletries Dashboard";
+  document.title = "Monthly Grocery & Toiletries Dashboard";
+  document.getElementById("dashboard-title").textContent = "Monthly Grocery & Toiletries Dashboard";
   const stores = [...new Set(activeData.map(i => i.s))];
   const trips = [...new Set(activeData.map(i => i.d + "|" + i.s))].length;
   document.getElementById("dashboard-subtitle").innerHTML = "Family spend analysis across " + stores.length + " stores &bull; " + trips + " shopping trips &bull; " + activeData.length + " items purchased";
