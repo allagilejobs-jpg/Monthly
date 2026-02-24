@@ -58,11 +58,32 @@ body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var
 .upload-count { font-size:13px; color:var(--muted); }
 
 /* Settings row */
-.settings-row { margin-top:20px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 20px; display:flex; flex-wrap:wrap; gap:16px; align-items:center; }
+/* Mode selector */
+.mode-selector { margin-top:20px; display:flex; gap:12px; }
+.mode-card {
+  flex:1; background:var(--surface); border:2px solid var(--border); border-radius:var(--radius);
+  padding:16px 20px; cursor:pointer; transition:all .2s; position:relative;
+}
+.mode-card:hover { border-color:var(--muted); }
+.mode-card.selected { border-color:var(--orange); background:var(--orange-dim); }
+.mode-card .mode-icon { font-size:24px; margin-bottom:6px; }
+.mode-card .mode-title { font-size:14px; font-weight:700; margin-bottom:2px; }
+.mode-card .mode-desc { font-size:11px; color:var(--muted); line-height:1.4; }
+.mode-card .mode-badge {
+  position:absolute; top:10px; right:12px; font-size:10px; font-weight:700; padding:2px 8px;
+  border-radius:10px; text-transform:uppercase;
+}
+.mode-card.selected .mode-badge { background:var(--orange); color:#fff; }
+.mode-card:not(.selected) .mode-badge { background:var(--surface2); color:var(--muted); }
+.settings-row { margin-top:12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 20px; display:flex; flex-wrap:wrap; gap:16px; align-items:center; }
 .settings-row label { font-size:13px; display:flex; align-items:center; gap:6px; color:var(--muted); cursor:pointer; }
 .settings-row input[type="checkbox"] { accent-color:var(--orange); }
-.gemini-input { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:12px; width:280px; }
+.gemini-section { margin-top:12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 20px; display:none; }
+.gemini-section.visible { display:block; }
+.gemini-section label { font-size:13px; color:var(--muted); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.gemini-input { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 12px; color:var(--text); font-size:13px; width:320px; }
 .gemini-input::placeholder { color:var(--muted); }
+.gemini-input:focus { outline:none; border-color:var(--orange); }
 
 /* Buttons */
 .btn { padding:10px 24px; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:6px; }
@@ -151,6 +172,7 @@ body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var
   .export-cards { grid-template-columns:1fr; }
   .thumb-grid { grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); }
   .review-table { font-size:11px; }
+  .mode-selector { flex-direction:column; }
   .settings-row { flex-direction:column; align-items:flex-start; }
   .gemini-input { width:100%; }
 }
@@ -191,12 +213,28 @@ body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var
       <div style="flex:1"></div>
       <button class="btn btn-primary" id="btnProcess" onclick="startProcessing()">Scan Receipts &#8594;</button>
     </div>
+    <div class="mode-selector" id="modeSelector">
+      <div class="mode-card selected" data-mode="ocr" onclick="selectMode('ocr')">
+        <div class="mode-badge">Selected</div>
+        <div class="mode-icon">&#128268;</div>
+        <div class="mode-title">Offline OCR</div>
+        <div class="mode-desc">Tesseract.js runs locally in your browser. No internet needed. Free &amp; private.</div>
+      </div>
+      <div class="mode-card" data-mode="ai" onclick="selectMode('ai')">
+        <div class="mode-badge">Select</div>
+        <div class="mode-icon">&#10024;</div>
+        <div class="mode-title">AI-Powered</div>
+        <div class="mode-desc">Gemini Vision API for better accuracy. Requires API key &amp; internet connection.</div>
+      </div>
+    </div>
     <div class="settings-row">
       <label><input type="checkbox" id="chkAutoDetect" checked> Auto-detect store &amp; date</label>
-      <label><input type="checkbox" id="chkPreprocess" checked> Image preprocessing (recommended)</label>
-      <label style="flex:1;min-width:280px">
-        Gemini API Key (optional):
-        <input type="password" class="gemini-input" id="geminiKey" placeholder="Paste key for AI-powered scanning">
+      <label><input type="checkbox" id="chkPreprocess" checked> Image preprocessing</label>
+    </div>
+    <div class="gemini-section" id="geminiSection">
+      <label>
+        Gemini API Key:
+        <input type="password" class="gemini-input" id="geminiKey" placeholder="Paste your Gemini API key">
       </label>
     </div>
   </div>
@@ -862,6 +900,22 @@ function clearAll() {
 }
 
 // ============================================================
+// MODE SELECTOR
+// ============================================================
+let scanMode = 'ocr'; // 'ocr' or 'ai'
+
+function selectMode(mode) {
+  scanMode = mode;
+  localStorage.setItem('scanner_mode', mode);
+  document.querySelectorAll('.mode-card').forEach(c => {
+    const isSelected = c.dataset.mode === mode;
+    c.classList.toggle('selected', isSelected);
+    c.querySelector('.mode-badge').textContent = isSelected ? 'Selected' : 'Select';
+  });
+  document.getElementById('geminiSection').classList.toggle('visible', mode === 'ai');
+}
+
+// ============================================================
 // STEP NAVIGATION
 // ============================================================
 function goToStep(n) {
@@ -897,12 +951,19 @@ async function startProcessing() {
   const geminiKey = document.getElementById('geminiKey').value.trim();
   const doPreprocess = document.getElementById('chkPreprocess').checked;
   const doAutoDetect = document.getElementById('chkAutoDetect').checked;
-  const useGemini = !!geminiKey;
+  const useGemini = scanMode === 'ai';
+
+  // Validate AI mode has a key
+  if (useGemini && !geminiKey) {
+    log('AI mode selected but no Gemini API key provided. Please paste your key or switch to Offline OCR.', 'error');
+    setTimeout(() => goToStep(1), 1500);
+    return;
+  }
 
   const total = uploadedFiles.length;
   log(`Starting scan of ${total} receipt(s)...`, 'info');
-  if (useGemini) log('Using Gemini Vision AI for enhanced scanning', 'info');
-  else log('Using Tesseract.js offline OCR', 'info');
+  if (useGemini) log('Mode: AI-Powered (Gemini Vision)', 'info');
+  else log('Mode: Offline OCR (Tesseract.js)', 'info');
 
   // Initialize Tesseract worker if not using Gemini
   if (!useGemini) {
@@ -1510,14 +1571,18 @@ function resetAll() {
   document.getElementById('currentFileFill').classList.remove('done');
 }
 
-// Load saved Gemini key
+// Load saved settings
 (function(){
+  // Restore Gemini key
   const saved = localStorage.getItem('scanner_geminiKey');
   if (saved) document.getElementById('geminiKey').value = saved;
   document.getElementById('geminiKey').addEventListener('change', function() {
     if (this.value.trim()) localStorage.setItem('scanner_geminiKey', this.value.trim());
     else localStorage.removeItem('scanner_geminiKey');
   });
+  // Restore scan mode
+  const savedMode = localStorage.getItem('scanner_mode') || 'ocr';
+  selectMode(savedMode);
 })();
 </script>
 </body>
