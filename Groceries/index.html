@@ -1876,9 +1876,10 @@ function showProductDetail(productName, source) {
   const stores = [...new Set(items.map(i => i.s))];
   const dates = [...new Set(items.map(i => i.d))];
 
-  const backTab = productDetailSource === 'groceries' ? 'groceries' : 'toiletries';
+  const backTab = productDetailSource === 'groceries' ? 'groceries' : productDetailSource === 'toiletries' ? 'toiletries' : 'items';
+  const backLabel = backTab === 'groceries' ? 'Groceries' : backTab === 'toiletries' ? 'Toiletries' : 'All Items';
   document.getElementById("product-detail-back").onclick = () => showView(backTab);
-  document.getElementById("product-detail-back").textContent = "\u2190 Back to " + (backTab === 'groceries' ? 'Groceries' : 'Toiletries');
+  document.getElementById("product-detail-back").textContent = "\u2190 Back to " + backLabel;
 
   let html = `<div class="trip-detail-header">
     <div>
@@ -2098,10 +2099,11 @@ function renderTable() {
     const tagLabel = typ === "grocery" ? "GROCERY" : typ === "toiletry" ? "TOILETRY" : "OTHER";
     const isEdited = i.n !== i._origName || i.c !== i._origCat || i.ng !== i._origNg;
     const editDot = isEdited ? '<span class="edit-dot" title="Edited"></span>' : '';
+    const escaped = i.n.replace(/'/g, "\\'").replace(/"/g, "&quot;");
     html += `<tr onclick="openEditModal(${i._idx})" style="cursor:pointer">
       <td class="mono">${i.d}</td>
       <td>${i.s}</td>
-      <td class="bold">${i.n}${editDot} <span class="tag ${tagClass}">${tagLabel}</span><span class="edit-icon">&#9998;</span></td>
+      <td class="bold">${i.n}${editDot} <span class="tag ${tagClass}">${tagLabel}</span><span class="edit-icon">&#9998;</span><span class="edit-icon" onclick="event.stopPropagation();showProductDetail('${escaped}','items')" title="View purchase history" style="margin-left:4px">&#8594;</span></td>
       <td style="color:var(--text-muted)">${i.c}</td>
       <td class="text-center">${i.q}</td>
       <td class="text-right mono">${fmt(i.u)}</td>
