@@ -2128,7 +2128,7 @@ function renderOverview() {
   } else {
     anomalyEl.innerHTML = '';
   }
-  } catch(e) { console.error('Anomaly detection error:', e); }
+  } catch(e) { console.error('Anomaly detection error:', e); document.getElementById("anomaly-card").innerHTML = '<div class="card" style="border-color:var(--rose)"><div class="card-title" style="color:var(--rose)">Anomaly Error (debug)</div><div style="font-size:12px;color:var(--text-muted)">' + e.message + '<br>' + e.stack + '</div></div>'; }
 }
 
 // ─────────── GROCERIES TAB ───────────
