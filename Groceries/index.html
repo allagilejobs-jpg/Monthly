@@ -553,6 +553,7 @@
     </div>
     <div id="overview-streaks"></div>
     <div id="recurring-card"></div>
+    <div id="anomaly-card"></div>
   </div>
 
   <!-- ==================== GROCERIES ==================== -->
@@ -642,6 +643,14 @@
       <button id="product-detail-back" style="background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;padding:8px 16px;color:var(--green);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">&larr; Back</button>
     </div>
     <div id="product-detail-content"></div>
+  </div>
+
+  <!-- ==================== CATEGORY DETAIL ==================== -->
+  <div id="view-category-detail" class="view">
+    <div style="margin-bottom:16px">
+      <button id="category-detail-back" style="background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;padding:8px 16px;color:var(--green);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">&larr; Back</button>
+    </div>
+    <div id="category-detail-content"></div>
   </div>
 
   <!-- ==================== TRIP DETAIL ==================== -->
@@ -1370,8 +1379,8 @@ function showView(id, filterType, filterOpts) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('view-' + id).classList.add('active');
-  // Highlight the matching tab (trip-detail highlights "Trips" tab)
-  const tabId = id === 'trip-detail' ? 'trips' : id;
+  // Highlight the matching tab (trip-detail highlights "Trips" tab, category-detail highlights nothing)
+  const tabId = id === 'trip-detail' ? 'trips' : (id === 'category-detail' || id === 'product-detail') ? '' : id;
   document.querySelectorAll('.tab').forEach(t => {
     if (t.getAttribute('data-view') === tabId) t.classList.add('active');
   });
@@ -1519,6 +1528,199 @@ document.addEventListener("click", (e) => {
   }
 });
 
+// ─────────── CATEGORY DETAIL VIEW ───────────
+let categoryDetailSource = 'overview';
+function showCategoryDetail(categoryName, source) {
+  categoryDetailSource = source || 'overview';
+  const container = document.getElementById('category-detail-content');
+  const backBtn = document.getElementById('category-detail-back');
+
+  const backMap = { overview: ['overview','Overview'], groceries: ['groceries','Groceries'], toiletries: ['toiletries','Toiletries'], items: ['items','All Items'] };
+  const [backTab, backLabel] = backMap[categoryDetailSource] || backMap.overview;
+  backBtn.onclick = () => showView(backTab);
+  backBtn.textContent = '\u2190 Back to ' + backLabel;
+
+  const items = activeData.filter(i => i.c === categoryName).sort((a, b) => a.d.localeCompare(b.d));
+  if (items.length === 0) { container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">No items found in this category</div>'; showView('category-detail'); return; }
+
+  const total = items.reduce((s, i) => s + i.t, 0);
+  const totalQty = items.reduce((s, i) => s + i.q, 0);
+  const catPctOfAll = ((total / grandTotal) * 100).toFixed(1);
+  const isGrocery = items.some(i => itemType(i) === 'grocery');
+  const isToi = items.some(i => itemType(i) === 'toiletry');
+  const typeLabel = isGrocery ? 'Grocery' : isToi ? 'Toiletry' : 'Other';
+
+  // Group by product
+  const products = {};
+  items.forEach(i => {
+    if (!products[i.n]) products[i.n] = { name: i.n, total: 0, qty: 0, count: 0, stores: new Set(), dates: new Set() };
+    products[i.n].total += i.t;
+    products[i.n].qty += i.q;
+    products[i.n].count++;
+    products[i.n].stores.add(i.s);
+    products[i.n].dates.add(i.d);
+  });
+  const prodList = Object.values(products).sort((a, b) => b.total - a.total);
+
+  // Group by store
+  const stores = {};
+  items.forEach(i => {
+    if (!stores[i.s]) stores[i.s] = { name: i.s, total: 0, count: 0 };
+    stores[i.s].total += i.t;
+    stores[i.s].count++;
+  });
+  const storeList = Object.values(stores).sort((a, b) => b.total - a.total);
+
+  const catIdx = ALL_CATEGORIES.indexOf(categoryName);
+  const catColor = PALETTE[(catIdx >= 0 ? catIdx : 0) % PALETTE.length];
+  const dates = [...new Set(items.map(i => i.d))].sort();
+  const dateRange = dates.length > 1 ? (ctx.monthAbbr + ' ' + parseInt(dates[0].split('/')[1]) + ' \u2014 ' + ctx.monthAbbr + ' ' + parseInt(dates[dates.length - 1].split('/')[1])) : ctx.monthAbbr + ' ' + parseInt(dates[0].split('/')[1]);
+
+  let html = '';
+
+  // Header card
+  html += '<div class="card" style="border-left:4px solid ' + catColor + '">';
+  html += '<div style="font-size:22px;font-weight:700;margin-bottom:4px;color:' + catColor + '">' + categoryName + '</div>';
+  html += '<div style="font-size:13px;color:var(--text-muted)">' + typeLabel + ' \u2022 ' + prodList.length + ' products \u2022 ' + storeList.length + ' store' + (storeList.length !== 1 ? 's' : '') + ' \u2022 ' + dateRange + '</div>';
+  html += '</div>';
+
+  // KPIs
+  html += '<div class="kpi-grid">';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Total Spent</div><div class="kpi-value amt">' + fmt(total) + '</div><div class="kpi-sub">' + catPctOfAll + '% of all spending</div></div>';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Items Purchased</div><div class="kpi-value" style="color:var(--cyan)">' + totalQty + '</div><div class="kpi-sub">' + items.length + ' line items, avg ' + fmt(total / totalQty) + '/unit</div></div>';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Top Product</div><div class="kpi-value" style="font-size:18px;color:var(--green)">' + prodList[0].name + '</div><div class="kpi-sub">' + fmt(prodList[0].total) + ' (' + prodList[0].qty + ' units)</div></div>';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Best Store</div><div class="kpi-value" style="font-size:18px;color:var(--amber)">' + storeList[0].name + '</div><div class="kpi-sub">' + fmt(storeList[0].total) + ' (' + storeList[0].count + ' items)</div></div>';
+  html += '</div>';
+
+  // Products table
+  html += '<div class="card"><div class="card-title">Products in ' + categoryName + '</div>';
+  html += '<table><thead><tr><th>Product</th><th>Store(s)</th><th class="text-center">Qty</th><th class="text-right">Total</th><th class="text-right">Avg/Unit</th><th class="text-right">Share</th></tr></thead><tbody>';
+  prodList.forEach(p => {
+    const pPct = ((p.total / total) * 100).toFixed(1);
+    const escaped = p.name.replace(/'/g, "\\'");
+    html += '<tr style="cursor:pointer" onclick="showProductDetail(\'' + escaped + '\',\'category-detail\')">';
+    html += '<td style="font-weight:600">' + p.name + ' <span style="float:right;color:var(--text-muted);font-size:11px">\u2192</span></td>';
+    html += '<td style="font-size:12px;color:var(--text-muted)">' + [...p.stores].join(', ') + '</td>';
+    html += '<td class="text-center">' + p.qty + '</td>';
+    html += '<td class="text-right amt">' + fmt(p.total) + '</td>';
+    html += '<td class="text-right mono">' + fmt(p.total / p.qty) + '</td>';
+    html += '<td class="text-right">' + pPct + '%</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // Store breakdown for this category
+  if (storeList.length > 1) {
+    html += '<div class="card"><div class="card-title">By Store</div>';
+    html += '<table><thead><tr><th>Store</th><th class="text-right">Total</th><th class="text-right">Items</th><th class="text-right">Share</th></tr></thead><tbody>';
+    storeList.forEach(s => {
+      const sPct = ((s.total / total) * 100).toFixed(1);
+      html += '<tr style="cursor:pointer" onclick="showView(\'items\',null,{store:\'' + s.name.replace(/'/g, "\\'") + '\',cat:\'' + categoryName.replace(/'/g, "\\'") + '\'})">';
+      html += '<td style="font-weight:600">' + s.name + '</td>';
+      html += '<td class="text-right amt">' + fmt(s.total) + '</td>';
+      html += '<td class="text-right">' + s.count + '</td>';
+      html += '<td class="text-right">' + sPct + '%</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  // Daily spending chart
+  if (ctx.daysInMonth) {
+    html += '<div class="card"><div class="card-title">Daily Spending in ' + categoryName + '</div><div class="chart-wrap"><canvas id="chart-cat-detail-daily"></canvas></div></div>';
+  }
+
+  // All items list
+  html += '<div class="card"><div class="card-title">All Items (' + items.length + ')</div>';
+  html += '<table><thead><tr><th>Date</th><th>Store</th><th>Product</th><th class="text-center">Qty</th><th class="text-right">Unit $</th><th class="text-right">Total</th></tr></thead><tbody>';
+  items.forEach(i => {
+    const escaped = i.n.replace(/'/g, "\\'");
+    const dayNum = parseInt(i.d.split('/')[1]);
+    const dateLabel = ctx.monthName ? ctx.monthName + ' ' + dayNum + ', ' + ctx.year : i.d;
+    html += '<tr style="cursor:pointer" onclick="showProductDetail(\'' + escaped + '\',\'category-detail\')">';
+    html += '<td class="mono">' + dateLabel + '</td>';
+    html += '<td>' + i.s + '</td>';
+    html += '<td class="bold">' + i.n + '</td>';
+    html += '<td class="text-center">' + i.q + '</td>';
+    html += '<td class="text-right mono">' + fmt(i.u) + '</td>';
+    html += '<td class="text-right mono amt">' + fmt(i.t) + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  container.innerHTML = html;
+
+  // Render daily chart
+  if (ctx.daysInMonth) {
+    const dailyData = new Array(ctx.daysInMonth).fill(0);
+    items.forEach(i => { const day = parseInt(i.d.split('/')[1]); if (day >= 1 && day <= ctx.daysInMonth) dailyData[day - 1] += i.t; });
+    const labels = Array.from({ length: ctx.daysInMonth }, (_, idx) => ctx.monthAbbr + ' ' + (idx + 1));
+    if (charts.catDetailDaily) charts.catDetailDaily.destroy();
+    charts.catDetailDaily = new Chart(document.getElementById('chart-cat-detail-daily'), {
+      type: 'bar',
+      data: { labels, datasets: [{ data: dailyData, backgroundColor: catColor + '80', borderRadius: 3 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: { x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 10 }, maxRotation: 45 } },
+                 y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } }
+    });
+  }
+
+  showView('category-detail');
+}
+
+// ─────────── ANOMALY DETECTION ───────────
+function detectAnomalies() {
+  if (activeData.length < 5) return [];
+  const anomalies = [];
+
+  // Per-product anomalies: unit prices significantly above average for that product
+  const products = groupProducts(activeData);
+  products.forEach(p => {
+    if (p.count < 2) return;
+    const items = activeData.filter(i => i.n === p.name);
+    const avgUnit = items.reduce((s, i) => s + i.u, 0) / items.length;
+    const stdDev = Math.sqrt(items.reduce((s, i) => s + Math.pow(i.u - avgUnit, 2), 0) / items.length);
+    if (stdDev === 0) return;
+    items.forEach(i => {
+      const zScore = (i.u - avgUnit) / stdDev;
+      if (zScore >= 1.8 && i.u > avgUnit * 1.5) {
+        anomalies.push({
+          type: 'price',
+          item: i,
+          product: i.n,
+          amount: i.u,
+          avg: avgUnit,
+          ratio: (i.u / avgUnit).toFixed(1),
+          message: i.n + ' at ' + fmt(i.u) + '/unit is ' + (i.u / avgUnit).toFixed(1) + 'x your usual (' + fmt(avgUnit) + ' avg) \u2014 ' + i.s + ' on ' + i.d
+        });
+      }
+    });
+  });
+
+  // Per-category anomalies: single item total that dominates the category
+  const catGroups = groupBy(activeData, 'c');
+  catGroups.forEach(cg => {
+    if (cg.items.length < 3) return;
+    const avg = cg.total / cg.items.length;
+    cg.items.forEach(i => {
+      const pctOfCat = i.t / cg.total;
+      if (pctOfCat > 0.4 && i.t > avg * 2) {
+        const exists = anomalies.find(a => a.item && a.item._idx === i._idx);
+        if (!exists) {
+          anomalies.push({
+            type: 'category',
+            item: i,
+            product: i.n,
+            amount: i.t,
+            avg: avg,
+            ratio: (i.t / avg).toFixed(1),
+            message: i.n + ' at ' + fmt(i.t) + ' is ' + ((pctOfCat * 100).toFixed(0)) + '% of all ' + cg.name + ' spending'
+          });
+        }
+      }
+    });
+  });
+
+  return anomalies.sort((a, b) => parseFloat(b.ratio) - parseFloat(a.ratio)).slice(0, 5);
+}
+
 // ─────────── REGULAR PURCHASE DETECTION ───────────
 function detectRegularPurchases() {
   const results = [];
@@ -1647,7 +1849,16 @@ function renderOverview() {
     }
   });
 
-  makeChartClickable(charts.catPie, document.getElementById("chart-cat-pie"), catGroups.map(g => g.name), "cat");
+  // Category pie clicks → category detail view
+  const catPieCanvas = document.getElementById("chart-cat-pie");
+  catPieCanvas.style.cursor = "pointer";
+  catPieCanvas.addEventListener("click", (evt) => {
+    const points = charts.catPie.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
+    if (points.length > 0) {
+      const label = catGroups[points[0].index].name;
+      showCategoryDetail(label, 'overview');
+    }
+  });
 
   // Store pie
   const storeGroups = groupBy(activeData, "s");
@@ -1797,7 +2008,7 @@ function renderOverview() {
   // Build insights array
   const insights = [];
   insights.push(
-    { title: "Spending Concentration", text: `Your top 3 categories (<span class="insight-val">${top3CatNames}</span>) account for <span class="insight-val">${top3CatPct}</span> of all spending`, action: `showView('items',null,{cat:'${topCat.name}'})` },
+    { title: "Spending Concentration", text: `Your top 3 categories (<span class="insight-val">${top3CatNames}</span>) account for <span class="insight-val">${top3CatPct}</span> of all spending`, action: `showCategoryDetail('${topCat.name.replace(/'/g, "\\'")}','overview')` },
     { title: "Store Loyalty", text: `<span class="insight-val">${topStorePct}</span> of your budget goes to <span class="insight-val">${topStore.name}</span> (${fmt(topStore.total)} across ${topStore.items.length} items)`, action: `showView('items',null,{store:'${topStore.name}'})` },
     { title: "Costliest Single Product", text: `<span class="insight-val">${topProduct.name}</span> &mdash; ${fmt(topProduct.total)} total (qty ${topProduct.qty})`, action: `showProductDetail('${topProduct.name.replace(/'/g, "\\'")}','overview')` },
     { title: "Biggest Shopping Day", text: `<span class="insight-val">${ctx.monthAbbr} ${parseInt(biggestDay.name.split("/")[1])}</span> &mdash; ${fmt(biggestDay.total)} across ${biggestDay.items.length} items (${pct(biggestDay.total, grandTotal)} of monthly total)`, action: `showView('items',null,{date:'${biggestDay.name}'})` },
@@ -1837,6 +2048,26 @@ function renderOverview() {
   } else {
     recurringEl.innerHTML = '';
   }
+
+  // Unusual Purchases (Anomaly Detection)
+  const anomalies = detectAnomalies();
+  const anomalyEl = document.getElementById("anomaly-card");
+  if (anomalies.length > 0) {
+    let aHtml = '<div class="card"><div class="card-title" style="color:var(--rose)">Unusual Purchases</div>';
+    aHtml += '<div style="font-size:12px;color:var(--text-muted);margin:-8px 0 14px">Items with prices or amounts significantly above their average</div>';
+    anomalies.forEach(a => {
+      const icon = a.type === 'price' ? '\u26A0\uFE0F' : '\uD83D\uDCC8';
+      const escaped = a.product.replace(/'/g, "\\'");
+      aHtml += '<div class="insight" style="cursor:pointer;border-color:rgba(244,63,94,0.2);background:rgba(244,63,94,0.04)" onclick="showProductDetail(\'' + escaped + '\',\'overview\')">';
+      aHtml += '<div class="insight-title" style="color:var(--rose)">' + icon + ' ' + a.ratio + 'x above average</div>';
+      aHtml += '<div class="insight-text">' + a.message + '</div>';
+      aHtml += '</div>';
+    });
+    aHtml += '</div>';
+    anomalyEl.innerHTML = aHtml;
+  } else {
+    anomalyEl.innerHTML = '';
+  }
 }
 
 // ─────────── GROCERIES TAB ───────────
@@ -1868,7 +2099,16 @@ function renderGroceries() {
     }
   });
 
-  makeChartClickable(charts.groceryCat, document.getElementById("chart-grocery-cat"), cats.map(c => c.name), "cat");
+  // Grocery category chart clicks → category detail view
+  const grocCatCanvas = document.getElementById("chart-grocery-cat");
+  grocCatCanvas.style.cursor = "pointer";
+  grocCatCanvas.addEventListener("click", (evt) => {
+    const points = charts.groceryCat.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
+    if (points.length > 0) {
+      const label = cats[points[0].index].name;
+      showCategoryDetail(label, 'groceries');
+    }
+  });
 
   // Top 15 grocery items
   const top15 = products.slice(0, 15);
@@ -1934,7 +2174,16 @@ function renderToiletries() {
     }
   });
 
-  makeChartClickable(charts.toilCat, document.getElementById("chart-toiletry-cat"), cats.map(c => c.name), "cat");
+  // Toiletry category chart clicks → category detail view
+  const toilCatCanvas = document.getElementById("chart-toiletry-cat");
+  toilCatCanvas.style.cursor = "pointer";
+  toilCatCanvas.addEventListener("click", (evt) => {
+    const points = charts.toilCat.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
+    if (points.length > 0) {
+      const label = cats[points[0].index].name;
+      showCategoryDetail(label, 'toiletries');
+    }
+  });
 
   // Toiletry by store
   charts.toilStore = new Chart(document.getElementById("chart-toiletry-store"), {
@@ -2272,7 +2521,7 @@ function showProductDetail(productName, source) {
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
 
-  const backMap = { groceries: ['groceries','Groceries'], toiletries: ['toiletries','Toiletries'], overview: ['overview','Overview'], items: ['items','All Items'] };
+  const backMap = { groceries: ['groceries','Groceries'], toiletries: ['toiletries','Toiletries'], overview: ['overview','Overview'], items: ['items','All Items'], 'category-detail': ['overview','Overview'] };
   const [backTab, backLabel] = backMap[productDetailSource] || backMap.items;
   document.getElementById("product-detail-back").onclick = () => showView(backTab);
   document.getElementById("product-detail-back").textContent = "\u2190 Back to " + backLabel;
