@@ -214,17 +214,17 @@ body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var
       <button class="btn btn-primary" id="btnProcess" onclick="startProcessing()">Scan Receipts &#8594;</button>
     </div>
     <div class="mode-selector" id="modeSelector">
-      <div class="mode-card selected" data-mode="ocr" onclick="selectMode('ocr')">
+      <div class="mode-card selected" data-mode="ai" onclick="selectMode('ai')">
         <div class="mode-badge">Selected</div>
+        <div class="mode-icon">&#10024;</div>
+        <div class="mode-title">AI-Powered (Recommended)</div>
+        <div class="mode-desc">Gemini Vision API for best accuracy. Requires free API key &amp; internet connection.</div>
+      </div>
+      <div class="mode-card" data-mode="ocr" onclick="selectMode('ocr')">
+        <div class="mode-badge">Select</div>
         <div class="mode-icon">&#128268;</div>
         <div class="mode-title">Offline OCR</div>
-        <div class="mode-desc">Tesseract.js runs locally in your browser. No internet needed. Free &amp; private.</div>
-      </div>
-      <div class="mode-card" data-mode="ai" onclick="selectMode('ai')">
-        <div class="mode-badge">Select</div>
-        <div class="mode-icon">&#10024;</div>
-        <div class="mode-title">AI-Powered</div>
-        <div class="mode-desc">Gemini Vision API for better accuracy. Requires API key &amp; internet connection.</div>
+        <div class="mode-desc">Tesseract.js runs locally in your browser. No internet needed but lower accuracy.</div>
       </div>
     </div>
     <div class="settings-row">
@@ -914,7 +914,7 @@ function clearAll() {
 // ============================================================
 // MODE SELECTOR
 // ============================================================
-let scanMode = 'ocr'; // 'ocr' or 'ai'
+let scanMode = 'ai'; // 'ai' or 'ocr'
 
 function selectMode(mode) {
   scanMode = mode;
@@ -1598,7 +1598,7 @@ function resetAll() {
     else localStorage.removeItem('scanner_geminiKey');
   });
   // Restore scan mode
-  const savedMode = localStorage.getItem('scanner_mode') || 'ocr';
+  const savedMode = localStorage.getItem('scanner_mode') || 'ai';
   selectMode(savedMode);
 })();
 </script>
