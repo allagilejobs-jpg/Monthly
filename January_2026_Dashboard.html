@@ -547,6 +547,7 @@
         <div class="chart-wrap-sm"><canvas id="chart-split"></canvas></div>
       </div>
     </div>
+    <div id="overview-streaks"></div>
     <div class="card">
       <div class="card-title">Key Insights</div>
       <div class="grid-3" id="insights"></div>
@@ -1763,22 +1764,38 @@ function renderOverview() {
   // Average items per trip
   const avgItemsPerTrip = (activeData.length / tripKeys.length).toFixed(1);
 
-  // Spending streaks (compute first so it's the first insight)
-  const insights = [];
+  // Spending streaks — separate card above Key Insights
+  const streaksEl = document.getElementById("overview-streaks");
   if (ctx.daysInMonth) {
     const streakDays = new Set();
     activeData.forEach(i => { const day = parseInt(i.d.split("/")[1]); if (day >= 1 && day <= ctx.daysInMonth) streakDays.add(day); });
-    let mxS = 0, cS = 0, mxN = 0, cN = 0;
+    let mxS = 0, cS = 0, mxN = 0, cN = 0, sStart = 0, bestSStart = 0, nStart = 0, bestNStart = 0;
     for (let d = 1; d <= ctx.daysInMonth; d++) {
-      if (streakDays.has(d)) { cS++; cN = 0; } else { cN++; cS = 0; }
-      if (cS > mxS) mxS = cS;
-      if (cN > mxN) mxN = cN;
+      if (streakDays.has(d)) {
+        cS++; if (cS === 1) sStart = d;
+        if (cS > mxS) { mxS = cS; bestSStart = sStart; }
+        if (cN > mxN) { mxN = cN; bestNStart = nStart; }
+        cN = 0;
+      } else {
+        cN++; if (cN === 1) nStart = d;
+        if (cN > mxN) { mxN = cN; bestNStart = nStart; }
+        if (cS > mxS) { mxS = cS; bestSStart = sStart; }
+        cS = 0;
+      }
     }
-    insights.push({ title: "Longest Shopping Streak", text: `<span class="insight-val">${mxS} days</span> of consecutive shopping &bull; ${streakDays.size}/${ctx.daysInMonth} active days this month`, action: `showView('trends')` });
-    insights.push({ title: "Longest No-Spend Streak", text: `<span class="insight-val">${mxN} days</span> without spending &bull; ${ctx.daysInMonth - streakDays.size} no-spend days this month`, action: `showView('trends')` });
+    let sHtml = '<div class="card" style="cursor:pointer" onclick="showView(\'trends\')"><div class="card-title">Spending Streaks</div>';
+    sHtml += '<div class="grid-3" style="margin-top:8px">';
+    sHtml += `<div class="insight" style="cursor:pointer"><div class="insight-title">Longest Shopping Streak</div><div class="insight-text"><span class="insight-val">${mxS} day${mxS !== 1 ? 's' : ''}</span> in a row${mxS > 0 ? ' (' + ctx.monthAbbr + ' ' + bestSStart + '\u2013' + (bestSStart + mxS - 1) + ')' : ''}</div></div>`;
+    sHtml += `<div class="insight" style="cursor:pointer"><div class="insight-title">Longest No-Spend Streak</div><div class="insight-text"><span class="insight-val">${mxN} day${mxN !== 1 ? 's' : ''}</span> without spending${mxN > 0 ? ' (' + ctx.monthAbbr + ' ' + bestNStart + '\u2013' + (bestNStart + mxN - 1) + ')' : ''}</div></div>`;
+    sHtml += `<div class="insight" style="cursor:pointer"><div class="insight-title">Active Shopping Days</div><div class="insight-text"><span class="insight-val">${streakDays.size}/${ctx.daysInMonth}</span> days with purchases (${((streakDays.size / ctx.daysInMonth) * 100).toFixed(0)}% of the month)</div></div>`;
+    sHtml += '</div></div>';
+    streaksEl.innerHTML = sHtml;
+  } else {
+    streaksEl.innerHTML = '';
   }
 
-  // Build rest of insights array
+  // Build insights array
+  const insights = [];
   insights.push(
     { title: "Spending Concentration", text: `Your top 3 categories (<span class="insight-val">${top3CatNames}</span>) account for <span class="insight-val">${top3CatPct}</span> of all spending`, action: `showView('items',null,{cat:'${topCat.name}'})` },
     { title: "Store Loyalty", text: `<span class="insight-val">${topStorePct}</span> of your budget goes to <span class="insight-val">${topStore.name}</span> (${fmt(topStore.total)} across ${topStore.items.length} items)`, action: `showView('items',null,{store:'${topStore.name}'})` },
