@@ -103,13 +103,24 @@
     </a>
   </div>
   <div class="demo-cta" style="margin-top:40px">
-    <div style="color:var(--text-muted);font-size:13px;margin-bottom:12px">Not ready to sign up? Explore with sample data.</div>
-    <button onclick="enterDemoMode()" style="
-      background:linear-gradient(135deg,rgba(34,197,94,0.15),rgba(59,130,246,0.15));
-      border:1px solid rgba(34,197,94,0.3);color:var(--green);border-radius:10px;
-      padding:12px 32px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;
-      transition:all 0.2s;
-    ">Try Demo</button>
+    <div style="color:var(--text-muted);font-size:13px;margin-bottom:16px">Not ready to sign up? Explore with sample data.</div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button onclick="enterDemoMode('Groceries')" style="
+        background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--green);
+        border-radius:10px;padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;
+        font-family:inherit;transition:all 0.2s;display:flex;align-items:center;gap:8px;
+      "><span style="font-size:18px">&#128722;</span> Groceries Demo</button>
+      <button onclick="enterDemoMode('Expenses')" style="
+        background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--blue);
+        border-radius:10px;padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;
+        font-family:inherit;transition:all 0.2s;display:flex;align-items:center;gap:8px;
+      "><span style="font-size:18px">&#128179;</span> Expenses Demo</button>
+      <button onclick="enterDemoMode('Budget')" style="
+        background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--purple);
+        border-radius:10px;padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;
+        font-family:inherit;transition:all 0.2s;display:flex;align-items:center;gap:8px;
+      "><span style="font-size:18px">&#128176;</span> Budget Demo</button>
+    </div>
   </div>
 </div>
 <script src="demo-data.js"></script>
@@ -130,9 +141,9 @@ if (new URLSearchParams(window.location.search).has('signup')) {
     }, 500);
   });
 }
-function enterDemoMode() {
+function enterDemoMode(dashboard) {
   sessionStorage.setItem('demo_mode', 'true');
-  window.location.href = 'Groceries/?demo=true';
+  window.location.href = (dashboard || 'Groceries') + '/?demo=true';
 }
 </script>
 </body>
