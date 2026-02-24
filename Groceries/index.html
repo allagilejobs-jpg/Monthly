@@ -1540,7 +1540,8 @@ function renderGroceries() {
 
   // Top 15 grocery items
   const top15 = products.slice(0, 15);
-  charts.groceryTop = new Chart(document.getElementById("chart-grocery-top"), {
+  const groceryTopCanvas = document.getElementById("chart-grocery-top");
+  charts.groceryTop = new Chart(groceryTopCanvas, {
     type: "bar",
     data: {
       labels: top15.map(p => p.name.length > 30 ? p.name.slice(0,28) + "..." : p.name),
@@ -1555,6 +1556,11 @@ function renderGroceries() {
       }
     }
   });
+  groceryTopCanvas.style.cursor = 'pointer';
+  groceryTopCanvas.onclick = e => {
+    const pts = charts.groceryTop.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
+    if (pts.length) showProductDetail(top15[pts[0].index].name, 'groceries');
+  };
 
   // Frequently purchased table
   const freq = products.filter(p => p.count >= 2);
