@@ -329,9 +329,25 @@ function showAuthGate() {
   const existing = document.getElementById('fb-auth-gate');
   if (existing) existing.remove();
 
+  // Clear any unauthorized data left in localStorage from unauthenticated sessions
+  const path = window.location.pathname;
+  if (path.includes('/Groceries/')) {
+    ['grocery_months','grocery_activeMonth'].forEach(k => localStorage.removeItem(k));
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('data_') || k.startsWith('edits_'))) localStorage.removeItem(k);
+    }
+  } else if (path.includes('/Expenses/')) {
+    ['expenses_months','expenses_activeMonth','expenses_categoryRules'].forEach(k => localStorage.removeItem(k));
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('expenses_data_') || k.startsWith('expenses_edits_'))) localStorage.removeItem(k);
+    }
+  }
+
   const gate = document.createElement('div');
   gate.id = 'fb-auth-gate';
-  gate.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,17,23,0.95);z-index:9998;display:flex;justify-content:center;align-items:center;padding:20px;';
+  gate.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#0f1117;z-index:9998;display:flex;justify-content:center;align-items:center;padding:20px;';
   gate.innerHTML = '<div style="background:#1a1b23;border:1px solid #2a2b35;border-radius:20px;padding:40px;max-width:440px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5)">' +
     '<div style="font-size:48px;margin-bottom:16px">&#128274;</div>' +
     '<div style="font-size:22px;font-weight:700;margin-bottom:8px;background:linear-gradient(135deg,#22c55e,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Sign In Required</div>' +
