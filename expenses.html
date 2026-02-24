@@ -1615,19 +1615,22 @@ function renderOverview() {
   const recurring = detectRecurring();
   if (recurring.length > 0) {
     html += '<div class="card"><div class="card-title">Recurring & Subscriptions</div>';
-    html += '<table><thead><tr><th>Merchant</th><th>Category</th><th class="text-right">Avg Amount</th><th>Frequency</th><th>Confidence</th></tr></thead><tbody>';
     recurring.forEach(r => {
       const confColor = r.confidence === 'high' ? 'var(--green)' : r.confidence === 'medium' ? 'var(--amber)' : 'var(--text-muted)';
       const confBg = r.confidence === 'high' ? 'rgba(34,197,94,0.12)' : r.confidence === 'medium' ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.05)';
-      html += '<tr style="cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + r.merchant.replace(/'/g,"\\'") + '\',source:\'overview\'})">';
-      html += '<td style="font-weight:600">' + r.merchant + '</td>';
-      html += '<td><span class="tag" style="background:' + getCatColor(r.category) + '22;color:' + getCatColor(r.category) + '">' + r.category + '</span></td>';
-      html += '<td class="text-right amt">' + fmt(r.avgAmount) + '</td>';
-      html += '<td style="font-size:12px">' + r.frequency + '</td>';
-      html += '<td><span class="tag" style="background:' + confBg + ';color:' + confColor + '">' + r.confidence + '</span></td>';
-      html += '</tr>';
+      const catColor = getCatColor(r.category);
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;gap:10px" onclick="showView(\'merchant-detail\',{merchant:\'' + r.merchant.replace(/'/g,"\\'") + '\',source:\'overview\'})">';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div style="font-weight:600;font-size:14px;margin-bottom:3px">' + r.merchant + '</div>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
+      html += '<span class="tag" style="background:' + catColor + '22;color:' + catColor + '">' + r.category + '</span>';
+      html += '<span style="font-size:11px;color:var(--text-muted)">' + r.frequency + '</span>';
+      html += '<span class="tag" style="background:' + confBg + ';color:' + confColor + '">' + r.confidence + '</span>';
+      html += '</div></div>';
+      html += '<div style="font-size:16px;font-weight:700;color:var(--amber);white-space:nowrap">' + fmt(r.avgAmount) + '</div>';
+      html += '</div>';
     });
-    html += '</tbody></table></div>';
+    html += '</div>';
   }
 
   // Anomaly Detection
