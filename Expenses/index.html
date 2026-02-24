@@ -1570,7 +1570,39 @@ function renderOverview() {
   const largeTx = activeData.filter(t => t.amount >= 100);
   html += '<div class="insight" onclick="showView(\'transactions\')"><div class="insight-title">Transaction Breakdown</div><div class="insight-text"><span class="insight-val">' + smallTx.length + '</span> small (under $20) vs <span class="insight-val">' + largeTx.length + '</span> large ($100+) transactions</div></div>';
 
+  // 10. Spending streaks
+  if (ctx.daysInMonth) {
+    const streakDays = new Set();
+    activeData.forEach(t => { const day = parseInt(t.date.substring(8, 10)); if (day >= 1 && day <= ctx.daysInMonth) streakDays.add(day); });
+    let mxSpend = 0, cSpend = 0, mxNoSpend = 0, cNoSpend = 0;
+    for (let d = 1; d <= ctx.daysInMonth; d++) {
+      if (streakDays.has(d)) { cSpend++; cNoSpend = 0; } else { cNoSpend++; cSpend = 0; }
+      if (cSpend > mxSpend) mxSpend = cSpend;
+      if (cNoSpend > mxNoSpend) mxNoSpend = cNoSpend;
+    }
+    html += '<div class="insight" onclick="showView(\'trends\')"><div class="insight-title">Spending Streaks</div><div class="insight-text">Longest spend streak: <span class="insight-val">' + mxSpend + ' days</span> \u2022 Longest no-spend: <span class="insight-val">' + mxNoSpend + ' days</span> \u2022 ' + streakDays.size + '/' + ctx.daysInMonth + ' active days</div></div>';
+  }
+
   html += '</div></div>';
+
+  // Recurring & Subscriptions
+  const recurring = detectRecurring();
+  if (recurring.length > 0) {
+    html += '<div class="card"><div class="card-title">Recurring & Subscriptions</div>';
+    html += '<table><thead><tr><th>Merchant</th><th>Category</th><th class="text-right">Avg Amount</th><th>Frequency</th><th>Confidence</th></tr></thead><tbody>';
+    recurring.forEach(r => {
+      const confColor = r.confidence === 'high' ? 'var(--green)' : r.confidence === 'medium' ? 'var(--amber)' : 'var(--text-muted)';
+      const confBg = r.confidence === 'high' ? 'rgba(34,197,94,0.12)' : r.confidence === 'medium' ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.05)';
+      html += '<tr style="cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + r.merchant.replace(/'/g,"\\'") + '\',source:\'overview\'})">';
+      html += '<td style="font-weight:600">' + r.merchant + '</td>';
+      html += '<td><span class="tag" style="background:' + getCatColor(r.category) + '22;color:' + getCatColor(r.category) + '">' + r.category + '</span></td>';
+      html += '<td class="text-right amt">' + fmt(r.avgAmount) + '</td>';
+      html += '<td style="font-size:12px">' + r.frequency + '</td>';
+      html += '<td><span class="tag" style="background:' + confBg + ';color:' + confColor + '">' + r.confidence + '</span></td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+  }
 
   el.innerHTML = html;
 
@@ -2204,6 +2236,107 @@ function showMerchantDetail(merchantName, source) {
   html += '</tbody></table></div>';
 
   container.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════
+// RECURRING EXPENSE DETECTION
+// ══════════════════════════════════════════════════════════
+const RECURRING_KEYWORDS = [
+  "netflix","spotify","hulu","disney","hbo","paramount","peacock","apple music","youtube premium",
+  "amazon prime","insurance","geico","state farm","allstate","progressive",
+  "gym","planet fitness","la fitness","ymca","membership","subscription",
+  "utility","electric","power","water","sewer","gas bill","internet","comcast","xfinity",
+  "at&t","verizon","t-mobile","sprint","wireless","phone","mobile",
+  "mortgage","rent","lease","hoa","property",
+  "adobe","microsoft","google storage","icloud","dropbox","chatgpt","openai"
+];
+
+function detectRecurring() {
+  const results = [];
+  const seen = new Set();
+  const months = loadMonths().sort();
+
+  // Cross-month detection (high confidence)
+  if (months.length >= 2) {
+    const allMonthData = {};
+    months.forEach(mk => {
+      const data = applyEdits(loadData(mk), mk);
+      allMonthData[mk] = {};
+      data.forEach(t => {
+        if (!allMonthData[mk][t.merchant]) allMonthData[mk][t.merchant] = [];
+        allMonthData[mk][t.merchant].push(t.amount);
+      });
+    });
+
+    // Find merchants appearing in 2+ months
+    const allMerchants = new Set();
+    months.forEach(mk => Object.keys(allMonthData[mk]).forEach(m => allMerchants.add(m)));
+
+    allMerchants.forEach(merchant => {
+      const monthsPresent = months.filter(mk => allMonthData[mk][merchant] && allMonthData[mk][merchant].length > 0);
+      if (monthsPresent.length < 2) return;
+
+      const allAmounts = monthsPresent.flatMap(mk => allMonthData[mk][merchant]);
+      const avg = allAmounts.reduce((s, a) => s + a, 0) / allAmounts.length;
+      const maxDev = Math.max(...allAmounts.map(a => Math.abs(a - avg)));
+      const isStable = avg > 0 && (maxDev / avg) <= 0.15;
+      const isKnown = RECURRING_KEYWORDS.some(kw => merchant.toLowerCase().includes(kw));
+
+      if (isStable || isKnown) {
+        const cat = activeData.find(t => t.merchant === merchant)?.category || 'Other';
+        results.push({
+          merchant,
+          avgAmount: avg,
+          frequency: monthsPresent.length + '/' + months.length + ' months',
+          months: monthsPresent.length,
+          confidence: isStable ? 'high' : 'medium',
+          category: cat
+        });
+        seen.add(merchant);
+      }
+    });
+  }
+
+  // Single-month detection (current month)
+  merchantGroups.forEach(mg => {
+    if (seen.has(mg.name)) return;
+    const txs = activeData.filter(t => t.merchant === mg.name);
+    if (txs.length < 2) {
+      // Single transaction — check known keywords
+      if (txs.length === 1) {
+        const isKnown = RECURRING_KEYWORDS.some(kw => mg.name.toLowerCase().includes(kw));
+        if (isKnown) {
+          results.push({
+            merchant: mg.name,
+            avgAmount: txs[0].amount,
+            frequency: 'Likely recurring',
+            months: 1,
+            confidence: 'medium',
+            category: txs[0].category
+          });
+        }
+      }
+      return;
+    }
+
+    const avg = mg.total / mg.count;
+    const maxDev = Math.max(...txs.map(t => Math.abs(t.amount - avg)));
+    const isStable = avg > 0 && (maxDev / avg) <= 0.10;
+    const isKnown = RECURRING_KEYWORDS.some(kw => mg.name.toLowerCase().includes(kw));
+
+    if (isStable || isKnown) {
+      results.push({
+        merchant: mg.name,
+        avgAmount: avg,
+        frequency: mg.count + 'x this month',
+        months: 1,
+        confidence: isStable && isKnown ? 'high' : 'medium',
+        category: txs[0].category
+      });
+    }
+  });
+
+  return results.sort((a, b) => b.avgAmount - a.avgAmount);
 }
 
 // ══════════════════════════════════════════════════════════
