@@ -1763,20 +1763,8 @@ function renderOverview() {
   // Average items per trip
   const avgItemsPerTrip = (activeData.length / tripKeys.length).toFixed(1);
 
-  // Build insights array — pick the most interesting ones dynamically
-  const insights = [
-    { title: "Spending Concentration", text: `Your top 3 categories (<span class="insight-val">${top3CatNames}</span>) account for <span class="insight-val">${top3CatPct}</span> of all spending`, action: `showView('items',null,{cat:'${topCat.name}'})` },
-    { title: "Store Loyalty", text: `<span class="insight-val">${topStorePct}</span> of your budget goes to <span class="insight-val">${topStore.name}</span> (${fmt(topStore.total)} across ${topStore.items.length} items)`, action: `showView('items',null,{store:'${topStore.name}'})` },
-    { title: "Costliest Single Product", text: `<span class="insight-val">${topProduct.name}</span> &mdash; ${fmt(topProduct.total)} total (qty ${topProduct.qty})`, action: `showProductDetail('${topProduct.name.replace(/'/g, "\\'")}','overview')` },
-    { title: "Biggest Shopping Day", text: `<span class="insight-val">${ctx.monthAbbr} ${parseInt(biggestDay.name.split("/")[1])}</span> &mdash; ${fmt(biggestDay.total)} across ${biggestDay.items.length} items (${pct(biggestDay.total, grandTotal)} of monthly total)`, action: `showView('items',null,{date:'${biggestDay.name}'})` },
-    { title: "Most Expensive Unit Price", text: `<span class="insight-val">${priciest.n}</span> at <span class="insight-val">${fmt(priciest.u)}/unit</span> from ${priciest.s}`, action: `showProductDetail('${priciest.n.replace(/'/g, "\\'")}','overview')` },
-    { title: "Shopping Pattern", text: `You shop most on <span class="insight-val">${dowNames[busiestDow]}s</span> (${dowCounts[busiestDow]} items) and spend most on <span class="insight-val">${dowNames[biggestSpendDow]}s</span> (${fmt(dowSpend[biggestSpendDow])})`, action: `showView('trends')` },
-    { title: "Trip Efficiency", text: `<span class="insight-val">${avgItemsPerTrip} items/trip</span> average across ${tripKeys.length} trips at <span class="insight-val">${fmt(avgTrip)}/trip</span>`, action: `showView('trips')` },
-    { title: "Repeat Purchases", text: `<span class="insight-val">${freqProducts.length} products</span> bought 2+ times, totaling ${fmt(freqProducts.reduce((s,p) => s + p.total, 0))} (${pct(freqProducts.reduce((s,p) => s + p.total, 0), grandTotal)} of spend)`, action: `showView('groceries')` },
-    { title: "Toiletries vs Groceries", text: `For every <span class="insight-val">$1</span> on toiletries, you spend <span class="insight-val">${fmt(toiletryTotal > 0 ? groceryTotal / toiletryTotal : 0).replace('$','')}</span> on groceries`, action: `showView('toiletries')` },
-  ];
-
-  // 10. Spending streaks
+  // Spending streaks (compute first so it's the first insight)
+  const insights = [];
   if (ctx.daysInMonth) {
     const streakDays = new Set();
     activeData.forEach(i => { const day = parseInt(i.d.split("/")[1]); if (day >= 1 && day <= ctx.daysInMonth) streakDays.add(day); });
@@ -1788,6 +1776,19 @@ function renderOverview() {
     }
     insights.push({ title: "Shopping Streaks", text: `Longest shopping streak: <span class="insight-val">${mxS} days</span> &bull; Longest no-spend streak: <span class="insight-val">${mxN} days</span> &bull; ${streakDays.size}/${ctx.daysInMonth} active days`, action: `showView('trends')` });
   }
+
+  // Build rest of insights array
+  insights.push(
+    { title: "Spending Concentration", text: `Your top 3 categories (<span class="insight-val">${top3CatNames}</span>) account for <span class="insight-val">${top3CatPct}</span> of all spending`, action: `showView('items',null,{cat:'${topCat.name}'})` },
+    { title: "Store Loyalty", text: `<span class="insight-val">${topStorePct}</span> of your budget goes to <span class="insight-val">${topStore.name}</span> (${fmt(topStore.total)} across ${topStore.items.length} items)`, action: `showView('items',null,{store:'${topStore.name}'})` },
+    { title: "Costliest Single Product", text: `<span class="insight-val">${topProduct.name}</span> &mdash; ${fmt(topProduct.total)} total (qty ${topProduct.qty})`, action: `showProductDetail('${topProduct.name.replace(/'/g, "\\'")}','overview')` },
+    { title: "Biggest Shopping Day", text: `<span class="insight-val">${ctx.monthAbbr} ${parseInt(biggestDay.name.split("/")[1])}</span> &mdash; ${fmt(biggestDay.total)} across ${biggestDay.items.length} items (${pct(biggestDay.total, grandTotal)} of monthly total)`, action: `showView('items',null,{date:'${biggestDay.name}'})` },
+    { title: "Most Expensive Unit Price", text: `<span class="insight-val">${priciest.n}</span> at <span class="insight-val">${fmt(priciest.u)}/unit</span> from ${priciest.s}`, action: `showProductDetail('${priciest.n.replace(/'/g, "\\'")}','overview')` },
+    { title: "Shopping Pattern", text: `You shop most on <span class="insight-val">${dowNames[busiestDow]}s</span> (${dowCounts[busiestDow]} items) and spend most on <span class="insight-val">${dowNames[biggestSpendDow]}s</span> (${fmt(dowSpend[biggestSpendDow])})`, action: `showView('trends')` },
+    { title: "Trip Efficiency", text: `<span class="insight-val">${avgItemsPerTrip} items/trip</span> average across ${tripKeys.length} trips at <span class="insight-val">${fmt(avgTrip)}/trip</span>`, action: `showView('trips')` },
+    { title: "Repeat Purchases", text: `<span class="insight-val">${freqProducts.length} products</span> bought 2+ times, totaling ${fmt(freqProducts.reduce((s,p) => s + p.total, 0))} (${pct(freqProducts.reduce((s,p) => s + p.total, 0), grandTotal)} of spend)`, action: `showView('groceries')` },
+    { title: "Toiletries vs Groceries", text: `For every <span class="insight-val">$1</span> on toiletries, you spend <span class="insight-val">${fmt(toiletryTotal > 0 ? groceryTotal / toiletryTotal : 0).replace('$','')}</span> on groceries`, action: `showView('toiletries')` },
+  );
 
   document.getElementById("insights").innerHTML = insights.map(ins =>
     `<div class="insight" onclick="${ins.action}" style="cursor:pointer"><div class="insight-title">${ins.title}</div><div class="insight-text">${ins.text}</div></div>`
