@@ -222,6 +222,14 @@ function openAuthModal() {
 
 function closeAuthModal() {
   document.getElementById('fb-auth-modal').style.display = 'none';
+  // If user closed modal without signing in and gate should be showing, re-show it
+  if (!fb_user && !isDemoMode()) {
+    const path = window.location.pathname;
+    const isLandingPage = path.endsWith('/Monthly/') || path.endsWith('/Monthly/index.html') || path === '/Monthly';
+    if (!isLandingPage && !document.getElementById('fb-auth-gate')) {
+      showAuthGate();
+    }
+  }
 }
 
 function showAuthError(msg) {
@@ -329,7 +337,7 @@ function showAuthGate() {
     '<div style="font-size:22px;font-weight:700;margin-bottom:8px;background:linear-gradient(135deg,#22c55e,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Sign In Required</div>' +
     '<div style="color:#71717a;font-size:14px;margin-bottom:28px;line-height:1.6">Sign in to access your dashboard and sync data across devices, or try the demo to explore with sample data.</div>' +
     '<div style="display:flex;flex-direction:column;gap:12px;align-items:center">' +
-      '<button onclick="document.getElementById(\'fb-auth-gate\').remove();openAuthModal()" style="width:100%;max-width:280px;padding:12px 24px;border-radius:10px;border:1px solid rgba(249,115,22,0.3);background:rgba(249,115,22,0.15);color:#f97316;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s">Sign In</button>' +
+      '<button onclick="openAuthModal()" style="width:100%;max-width:280px;padding:12px 24px;border-radius:10px;border:1px solid rgba(249,115,22,0.3);background:rgba(249,115,22,0.15);color:#f97316;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s">Sign In</button>' +
       '<button onclick="sessionStorage.setItem(\'demo_mode\',\'true\');location.reload()" style="width:100%;max-width:280px;padding:12px 24px;border-radius:10px;border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.1);color:#22c55e;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s">Try Demo</button>' +
       '<a href="../" style="color:#71717a;font-size:13px;margin-top:4px;text-decoration:none">Back to Home</a>' +
     '</div></div>';
