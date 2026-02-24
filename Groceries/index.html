@@ -463,6 +463,27 @@
     .help-table { font-size: 11px; }
     .help-table th, .help-table td { padding: 6px 8px; }
   }
+
+  /* Light theme */
+  body.light {
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --card-border: #e0e0e5;
+    --text: #1a1a2e;
+    --text-muted: #6b6b80;
+  }
+  body.light .modal { box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+  body.light .modal-select option, body.light .filter-bar select option,
+  body.light .month-nav select option { background: #fff; }
+  body.light .search-result-name mark { background: rgba(34,197,94,0.25); color: #1a1a2e; }
+
+  /* Theme toggle */
+  .theme-toggle {
+    background: rgba(255,255,255,0.06); border: 1px solid var(--card-border);
+    border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 16px;
+    line-height: 1; transition: all 0.2s; color: var(--text);
+  }
+  .theme-toggle:hover { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
 </style>
 </head>
 <body>
@@ -472,7 +493,10 @@
       <h1 id="dashboard-title">Monthly Grocery & Toiletries Dashboard</h1>
       <p id="dashboard-subtitle">Family spend analysis</p>
     </div>
-    <a href="../Expenses/" style="font-size:13px;color:var(--blue);text-decoration:none;font-weight:600;padding:8px 16px;border:1px solid rgba(59,130,246,0.3);border-radius:8px;background:rgba(59,130,246,0.08);transition:all 0.2s;white-space:nowrap">All Expenses &rarr;</a>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">&#127769;</button>
+      <a href="../Expenses/" style="font-size:13px;color:var(--blue);text-decoration:none;font-weight:600;padding:8px 16px;border:1px solid rgba(59,130,246,0.3);border-radius:8px;background:rgba(59,130,246,0.08);transition:all 0.2s;white-space:nowrap">All Expenses &rarr;</a>
+    </div>
   </div>
 
   <div class="month-nav" id="month-nav">
@@ -601,6 +625,7 @@
         <div class="chart-wrap-sm"><canvas id="chart-avg-trip"></canvas></div>
       </div>
     </div>
+    <div class="card" id="spending-streaks"></div>
   </div>
 
   <!-- ==================== TRIPS ==================== -->
@@ -1492,6 +1517,21 @@ document.addEventListener("click", (e) => {
   }
 });
 
+// ─────────── THEME TOGGLE ───────────
+function toggleTheme() {
+  const isLight = document.body.classList.toggle("light");
+  localStorage.setItem("grocery_theme", isLight ? "light" : "dark");
+  document.getElementById("theme-toggle").textContent = isLight ? "\u2600\uFE0F" : "\uD83C\uDF19";
+}
+// Apply saved theme on load
+(function() {
+  const saved = localStorage.getItem("grocery_theme");
+  if (saved === "light") {
+    document.body.classList.add("light");
+    document.getElementById("theme-toggle").textContent = "\u2600\uFE0F";
+  }
+})();
+
 // ─────────── OVERVIEW ───────────
 function renderOverview() {
   const stores = [...new Set(activeData.map(i => i.s))];
@@ -1947,6 +1987,64 @@ function renderTrends() {
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmt(ctx.raw) + " avg per trip" } } }
     }
   });
+
+  // Spending streaks
+  const shoppingDays = new Set();
+  activeData.forEach(i => { const d = parseInt(i.d.split("/")[1]); shoppingDays.add(d); });
+
+  // Longest spending streak (consecutive days with purchases)
+  let maxSpend = 0, curSpend = 0, spendStart = 0, bestSpendStart = 0;
+  // Longest no-spend streak
+  let maxNoSpend = 0, curNoSpend = 0, noSpendStart = 0, bestNoSpendStart = 0;
+
+  for (let d = 1; d <= ctx.daysInMonth; d++) {
+    if (shoppingDays.has(d)) {
+      curSpend++;
+      if (curSpend === 1) spendStart = d;
+      if (curSpend > maxSpend) { maxSpend = curSpend; bestSpendStart = spendStart; }
+      if (curNoSpend > maxNoSpend) { maxNoSpend = curNoSpend; bestNoSpendStart = noSpendStart; }
+      curNoSpend = 0;
+    } else {
+      curNoSpend++;
+      if (curNoSpend === 1) noSpendStart = d;
+      if (curNoSpend > maxNoSpend) { maxNoSpend = curNoSpend; bestNoSpendStart = noSpendStart; }
+      if (curSpend > maxSpend) { maxSpend = curSpend; bestSpendStart = spendStart; }
+      curSpend = 0;
+    }
+  }
+
+  let streakHtml = `<div class="card-title">Spending Streaks</div>`;
+  streakHtml += `<div class="grid-2" style="margin-bottom:16px">`;
+  streakHtml += `<div class="insight" style="cursor:default"><div class="insight-title">Longest Spending Streak</div><div class="insight-text"><span class="insight-val">${maxSpend} day${maxSpend !== 1 ? 's' : ''}</span> in a row (${ctx.monthAbbr} ${bestSpendStart}&ndash;${bestSpendStart + maxSpend - 1})</div></div>`;
+  streakHtml += `<div class="insight" style="cursor:default"><div class="insight-title">Longest No-Spend Streak</div><div class="insight-text"><span class="insight-val">${maxNoSpend} day${maxNoSpend !== 1 ? 's' : ''}</span> without shopping${maxNoSpend > 0 ? ' (' + ctx.monthAbbr + ' ' + bestNoSpendStart + '\u2013' + (bestNoSpendStart + maxNoSpend - 1) + ')' : ''}</div></div>`;
+  streakHtml += `</div>`;
+
+  // Calendar heatmap
+  streakHtml += `<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Daily Spending Calendar</div>`;
+  const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  streakHtml += `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:500px">`;
+  dayNames.forEach(d => { streakHtml += `<div style="text-align:center;font-size:10px;color:var(--text-muted);padding:4px">${d}</div>`; });
+  // Pad first week
+  const firstDow = new Date(ctx.year, ctx.month - 1, 1).getDay();
+  for (let p = 0; p < firstDow; p++) streakHtml += `<div></div>`;
+  // Daily cells
+  const maxDaySpend = Math.max(...Array.from({ length: ctx.daysInMonth }, (_, i) => {
+    let t = 0; activeData.forEach(item => { if (parseInt(item.d.split("/")[1]) === i + 1) t += item.t; }); return t;
+  }));
+  for (let d = 1; d <= ctx.daysInMonth; d++) {
+    let dayTotal = 0;
+    activeData.forEach(i => { if (parseInt(i.d.split("/")[1]) === d) dayTotal += i.t; });
+    const intensity = maxDaySpend > 0 ? dayTotal / maxDaySpend : 0;
+    const bg = dayTotal === 0 ? 'rgba(255,255,255,0.03)' : `rgba(34,197,94,${0.15 + intensity * 0.6})`;
+    const textColor = dayTotal === 0 ? 'var(--text-muted)' : intensity > 0.5 ? '#fff' : 'var(--text)';
+    streakHtml += `<div style="aspect-ratio:1;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:${bg};font-size:11px" title="${ctx.monthAbbr} ${d}: ${dayTotal > 0 ? fmt(dayTotal) : 'No spending'}">`;
+    streakHtml += `<span style="font-weight:700;color:${textColor}">${d}</span>`;
+    if (dayTotal > 0) streakHtml += `<span style="font-size:8px;color:${textColor};opacity:0.8">${fmt(dayTotal)}</span>`;
+    streakHtml += `</div>`;
+  }
+  streakHtml += `</div>`;
+
+  document.getElementById("spending-streaks").innerHTML = streakHtml;
 }
 
 // ─────────── TRIPS TAB ───────────
@@ -2032,6 +2130,9 @@ function showProductDetail(productName, source) {
   const cat = items[0].c;
   const stores = [...new Set(items.map(i => i.s))];
   const dates = [...new Set(items.map(i => i.d))];
+  const prices = items.map(i => i.u);
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
 
   const backMap = { groceries: ['groceries','Groceries'], toiletries: ['toiletries','Toiletries'], overview: ['overview','Overview'], items: ['items','All Items'] };
   const [backTab, backLabel] = backMap[productDetailSource] || backMap.items;
@@ -2053,9 +2154,68 @@ function showProductDetail(productName, source) {
   html += `<div class="kpi-grid" style="margin-bottom:20px">`;
   html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Times Purchased</div><div class="kpi-value" style="color:var(--green)">${dates.length}</div><div class="kpi-sub">${dates.length === 1 ? '1 date' : dates.length + ' different dates'}</div></div>`;
   html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Total Quantity</div><div class="kpi-value" style="color:var(--cyan)">${totalQty}</div><div class="kpi-sub">units bought</div></div>`;
-  html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Avg Per Purchase</div><div class="kpi-value" style="color:var(--amber)">${fmt(total / dates.length)}</div><div class="kpi-sub">per shopping date</div></div>`;
-  html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Avg Unit Price</div><div class="kpi-value" style="color:var(--teal)">${fmt(total / totalQty)}</div><div class="kpi-sub">per unit</div></div>`;
+  html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Avg Unit Price</div><div class="kpi-value" style="color:var(--amber)">${fmt(total / totalQty)}</div><div class="kpi-sub">per unit</div></div>`;
+  // Price range KPI
+  if (minPrice !== maxPrice) {
+    html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Price Range</div><div class="kpi-value" style="font-size:18px;color:var(--teal)">${fmt(minPrice)} &mdash; ${fmt(maxPrice)}</div><div class="kpi-sub">${fmt(maxPrice - minPrice)} spread</div></div>`;
+  } else {
+    html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Consistent Price</div><div class="kpi-value" style="color:var(--teal)">${fmt(minPrice)}</div><div class="kpi-sub">same price every time</div></div>`;
+  }
   html += `</div>`;
+
+  // Price tracker (only if bought more than once)
+  if (items.length > 1) {
+    html += `<div class="card"><div class="card-title">Price Tracker</div>`;
+    html += `<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Store</th><th class="text-right">Unit Price</th><th class="text-right">Change</th></tr></thead><tbody>`;
+    items.forEach((item, idx) => {
+      const dayNum = parseInt(item.d.split("/")[1]);
+      const dateLabel = ctx.monthName ? ctx.monthName + " " + dayNum + ", " + ctx.year : item.d;
+      let changeHtml = '';
+      if (idx > 0) {
+        const diff = item.u - items[idx - 1].u;
+        if (diff > 0.001) changeHtml = `<span style="color:var(--rose);font-weight:700">&uarr; +${fmt(diff)}</span>`;
+        else if (diff < -0.001) changeHtml = `<span style="color:var(--green);font-weight:700">&darr; ${fmt(diff)}</span>`;
+        else changeHtml = `<span style="color:var(--text-muted)">&mdash; same</span>`;
+      } else {
+        changeHtml = `<span style="color:var(--text-muted)">&mdash;</span>`;
+      }
+      html += `<tr><td class="mono">${dateLabel}</td><td>${item.s}</td><td class="text-right mono amt">${fmt(item.u)}</td><td class="text-right">${changeHtml}</td></tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  }
+
+  // Store comparison (only if bought at multiple stores)
+  if (stores.length > 1) {
+    html += `<div class="card"><div class="card-title">Store Price Comparison</div>`;
+    const storeStats = {};
+    items.forEach(i => {
+      if (!storeStats[i.s]) storeStats[i.s] = { prices: [], qty: 0, total: 0 };
+      storeStats[i.s].prices.push(i.u);
+      storeStats[i.s].qty += i.q;
+      storeStats[i.s].total += i.t;
+    });
+    const storeArr = Object.entries(storeStats).map(([name, s]) => ({
+      name, avgPrice: s.total / s.qty, minPrice: Math.min(...s.prices),
+      maxPrice: Math.max(...s.prices), qty: s.qty, total: s.total
+    })).sort((a, b) => a.avgPrice - b.avgPrice);
+    const cheapest = storeArr[0];
+    const savings = storeArr.length > 1 ? storeArr[storeArr.length - 1].avgPrice - cheapest.avgPrice : 0;
+
+    if (savings > 0.001) {
+      html += `<div class="insight" style="cursor:default;margin-bottom:14px"><div class="insight-title">Best Price</div><div class="insight-text"><span class="insight-val">${cheapest.name}</span> is cheapest at <span class="insight-val">${fmt(cheapest.avgPrice)}/unit</span> avg &mdash; you save <span class="insight-val">${fmt(savings)}/unit</span> vs the most expensive store</div></div>`;
+    }
+    html += `<div style="overflow-x:auto"><table><thead><tr><th>Store</th><th class="text-right">Avg Price</th><th class="text-right">Min</th><th class="text-right">Max</th><th class="text-center">Qty</th><th class="text-right">Total</th></tr></thead><tbody>`;
+    storeArr.forEach((s, idx) => {
+      const isCheapest = idx === 0 && storeArr.length > 1;
+      html += `<tr><td style="font-weight:600;${isCheapest ? 'color:var(--green)' : ''}">${s.name}${isCheapest ? ' <span style="font-size:10px;background:rgba(34,197,94,0.12);color:var(--green);padding:2px 6px;border-radius:4px;margin-left:4px">BEST</span>' : ''}</td>`;
+      html += `<td class="text-right mono amt">${fmt(s.avgPrice)}</td>`;
+      html += `<td class="text-right mono">${fmt(s.minPrice)}</td>`;
+      html += `<td class="text-right mono">${fmt(s.maxPrice)}</td>`;
+      html += `<td class="text-center">${s.qty}</td>`;
+      html += `<td class="text-right mono amt">${fmt(s.total)}</td></tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  }
 
   // Purchase history table
   html += `<div class="card"><div class="card-title">Purchase History</div>`;
