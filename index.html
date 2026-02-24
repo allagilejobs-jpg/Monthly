@@ -57,9 +57,19 @@
     h1 { font-size: 24px; }
     .card { padding: 24px 20px; }
   }
+  .header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--card); border-bottom: 1px solid var(--card-border);
+    padding: 10px 24px; display: flex; justify-content: flex-end; align-items: center;
+  }
+  .container { padding-top: 60px; }
 </style>
+<script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
+<div class="header"></div>
 <div class="container">
   <h1>Family Finance Dashboards</h1>
   <p class="subtitle">Track your monthly spending across groceries and all expenses</p>
@@ -84,5 +94,6 @@
     </a>
   </div>
 </div>
+<script src="firebase-sync.js"></script>
 </body>
 </html>

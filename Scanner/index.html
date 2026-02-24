@@ -6,6 +6,9 @@
 <title>Receipt Scanner</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore-compat.js"></script>
 <style>
 :root {
   --bg: #0f1117; --surface: #1a1b23; --surface2: #23242e; --border: #2a2b35;
@@ -1579,6 +1582,7 @@ function doDashboardImport() {
     <button class="btn btn-secondary" style="margin-left:12px" onclick="goToStep(1);resetAll()">Scan More</button>
     ${hasBackup ? `<button class="btn btn-danger" style="margin-left:12px" onclick="undoImport('${monthKey}', '${monthLabel}')">Undo Import</button>` : ''}
   `;
+  if (typeof syncToCloud === 'function') syncToCloud();
 }
 
 function undoImport(monthKey, monthLabel) {
@@ -1599,6 +1603,7 @@ function undoImport(monthKey, monthLabel) {
     <a href="../Groceries/" class="btn btn-green">Open Groceries Dashboard &#8594;</a>
     <button class="btn btn-secondary" style="margin-left:12px" onclick="goToStep(1);resetAll()">Scan More</button>
   `;
+  if (typeof syncToCloud === 'function') syncToCloud();
 }
 
 function resetAll() {
@@ -1633,5 +1638,6 @@ function resetAll() {
   selectMode(savedMode);
 })();
 </script>
+<script src="../firebase-sync.js"></script>
 </body>
 </html>

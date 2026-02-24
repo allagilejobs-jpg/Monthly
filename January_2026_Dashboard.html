@@ -6,6 +6,9 @@
 <title>Monthly Grocery & Toiletries Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore-compat.js"></script>
 <style>
   :root {
     --bg: #0f1117;
@@ -2984,6 +2987,7 @@ function saveEdit() {
 
   closeEditModal();
   renderTable();
+  if (typeof syncToCloud === 'function') syncToCloud();
 }
 
 function resetEdit() {
@@ -3000,6 +3004,7 @@ function resetEdit() {
 
   closeEditModal();
   renderTable();
+  if (typeof syncToCloud === 'function') syncToCloud();
 }
 
 // ─────────── HELP MODAL ───────────
@@ -3170,6 +3175,7 @@ function confirmUpload() {
   }
   closeUploadModal();
   switchMonth(pendingUploadKey);
+  if (typeof syncToCloud === 'function') syncToCloud();
 }
 
 // ─────────── DATA MANAGER ───────────
@@ -3213,6 +3219,7 @@ function deleteMonth(key) {
   if (key === ctx.monthKey) switchMonth(months[0]);
   buildMonthSelector();
   openDataManager();
+  if (typeof syncToCloud === 'function') syncToCloud();
 }
 
 // ─────────── DOWNLOAD / LOAD DATA ───────────
@@ -3387,5 +3394,6 @@ function renderCompare() {
   <a href="https://allagilejobs-jpg.github.io/Monthly/Expenses/" style="color:var(--blue);text-decoration:none;margin:0 8px">All Expenses</a> &bull;
   <a href="https://allagilejobs-jpg.github.io/Monthly/" style="color:var(--text-muted);text-decoration:none;margin:0 8px">Home</a>
 </div>
+<script src="../firebase-sync.js"></script>
 </body>
 </html>

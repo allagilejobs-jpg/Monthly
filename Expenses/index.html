@@ -7,6 +7,9 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore-compat.js"></script>
 <style>
   :root {
     --bg: #0f1117;
@@ -787,17 +790,17 @@ function loadData(key) {
   try { return JSON.parse(localStorage.getItem("expenses_data_" + key)) || []; }
   catch { return []; }
 }
-function saveData(key, data) { localStorage.setItem("expenses_data_" + key, JSON.stringify(data)); }
+function saveData(key, data) { localStorage.setItem("expenses_data_" + key, JSON.stringify(data)); if (typeof syncToCloud === 'function') syncToCloud(); }
 function loadEdits(key) {
   try { return JSON.parse(localStorage.getItem("expenses_edits_" + key)) || {}; }
   catch { return {}; }
 }
-function saveEdits(key, edits) { localStorage.setItem("expenses_edits_" + key, JSON.stringify(edits)); }
+function saveEdits(key, edits) { localStorage.setItem("expenses_edits_" + key, JSON.stringify(edits)); if (typeof syncToCloud === 'function') syncToCloud(); }
 function loadCategoryRules() {
   try { return JSON.parse(localStorage.getItem("expenses_categoryRules")) || {}; }
   catch { return {}; }
 }
-function saveCategoryRules(rules) { localStorage.setItem("expenses_categoryRules", JSON.stringify(rules)); }
+function saveCategoryRules(rules) { localStorage.setItem("expenses_categoryRules", JSON.stringify(rules)); if (typeof syncToCloud === 'function') syncToCloud(); }
 
 // ── Global state ──
 let activeData = [];
@@ -1395,6 +1398,7 @@ function deleteMonth(mk) {
     else { activeData = []; ctx = {}; recomputeAll(); destroyAllCharts(); updateSubtitle(); renderAll(); }
   }
   openDataManager(); // refresh
+  if (typeof syncToCloud === 'function') syncToCloud();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -2645,5 +2649,6 @@ function detectRecurring() {
   <a href="https://allagilejobs-jpg.github.io/Monthly/Expenses/" style="color:var(--blue);text-decoration:none;margin:0 8px">All Expenses</a> &bull;
   <a href="https://allagilejobs-jpg.github.io/Monthly/" style="color:var(--text-muted);text-decoration:none;margin:0 8px">Home</a>
 </div>
+<script src="../firebase-sync.js"></script>
 </body>
 </html>
