@@ -197,9 +197,6 @@
     .chart-wrap { height: 260px; }
     .chart-wrap-sm { height: 220px; }
     .chart-wrap-tall { height: 320px; }
-    table { font-size: 12px; }
-    thead th { padding: 8px 10px; font-size: 10px; }
-    tbody td { padding: 8px 10px; font-size: 12px; }
     .filter-bar select, .filter-bar input { font-size: 12px; padding: 7px 10px; width: 100%; min-width: 0; }
     .filter-bar { gap: 8px; }
     .store-amount { font-size: 15px; min-width: 60px; }
@@ -211,8 +208,26 @@
     .modal { padding: 20px; max-width: 95vw; }
     .modal-actions { flex-wrap: wrap; }
     .trip-item-chip { max-width: 140px; }
-    thead th { padding: 6px 8px; font-size: 9px; }
-    tbody td { padding: 6px 8px; font-size: 11px; }
+    /* Card-style responsive tables */
+    table:not(.help-table) thead { display: none; }
+    table:not(.help-table) tbody tr {
+      display: block; margin-bottom: 10px; padding: 10px 12px;
+      border: 1px solid var(--card-border); border-radius: 8px;
+      background: rgba(255,255,255,0.02);
+    }
+    table:not(.help-table) tbody td {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
+      font-size: 12px; text-align: right;
+    }
+    table:not(.help-table) tbody td:last-child { border-bottom: none; }
+    table:not(.help-table) tbody td::before {
+      content: attr(data-label); font-weight: 600; color: var(--text-muted);
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+      text-align: left; margin-right: 12px; flex-shrink: 0;
+    }
+    .heatmap-grid { gap: 3px !important; max-width: 100% !important; }
+    .heatmap-grid > div { font-size: 10px !important; }
   }
   @media (max-width: 480px) {
     .container { padding: 10px; }
@@ -233,25 +248,14 @@
     .store-name { font-size: 12px; }
     .store-meta { font-size: 11px; }
     .store-row { padding: 8px 6px; margin: 0 -6px; }
-    thead th { padding: 5px 6px; font-size: 9px; letter-spacing: 0.5px; }
-    tbody td { padding: 5px 6px; font-size: 10px; }
     .modal { padding: 16px; }
     .modal-overlay { padding: 10px; }
     .modal-btn { padding: 8px 14px; font-size: 12px; }
     .trip-item-chip { max-width: 110px; font-size: 10px; }
     .filter-bar select, .filter-bar input { font-size: 11px; padding: 6px 8px; }
     .search-result-amount { font-size: 12px; }
-  }
-  .view { display: none; }
-  .view.active { display: block; }
-
-  /* Responsive table helpers */
-  @media (max-width: 900px) {
-    .hide-mobile { display: none !important; }
-    .heatmap-grid { gap: 3px !important; max-width: 100% !important; }
-    .heatmap-grid > div { font-size: 10px !important; }
-  }
-  @media (max-width: 480px) {
+    table:not(.help-table) tbody td { font-size: 11px; }
+    table:not(.help-table) tbody td::before { font-size: 9px; }
     .heatmap-grid { gap: 2px !important; }
     .heatmap-grid > div { font-size: 9px !important; padding: 2px !important; }
   }
@@ -1630,31 +1634,31 @@ function showCategoryDetail(categoryName, source) {
 
   // Products table
   html += '<div class="card"><div class="card-title">Products in ' + categoryName + '</div>';
-  html += '<div style="overflow-x:auto"><table><thead><tr><th>Product</th><th class="hide-mobile">Store(s)</th><th class="text-center hide-mobile">Qty</th><th class="text-right">Total</th><th class="text-right hide-mobile">Avg/Unit</th><th class="text-right">Share</th></tr></thead><tbody>';
+  html += '<table><thead><tr><th>Product</th><th>Store(s)</th><th>Qty</th><th>Total</th><th>Avg/Unit</th><th>Share</th></tr></thead><tbody>';
   prodList.forEach(p => {
     const pPct = ((p.total / total) * 100).toFixed(1);
     const escaped = p.name.replace(/'/g, "\\'");
     html += '<tr style="cursor:pointer" onclick="showProductDetail(\'' + escaped + '\',\'category-detail\')">';
-    html += '<td style="font-weight:600">' + p.name + ' <span style="float:right;color:var(--text-muted);font-size:11px">\u2192</span></td>';
-    html += '<td class="hide-mobile" style="font-size:12px;color:var(--text-muted)">' + [...p.stores].join(', ') + '</td>';
-    html += '<td class="text-center hide-mobile">' + p.qty + '</td>';
-    html += '<td class="text-right amt">' + fmt(p.total) + '</td>';
-    html += '<td class="text-right mono hide-mobile">' + fmt(p.total / p.qty) + '</td>';
-    html += '<td class="text-right">' + pPct + '%</td></tr>';
+    html += '<td data-label="Product" style="font-weight:600">' + p.name + '</td>';
+    html += '<td data-label="Store(s)" style="font-size:12px;color:var(--text-muted)">' + [...p.stores].join(', ') + '</td>';
+    html += '<td data-label="Qty">' + p.qty + '</td>';
+    html += '<td data-label="Total" class="amt">' + fmt(p.total) + '</td>';
+    html += '<td data-label="Avg/Unit" class="mono">' + fmt(p.total / p.qty) + '</td>';
+    html += '<td data-label="Share">' + pPct + '%</td></tr>';
   });
-  html += '</tbody></table></div></div>';
+  html += '</tbody></table></div>';
 
   // Store breakdown for this category
   if (storeList.length > 1) {
     html += '<div class="card"><div class="card-title">By Store</div>';
-    html += '<table><thead><tr><th>Store</th><th class="text-right">Total</th><th class="text-right">Items</th><th class="text-right">Share</th></tr></thead><tbody>';
+    html += '<table><thead><tr><th>Store</th><th>Total</th><th>Items</th><th>Share</th></tr></thead><tbody>';
     storeList.forEach(s => {
       const sPct = ((s.total / total) * 100).toFixed(1);
       html += '<tr style="cursor:pointer" onclick="showView(\'items\',null,{store:\'' + s.name.replace(/'/g, "\\'") + '\',cat:\'' + categoryName.replace(/'/g, "\\'") + '\'})">';
-      html += '<td style="font-weight:600">' + s.name + '</td>';
-      html += '<td class="text-right amt">' + fmt(s.total) + '</td>';
-      html += '<td class="text-right">' + s.count + '</td>';
-      html += '<td class="text-right">' + sPct + '%</td></tr>';
+      html += '<td data-label="Store" style="font-weight:600">' + s.name + '</td>';
+      html += '<td data-label="Total" class="amt">' + fmt(s.total) + '</td>';
+      html += '<td data-label="Items">' + s.count + '</td>';
+      html += '<td data-label="Share">' + sPct + '%</td></tr>';
     });
     html += '</tbody></table></div>';
   }
@@ -1666,20 +1670,20 @@ function showCategoryDetail(categoryName, source) {
 
   // All items list
   html += '<div class="card"><div class="card-title">All Items (' + items.length + ')</div>';
-  html += '<div style="overflow-x:auto"><table><thead><tr><th class="hide-mobile">Date</th><th>Store</th><th>Product</th><th class="text-center hide-mobile">Qty</th><th class="text-right">Unit $</th><th class="text-right">Total</th></tr></thead><tbody>';
+  html += '<table><thead><tr><th>Date</th><th>Store</th><th>Product</th><th>Qty</th><th>Unit $</th><th>Total</th></tr></thead><tbody>';
   items.forEach(i => {
     const escaped = i.n.replace(/'/g, "\\'");
     const dayNum = parseInt(i.d.split('/')[1]);
     const dateLabel = ctx.monthName ? ctx.monthName + ' ' + dayNum + ', ' + ctx.year : i.d;
     html += '<tr style="cursor:pointer" onclick="showProductDetail(\'' + escaped + '\',\'category-detail\')">';
-    html += '<td class="mono hide-mobile">' + dateLabel + '</td>';
-    html += '<td>' + i.s + '</td>';
-    html += '<td class="bold">' + i.n + '</td>';
-    html += '<td class="text-center hide-mobile">' + i.q + '</td>';
-    html += '<td class="text-right mono">' + fmt(i.u) + '</td>';
-    html += '<td class="text-right mono amt">' + fmt(i.t) + '</td></tr>';
+    html += '<td data-label="Date" class="mono">' + dateLabel + '</td>';
+    html += '<td data-label="Store">' + i.s + '</td>';
+    html += '<td data-label="Product" class="bold">' + i.n + '</td>';
+    html += '<td data-label="Qty">' + i.q + '</td>';
+    html += '<td data-label="Unit $" class="mono">' + fmt(i.u) + '</td>';
+    html += '<td data-label="Total" class="mono amt">' + fmt(i.t) + '</td></tr>';
   });
-  html += '</tbody></table></div></div>';
+  html += '</tbody></table></div>';
 
   container.innerHTML = html;
 
@@ -2229,10 +2233,10 @@ function renderGroceries() {
 
   // Frequently purchased table
   const freq = products.filter(p => p.count >= 2);
-  let html = `<thead><tr><th>Product</th><th class="hide-mobile">Category</th><th class="text-center">Qty</th><th class="text-right">Total</th><th class="text-right hide-mobile">Avg/Unit</th></tr></thead><tbody>`;
+  let html = `<thead><tr><th>Product</th><th>Category</th><th>Qty</th><th>Total</th><th>Avg/Unit</th></tr></thead><tbody>`;
   freq.forEach(p => {
     const escaped = p.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-    html += `<tr style="cursor:pointer" onclick="showProductDetail('${escaped}','groceries')"><td class="bold">${p.name}<span style="float:right;color:var(--text-muted);font-size:11px">&rarr;</span></td><td class="hide-mobile" style="color:var(--text-muted)">${p.cat}</td><td class="text-center">${p.qty}</td><td class="text-right mono amt">${fmt(p.total)}</td><td class="text-right mono hide-mobile">${fmt(p.total / p.qty)}</td></tr>`;
+    html += `<tr style="cursor:pointer" onclick="showProductDetail('${escaped}','groceries')"><td data-label="Product" class="bold">${p.name}</td><td data-label="Category" style="color:var(--text-muted)">${p.cat}</td><td data-label="Qty">${p.qty}</td><td data-label="Total" class="mono amt">${fmt(p.total)}</td><td data-label="Avg/Unit" class="mono">${fmt(p.total / p.qty)}</td></tr>`;
   });
   html += `</tbody>`;
   document.getElementById("table-grocery-freq").innerHTML = html;
@@ -2286,17 +2290,17 @@ function renderToiletries() {
   makeChartClickable(charts.toilStore, document.getElementById("chart-toiletry-store"), stores.map(s => s.name), "store");
 
   // All toiletry items table
-  let html = `<thead><tr><th class="hide-mobile">Date</th><th>Store</th><th>Product</th><th class="hide-mobile">Category</th><th class="text-center hide-mobile">Qty</th><th class="text-right">Unit $</th><th class="text-right">Total</th></tr></thead><tbody>`;
+  let html = `<thead><tr><th>Date</th><th>Store</th><th>Product</th><th>Category</th><th>Qty</th><th>Unit $</th><th>Total</th></tr></thead><tbody>`;
   toiletries.sort((a,b) => b.t - a.t).forEach(i => {
     const escaped = i.n.replace(/'/g, "\\'").replace(/"/g, "&quot;");
     html += `<tr style="cursor:pointer" onclick="showProductDetail('${escaped}','toiletries')">
-      <td class="mono hide-mobile">${i.d}</td>
-      <td>${i.s}</td>
-      <td class="bold">${i.n}<span style="float:right;color:var(--text-muted);font-size:11px">&rarr;</span></td>
-      <td class="hide-mobile" style="color:var(--text-muted)">${i.c}</td>
-      <td class="text-center hide-mobile">${i.q}</td>
-      <td class="text-right mono">${fmt(i.u)}</td>
-      <td class="text-right mono amt">${fmt(i.t)}</td>
+      <td data-label="Date" class="mono">${i.d}</td>
+      <td data-label="Store">${i.s}</td>
+      <td data-label="Product" class="bold">${i.n}</td>
+      <td data-label="Category" style="color:var(--text-muted)">${i.c}</td>
+      <td data-label="Qty">${i.q}</td>
+      <td data-label="Unit $" class="mono">${fmt(i.u)}</td>
+      <td data-label="Total" class="mono amt">${fmt(i.t)}</td>
     </tr>`;
   });
   html += `</tbody>`;
@@ -2679,7 +2683,7 @@ function showProductDetail(productName, source) {
   // Price tracker (only if bought more than once)
   if (items.length > 1) {
     html += `<div class="card"><div class="card-title">Price Tracker</div>`;
-    html += `<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Store</th><th class="text-right">Unit Price</th><th class="text-right">Change</th></tr></thead><tbody>`;
+    html += `<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Store</th><th>Unit Price</th><th>Change</th></tr></thead><tbody>`;
     items.forEach((item, idx) => {
       const dayNum = parseInt(item.d.split("/")[1]);
       const dateLabel = ctx.monthName ? ctx.monthName + " " + dayNum + ", " + ctx.year : item.d;
@@ -2692,7 +2696,7 @@ function showProductDetail(productName, source) {
       } else {
         changeHtml = `<span style="color:var(--text-muted)">&mdash;</span>`;
       }
-      html += `<tr><td class="mono">${dateLabel}</td><td>${item.s}</td><td class="text-right mono amt">${fmt(item.u)}</td><td class="text-right">${changeHtml}</td></tr>`;
+      html += `<tr><td data-label="Date" class="mono">${dateLabel}</td><td data-label="Store">${item.s}</td><td data-label="Unit Price" class="mono amt">${fmt(item.u)}</td><td data-label="Change">${changeHtml}</td></tr>`;
     });
     html += `</tbody></table></div></div>`;
   }
@@ -2717,15 +2721,15 @@ function showProductDetail(productName, source) {
     if (savings > 0.001) {
       html += `<div class="insight" style="cursor:default;margin-bottom:14px"><div class="insight-title">Best Price</div><div class="insight-text"><span class="insight-val">${cheapest.name}</span> is cheapest at <span class="insight-val">${fmt(cheapest.avgPrice)}/unit</span> avg &mdash; you save <span class="insight-val">${fmt(savings)}/unit</span> vs the most expensive store</div></div>`;
     }
-    html += `<div style="overflow-x:auto"><table><thead><tr><th>Store</th><th class="text-right">Avg Price</th><th class="text-right hide-mobile">Min</th><th class="text-right hide-mobile">Max</th><th class="text-center hide-mobile">Qty</th><th class="text-right">Total</th></tr></thead><tbody>`;
+    html += `<div style="overflow-x:auto"><table><thead><tr><th>Store</th><th>Avg Price</th><th>Min</th><th>Max</th><th>Qty</th><th>Total</th></tr></thead><tbody>`;
     storeArr.forEach((s, idx) => {
       const isCheapest = idx === 0 && storeArr.length > 1;
-      html += `<tr><td style="font-weight:600;${isCheapest ? 'color:var(--green)' : ''}">${s.name}${isCheapest ? ' <span style="font-size:10px;background:rgba(34,197,94,0.12);color:var(--green);padding:2px 6px;border-radius:4px;margin-left:4px">BEST</span>' : ''}</td>`;
-      html += `<td class="text-right mono amt">${fmt(s.avgPrice)}</td>`;
-      html += `<td class="text-right mono hide-mobile">${fmt(s.minPrice)}</td>`;
-      html += `<td class="text-right mono hide-mobile">${fmt(s.maxPrice)}</td>`;
-      html += `<td class="text-center hide-mobile">${s.qty}</td>`;
-      html += `<td class="text-right mono amt">${fmt(s.total)}</td></tr>`;
+      html += `<tr><td data-label="Store" style="font-weight:600;${isCheapest ? 'color:var(--green)' : ''}">${s.name}${isCheapest ? ' <span style="font-size:10px;background:rgba(34,197,94,0.12);color:var(--green);padding:2px 6px;border-radius:4px;margin-left:4px">BEST</span>' : ''}</td>`;
+      html += `<td data-label="Avg Price" class="mono amt">${fmt(s.avgPrice)}</td>`;
+      html += `<td data-label="Min" class="mono">${fmt(s.minPrice)}</td>`;
+      html += `<td data-label="Max" class="mono">${fmt(s.maxPrice)}</td>`;
+      html += `<td data-label="Qty">${s.qty}</td>`;
+      html += `<td data-label="Total" class="mono amt">${fmt(s.total)}</td></tr>`;
     });
     html += `</tbody></table></div></div>`;
   }
@@ -2733,16 +2737,16 @@ function showProductDetail(productName, source) {
   // Purchase history table
   html += `<div class="card"><div class="card-title">Purchase History</div>`;
   html += `<div style="overflow-x:auto"><table>`;
-  html += `<thead><tr><th>Date</th><th>Store</th><th class="text-center">Qty</th><th class="text-right">Unit Price</th><th class="text-right">Total</th></tr></thead><tbody>`;
+  html += `<thead><tr><th>Date</th><th>Store</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead><tbody>`;
   items.forEach(i => {
     const dayNum = parseInt(i.d.split("/")[1]);
     const dateLabel = ctx.monthName ? ctx.monthName + " " + dayNum + ", " + ctx.year : i.d;
     html += `<tr>
-      <td class="mono">${dateLabel}</td>
-      <td>${i.s}</td>
-      <td class="text-center">${i.q}</td>
-      <td class="text-right mono">${fmt(i.u)}</td>
-      <td class="text-right mono amt">${fmt(i.t)}</td>
+      <td data-label="Date" class="mono">${dateLabel}</td>
+      <td data-label="Store">${i.s}</td>
+      <td data-label="Qty">${i.q}</td>
+      <td data-label="Unit Price" class="mono">${fmt(i.u)}</td>
+      <td data-label="Total" class="mono amt">${fmt(i.t)}</td>
     </tr>`;
   });
   html += `</tbody></table></div></div>`;
@@ -2800,10 +2804,10 @@ function showTripDetail(tripIdx) {
         </tr></thead><tbody>`;
     items.sort((a, b) => b.t - a.t).forEach(i => {
       g += `<tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
-        <td style="padding:10px 12px;font-weight:500">${i.n} <span style="font-size:10px;color:var(--text-muted);margin-left:4px">${i.c}</span></td>
-        <td style="padding:10px 12px;text-align:center">${i.q}</td>
-        <td style="padding:10px 12px;text-align:right;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px">${fmt(i.u)}</td>
-        <td style="padding:10px 12px;text-align:right;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px;font-weight:700;color:var(--amber)">${fmt(i.t)}</td>
+        <td data-label="Product" style="padding:10px 12px;font-weight:500">${i.n} <span style="font-size:10px;color:var(--text-muted);margin-left:4px">${i.c}</span></td>
+        <td data-label="Qty" style="padding:10px 12px;text-align:center">${i.q}</td>
+        <td data-label="Unit $" style="padding:10px 12px;text-align:right;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px">${fmt(i.u)}</td>
+        <td data-label="Total" style="padding:10px 12px;text-align:right;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px;font-weight:700;color:var(--amber)">${fmt(i.t)}</td>
       </tr>`;
     });
     g += `</tbody></table></div>`;
@@ -2910,8 +2914,8 @@ function renderTable() {
     { key: "d", label: "Date" },
     { key: "s", label: "Store" },
     { key: "n", label: "Product" },
-    { key: "c", label: "Category", hide: true },
-    { key: "q", label: "Qty", hide: true },
+    { key: "c", label: "Category" },
+    { key: "q", label: "Qty" },
     { key: "u", label: "Unit $" },
     { key: "t", label: "Total" },
   ];
@@ -2919,7 +2923,7 @@ function renderTable() {
   let html = `<thead><tr>`;
   cols.forEach(col => {
     const arrow = currentSort.col === col.key ? (currentSort.dir === "asc" ? " ↑" : " ↓") : "";
-    html += `<th${col.hide ? ' class="hide-mobile"' : ''} onclick="sortTable('${col.key}')">${col.label}${arrow}</th>`;
+    html += `<th onclick="sortTable('${col.key}')">${col.label}${arrow}</th>`;
   });
   html += `<th style="width:50px"></th></tr></thead><tbody>`;
 
@@ -2931,14 +2935,14 @@ function renderTable() {
     const editDot = isEdited ? '<span class="edit-dot" title="Edited"></span>' : '';
     const escaped = i.n.replace(/'/g, "\\'").replace(/"/g, "&quot;");
     html += `<tr onclick="showProductDetail('${escaped}','items')" style="cursor:pointer" title="View purchase history">
-      <td class="mono">${i.d}</td>
-      <td>${i.s}</td>
-      <td class="bold">${i.n}${editDot} <span class="tag ${tagClass}">${tagLabel}</span></td>
-      <td class="hide-mobile" style="color:var(--text-muted)">${i.c}</td>
-      <td class="text-center hide-mobile">${i.q}</td>
-      <td class="text-right mono">${fmt(i.u)}</td>
-      <td class="text-right mono amt">${fmt(i.t)}</td>
-      <td class="text-center"><span onclick="event.stopPropagation();openEditModal(${i._idx})" title="Edit item" style="cursor:pointer;font-size:14px;color:var(--text-muted);padding:4px 8px;border-radius:6px;transition:all 0.2s" onmouseover="this.style.color='var(--green)';this.style.background='rgba(34,197,94,0.1)'" onmouseout="this.style.color='var(--text-muted)';this.style.background='none'">&#9998;</span></td>
+      <td data-label="Date" class="mono">${i.d}</td>
+      <td data-label="Store">${i.s}</td>
+      <td data-label="Product" class="bold">${i.n}${editDot} <span class="tag ${tagClass}">${tagLabel}</span></td>
+      <td data-label="Category" style="color:var(--text-muted)">${i.c}</td>
+      <td data-label="Qty">${i.q}</td>
+      <td data-label="Unit $" class="mono">${fmt(i.u)}</td>
+      <td data-label="Total" class="mono amt">${fmt(i.t)}</td>
+      <td data-label=""><span onclick="event.stopPropagation();openEditModal(${i._idx})" title="Edit item" style="cursor:pointer;font-size:14px;color:var(--text-muted);padding:4px 8px;border-radius:6px;transition:all 0.2s" onmouseover="this.style.color='var(--green)';this.style.background='rgba(34,197,94,0.1)'" onmouseout="this.style.color='var(--text-muted)';this.style.background='none'">&#9998;</span></td>
     </tr>`;
   });
   html += `</tbody>`;
