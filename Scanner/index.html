@@ -1536,8 +1536,13 @@ function doDashboardImport() {
     q: item.q, u: item.u, t: item.t, ng: item.ng
   }));
 
-  // Check merge mode
+  // Backup existing data before overwriting
   const existing = localStorage.getItem('data_' + monthKey);
+  if (existing) {
+    localStorage.setItem('backup_data_' + monthKey, existing);
+  }
+
+  // Check merge mode
   let finalItems = items;
   if (existing) {
     const mergeMode = document.querySelector('input[name="mergeMode"]:checked')?.value || 'merge';
@@ -1561,12 +1566,36 @@ function doDashboardImport() {
   }
   localStorage.setItem('grocery_activeMonth', monthKey);
 
+  const monthLabel = new Date(yr, parseInt(mo)-1).toLocaleString('default',{month:'long'}) + ' ' + yr;
+  const hasBackup = !!existing;
+
   document.getElementById('exportResult').style.display = 'block';
   document.getElementById('dashboardOptions').style.display = 'none';
   document.getElementById('exportResult').innerHTML = `
     <div class="check">&#128640;</div>
     <div class="msg">Imported to Dashboard!</div>
-    <div class="sub">${finalItems.length} items loaded for ${new Date(yr, parseInt(mo)-1).toLocaleString('default',{month:'long'})} ${yr}</div>
+    <div class="sub">${finalItems.length} items loaded for ${monthLabel}</div>
+    <a href="../Groceries/" class="btn btn-green">Open Groceries Dashboard &#8594;</a>
+    <button class="btn btn-secondary" style="margin-left:12px" onclick="goToStep(1);resetAll()">Scan More</button>
+    ${hasBackup ? `<button class="btn btn-danger" style="margin-left:12px" onclick="undoImport('${monthKey}', '${monthLabel}')">Undo Import</button>` : ''}
+  `;
+}
+
+function undoImport(monthKey, monthLabel) {
+  const backup = localStorage.getItem('backup_data_' + monthKey);
+  if (!backup) {
+    alert('No backup found to restore.');
+    return;
+  }
+  if (!confirm('Restore previous data for ' + monthLabel + '? This will undo the import.')) return;
+
+  localStorage.setItem('data_' + monthKey, backup);
+  localStorage.removeItem('backup_data_' + monthKey);
+
+  document.getElementById('exportResult').innerHTML = `
+    <div class="check" style="color:var(--green)">&#10003;</div>
+    <div class="msg">Data Restored!</div>
+    <div class="sub">Previous data for ${monthLabel} has been restored.</div>
     <a href="../Groceries/" class="btn btn-green">Open Groceries Dashboard &#8594;</a>
     <button class="btn btn-secondary" style="margin-left:12px" onclick="goToStep(1);resetAll()">Scan More</button>
   `;
