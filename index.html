@@ -729,7 +729,7 @@
     <!-- 4. Category Assignment -->
     <div class="help-section">
       <div class="help-section-title">4. Category Assignment</div>
-      <div class="help-text" style="margin-bottom:10px">Every item is assigned exactly one category. Use these consistently across months. You can always rename or recategorize items after uploading by clicking any item in the All Items tab.</div>
+      <div class="help-text" style="margin-bottom:10px">Every item is assigned exactly one category. Use these consistently across months for accurate comparisons. <strong>New categories can be added at any time</strong> &mdash; if a product doesn't fit an existing category, create a new one in the spreadsheet and the dashboard will automatically include it. You can also rename or recategorize items after uploading by clicking any item in the All Items tab.</div>
 
       <div style="margin-bottom:12px">
         <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px">GROCERY CATEGORIES</div>
@@ -1109,7 +1109,7 @@ const pct = (v, total) => total > 0 ? (v / total * 100).toFixed(1) + "%" : "0%";
 const sum = arr => arr.reduce((s, i) => s + i.t, 0);
 const formatBytes = b => b < 1024 ? b + " B" : (b / 1024).toFixed(1) + " KB";
 
-const STORE_COLORS = {
+const STORE_COLORS_BASE = {
   "Publix": "#4ade80",
   "Costco": "#f87171",
   "Costco (Online)": "#fb923c",
@@ -1120,6 +1120,19 @@ const STORE_COLORS = {
   "Instacart (Costco)": "#f97316",
   "Austell Farmers Market": "#fbbf24",
 };
+const STORE_COLORS_DYNAMIC = {};
+const STORE_COLOR_POOL = ["#06b6d4","#ec4899","#8b5cf6","#10b981","#eab308","#0ea5e9","#d946ef","#84cc16","#e11d48","#0891b2"];
+let storeColorIdx = 0;
+const STORE_COLORS = new Proxy({}, {
+  get(_, name) {
+    if (STORE_COLORS_BASE[name]) return STORE_COLORS_BASE[name];
+    if (!STORE_COLORS_DYNAMIC[name]) {
+      STORE_COLORS_DYNAMIC[name] = STORE_COLOR_POOL[storeColorIdx % STORE_COLOR_POOL.length];
+      storeColorIdx++;
+    }
+    return STORE_COLORS_DYNAMIC[name];
+  }
+});
 
 const PALETTE = [
   "#22c55e","#3b82f6","#f59e0b","#ef4444","#a855f7",
