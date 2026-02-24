@@ -57,18 +57,19 @@ function initFirebase() {
       fb_user = user;
       updateAuthUI();
       if (user) {
+        removeAuthGate();
         syncFromCloud().then(() => {
           // If page has a render function, re-render after sync
           if (typeof recomputeAll === 'function') { recomputeAll(); renderAll(); }
         });
       } else {
-        // Skip redirect for demo mode users
+        // Skip for demo mode users
         if (isDemoMode()) return;
-        // Redirect non-authenticated users to landing page
+        // Show sign-in gate on dashboard pages (no redirect)
         const path = window.location.pathname;
         const isLandingPage = path.endsWith('/Monthly/') || path.endsWith('/Monthly/index.html') || path === '/Monthly';
         if (!isLandingPage) {
-          window.location.href = '../';
+          showAuthGate();
         }
       }
     });
@@ -310,6 +311,35 @@ function updateAuthUI() {
     btn.onclick = function() { openAuthModal(); };
     info.style.display = 'none';
   }
+}
+
+// ============================================================
+// AUTH GATE — shown on dashboard pages for unauthenticated users
+// ============================================================
+function showAuthGate() {
+  // Remove any existing gate
+  const existing = document.getElementById('fb-auth-gate');
+  if (existing) existing.remove();
+
+  const gate = document.createElement('div');
+  gate.id = 'fb-auth-gate';
+  gate.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,17,23,0.95);z-index:9998;display:flex;justify-content:center;align-items:center;padding:20px;';
+  gate.innerHTML = '<div style="background:#1a1b23;border:1px solid #2a2b35;border-radius:20px;padding:40px;max-width:440px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5)">' +
+    '<div style="font-size:48px;margin-bottom:16px">&#128274;</div>' +
+    '<div style="font-size:22px;font-weight:700;margin-bottom:8px;background:linear-gradient(135deg,#22c55e,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Sign In Required</div>' +
+    '<div style="color:#71717a;font-size:14px;margin-bottom:28px;line-height:1.6">Sign in to access your dashboard and sync data across devices, or try the demo to explore with sample data.</div>' +
+    '<div style="display:flex;flex-direction:column;gap:12px;align-items:center">' +
+      '<button onclick="document.getElementById(\'fb-auth-gate\').remove();openAuthModal()" style="width:100%;max-width:280px;padding:12px 24px;border-radius:10px;border:1px solid rgba(249,115,22,0.3);background:rgba(249,115,22,0.15);color:#f97316;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s">Sign In</button>' +
+      '<button onclick="sessionStorage.setItem(\'demo_mode\',\'true\');location.reload()" style="width:100%;max-width:280px;padding:12px 24px;border-radius:10px;border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.1);color:#22c55e;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s">Try Demo</button>' +
+      '<a href="../" style="color:#71717a;font-size:13px;margin-top:4px;text-decoration:none">Back to Home</a>' +
+    '</div></div>';
+  document.body.appendChild(gate);
+}
+
+// Remove gate when user signs in
+function removeAuthGate() {
+  const gate = document.getElementById('fb-auth-gate');
+  if (gate) gate.remove();
 }
 
 // ============================================================
