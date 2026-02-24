@@ -399,11 +399,51 @@
   .delta-down { color: var(--green); }
   .delta-same { color: var(--text-muted); }
 
+  /* Help modal */
+  .help-section { margin-bottom: 20px; }
+  .help-section-title {
+    font-size: 13px; font-weight: 700; color: var(--green);
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--card-border);
+  }
+  .help-text { font-size: 13px; color: var(--text-muted); line-height: 1.7; }
+  .help-text strong { color: var(--text); }
+  .help-table {
+    width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px;
+  }
+  .help-table th {
+    text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px; color: var(--green);
+    border-bottom: 1px solid var(--card-border); background: rgba(34,197,94,0.04);
+  }
+  .help-table td {
+    padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.03);
+    color: var(--text-muted); vertical-align: top;
+  }
+  .help-table td:first-child { color: var(--text); font-weight: 600; white-space: nowrap; }
+  .help-chip {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 2px 8px; border-radius: 4px; margin: 2px 3px 2px 0;
+  }
+  .help-step {
+    display: flex; gap: 12px; margin-bottom: 14px;
+  }
+  .help-step-num {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(34,197,94,0.15); color: var(--green);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+  }
+  .help-step-text { font-size: 13px; color: var(--text-muted); line-height: 1.6; padding-top: 3px; }
+  .help-step-text strong { color: var(--text); }
+
   @media (max-width: 900px) {
     .month-nav { gap: 8px; }
     .month-nav select { font-size: 13px; padding: 7px 10px; }
     .month-nav-btn { font-size: 12px; padding: 7px 12px; }
     .delta-grid { grid-template-columns: repeat(2, 1fr); }
+    .help-table { font-size: 11px; }
+    .help-table th, .help-table td { padding: 6px 8px; }
   }
 </style>
 </head>
@@ -418,6 +458,7 @@
     <select id="month-select"></select>
     <button class="month-nav-btn" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3)" onclick="openUploadModal()">+ Upload Month</button>
     <button class="month-nav-btn" style="background:rgba(255,255,255,0.04);color:var(--text-muted);border:1px solid var(--card-border)" onclick="openDataManager()">Manage Data</button>
+    <button class="month-nav-btn" style="background:rgba(59,130,246,0.12);color:var(--blue);border:1px solid rgba(59,130,246,0.25)" onclick="openHelpModal()">? Help</button>
   </div>
 
   <div class="tabs">
@@ -611,6 +652,137 @@
     <div id="manager-usage" style="margin-top:12px;font-size:11px;color:var(--text-muted)"></div>
     <div class="modal-actions" style="margin-top:16px">
       <button class="modal-btn modal-btn-cancel" onclick="closeDataManager()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal-overlay" id="help-modal" onclick="if(event.target===this)closeHelpModal()">
+  <div class="modal" style="max-width:680px;max-height:85vh;overflow-y:auto">
+    <div class="modal-title" style="font-size:18px">How to Prepare Your Monthly Excel File</div>
+
+    <div class="help-section">
+      <div class="help-section-title">Overview</div>
+      <div class="help-text">
+        Each month, create an Excel file (<strong>.xlsx</strong>) with your grocery and toiletries receipts. The dashboard reads the <strong>"All Transactions"</strong> sheet and maps each row to an item. If no sheet by that name is found, it will use the first sheet.
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">Step-by-Step Process</div>
+      <div class="help-step">
+        <div class="help-step-num">1</div>
+        <div class="help-step-text">Create a new Excel workbook. Name the first sheet <strong>"All Transactions"</strong>.</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">2</div>
+        <div class="help-step-text">Add the <strong>9 column headers</strong> in Row 1 exactly as shown in the table below.</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">3</div>
+        <div class="help-step-text">For each receipt, enter <strong>one row per line item</strong>. If you bought 3 units of something, put <strong>3</strong> in the Qty column and the per-unit price in Unit Price. The Line Total should be <strong>Qty &times; Unit Price</strong>.</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">4</div>
+        <div class="help-step-text">Assign a <strong>Category</strong> to each item (see category list below). Mark non-grocery items (toys, electronics, clothing, etc.) as <strong>TRUE</strong> in the Non-Grocery column.</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">5</div>
+        <div class="help-step-text">Save the file, then click <strong>"+ Upload Month"</strong> on the dashboard and drop the file in. The dashboard auto-detects the month and year from the dates.</div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">Required Column Headers (Row 1)</div>
+      <table class="help-table">
+        <thead><tr><th>Column</th><th>Description</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td>Date</td><td>Shopping date (MM/DD or MM/DD/YYYY)</td><td>02/14 or 02/14/2026</td></tr>
+          <tr><td>Store</td><td>Store name where you shopped</td><td>Publix</td></tr>
+          <tr><td>Receipt Name</td><td>Short code from the receipt (SKU or abbreviation)</td><td>OV GRASSMILK HG</td></tr>
+          <tr><td>Full Product Name</td><td>Human-readable product name</td><td>Organic Valley Grassmilk Half Gallon</td></tr>
+          <tr><td>Category</td><td>Product category (see list below)</td><td>Dairy & Eggs</td></tr>
+          <tr><td>Qty</td><td>Quantity purchased</td><td>2</td></tr>
+          <tr><td>Unit Price</td><td>Price per single unit ($)</td><td>7.19</td></tr>
+          <tr><td>Line Total</td><td>Qty &times; Unit Price ($)</td><td>14.38</td></tr>
+          <tr><td>Non-Grocery?</td><td>TRUE if not a food/household item, FALSE otherwise</td><td>FALSE</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">Categories</div>
+      <div class="help-text" style="margin-bottom:8px">Use these categories for consistency across months. You can always rename or recategorize items after uploading by clicking any item in the All Items tab.</div>
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:4px">GROCERY CATEGORIES</div>
+        <span class="help-chip tag-grocery">Bakery & Bread</span>
+        <span class="help-chip tag-grocery">Baking & Pantry</span>
+        <span class="help-chip tag-grocery">Beverages</span>
+        <span class="help-chip tag-grocery">Breakfast & Cereal</span>
+        <span class="help-chip tag-grocery">Candy & Sweets</span>
+        <span class="help-chip tag-grocery">Canned & Packaged Foods</span>
+        <span class="help-chip tag-grocery">Cooking Oils & Condiments</span>
+        <span class="help-chip tag-grocery">Dairy & Eggs</span>
+        <span class="help-chip tag-grocery">Frozen Desserts</span>
+        <span class="help-chip tag-grocery">Frozen Foods</span>
+        <span class="help-chip tag-grocery">Meat & Protein</span>
+        <span class="help-chip tag-grocery">Produce</span>
+        <span class="help-chip tag-grocery">Prepared Foods & Deli</span>
+        <span class="help-chip tag-grocery">Snacks & Chips</span>
+        <span class="help-chip tag-grocery">Baby Food & Formula</span>
+      </div>
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:4px">TOILETRY CATEGORIES (auto-classified)</div>
+        <span class="help-chip tag-toiletry">Health & Beauty</span>
+        <span class="help-chip tag-toiletry">Household & Cleaning</span>
+        <span class="help-chip tag-toiletry">Paper Products</span>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--rose);margin-bottom:4px">NON-GROCERY (mark Non-Grocery? = TRUE)</div>
+        <span class="help-chip tag-nongrocery">Toys</span>
+        <span class="help-chip tag-nongrocery">Electronics & Batteries</span>
+        <span class="help-chip tag-nongrocery">Clothing & Apparel</span>
+        <span class="help-chip tag-nongrocery">Housewares</span>
+        <span class="help-chip tag-nongrocery">Baby Care</span>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">Classification Logic</div>
+      <div class="help-text">
+        The dashboard auto-classifies each item into one of three types:<br><br>
+        <strong>Toiletry</strong> &mdash; Any item whose Category is "Health & Beauty", "Household & Cleaning", or "Paper Products" (regardless of the Non-Grocery flag).<br><br>
+        <strong>Grocery</strong> &mdash; Any item where Non-Grocery = FALSE and it's not a toiletry category.<br><br>
+        <strong>Other</strong> &mdash; Any item where Non-Grocery = TRUE and it's not a toiletry category (toys, electronics, clothing, etc.).
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">Tips</div>
+      <div class="help-text">
+        &#8226; <strong>Same store, same date = one trip.</strong> The dashboard groups items into trips by date + store combination.<br>
+        &#8226; <strong>Dates determine the month.</strong> The uploader reads the month/year from your date values, so make sure all dates are in the correct month.<br>
+        &#8226; <strong>You can edit after upload.</strong> Click any item in the All Items tab to rename, recategorize, or reclassify it. Edits are saved per month.<br>
+        &#8226; <strong>Extra sheets are optional.</strong> Only "All Transactions" is read. You can add Summary, By Store, etc. sheets for your own reference.<br>
+        &#8226; <strong>Data stays in your browser.</strong> Uploaded months are stored in localStorage (~5 MB limit, enough for 200+ months). Data does not sync across devices.
+      </div>
+    </div>
+
+    <div class="help-section" style="margin-bottom:0">
+      <div class="help-section-title">Sample Row</div>
+      <div style="overflow-x:auto">
+        <table class="help-table">
+          <thead><tr><th>Date</th><th>Store</th><th>Receipt Name</th><th>Full Product Name</th><th>Category</th><th>Qty</th><th>Unit Price</th><th>Line Total</th><th>Non-Grocery?</th></tr></thead>
+          <tbody>
+            <tr><td>02/05</td><td>Publix</td><td>OV GRASSMILK HG</td><td>Organic Valley Grassmilk Half Gallon</td><td>Dairy & Eggs</td><td>2</td><td>7.19</td><td>14.38</td><td>FALSE</td></tr>
+            <tr><td>02/05</td><td>Publix</td><td>EOS LIP BALM</td><td>eos Lip Balm/Body Care</td><td>Health & Beauty</td><td>1</td><td>4.99</td><td>4.99</td><td>TRUE</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="modal-btn modal-btn-cancel" onclick="closeHelpModal()">Close</button>
     </div>
   </div>
 </div>
@@ -1815,9 +1987,13 @@ function resetEdit() {
   renderTable();
 }
 
+// ─────────── HELP MODAL ───────────
+function openHelpModal() { document.getElementById("help-modal").classList.add("open"); }
+function closeHelpModal() { document.getElementById("help-modal").classList.remove("open"); }
+
 // Close modal on Escape
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { closeEditModal(); closeUploadModal(); closeDataManager(); }
+  if (e.key === "Escape") { closeEditModal(); closeUploadModal(); closeDataManager(); closeHelpModal(); }
 });
 
 // ─────────── UPLOAD MODAL ───────────
