@@ -1319,9 +1319,14 @@ function switchMonth(monthKey) {
 }
 
 function renderAll() {
-  [renderOverview, renderGroceries, renderToiletries, renderStores, renderTrends, renderTrips, renderAllItems, renderCompare].forEach(fn => {
-    try { fn(); } catch(e) { console.error(fn.name + ' error:', e); }
-  });
+  try { renderOverview(); } catch(e) { console.error('renderOverview error:', e); }
+  try { renderGroceries(); } catch(e) { console.error('renderGroceries error:', e); }
+  try { renderToiletries(); } catch(e) { console.error('renderToiletries error:', e); }
+  try { renderStores(); } catch(e) { console.error('renderStores error:', e); }
+  try { renderTrends(); } catch(e) { console.error('renderTrends error:', e); }
+  try { renderTrips(); } catch(e) { console.error('renderTrips error:', e); }
+  try { renderAllItems(); } catch(e) { console.error('renderAllItems error:', e); }
+  try { renderCompare(); } catch(e) { console.error('renderCompare error:', e); }
 }
 
 // Migrate old edit key on first load
@@ -1877,16 +1882,7 @@ function renderOverview() {
     }
   });
 
-  // Category pie clicks → category detail view
-  const catPieCanvas = document.getElementById("chart-cat-pie");
-  catPieCanvas.style.cursor = "pointer";
-  catPieCanvas.addEventListener("click", (evt) => {
-    const points = charts.catPie.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
-    if (points.length > 0) {
-      const label = catGroups[points[0].index].name;
-      showCategoryDetail(label, 'overview');
-    }
-  });
+  makeChartClickable(charts.catPie, document.getElementById("chart-cat-pie"), catGroups.map(g => g.name), "cat");
 
   // Store pie
   const storeGroups = groupBy(activeData, "s");
@@ -2164,16 +2160,7 @@ function renderGroceries() {
     }
   });
 
-  // Grocery category chart clicks → category detail view
-  const grocCatCanvas = document.getElementById("chart-grocery-cat");
-  grocCatCanvas.style.cursor = "pointer";
-  grocCatCanvas.addEventListener("click", (evt) => {
-    const points = charts.groceryCat.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
-    if (points.length > 0) {
-      const label = cats[points[0].index].name;
-      showCategoryDetail(label, 'groceries');
-    }
-  });
+  makeChartClickable(charts.groceryCat, document.getElementById("chart-grocery-cat"), cats.map(c => c.name), "cat");
 
   // Top 15 grocery items
   const top15 = products.slice(0, 15);
@@ -2239,16 +2226,7 @@ function renderToiletries() {
     }
   });
 
-  // Toiletry category chart clicks → category detail view
-  const toilCatCanvas = document.getElementById("chart-toiletry-cat");
-  toilCatCanvas.style.cursor = "pointer";
-  toilCatCanvas.addEventListener("click", (evt) => {
-    const points = charts.toilCat.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
-    if (points.length > 0) {
-      const label = cats[points[0].index].name;
-      showCategoryDetail(label, 'toiletries');
-    }
-  });
+  makeChartClickable(charts.toilCat, document.getElementById("chart-toiletry-cat"), cats.map(c => c.name), "cat");
 
   // Toiletry by store
   charts.toilStore = new Chart(document.getElementById("chart-toiletry-store"), {
