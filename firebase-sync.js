@@ -26,11 +26,13 @@ const SYNC_PREFIXES = [
   'data_', 'edits_',
   'expenses_months', 'expenses_activeMonth',
   'expenses_data_', 'expenses_edits_', 'expenses_categoryRules',
-  'scanner_abbrevDict'
+  'scanner_abbrevDict',
+  'budget_setup', 'budget_months', 'budget_activeMonth',
+  'budget_data_', 'budget_income_', 'budget_accounts_'
 ];
 
 // Keys that NEVER sync (device-specific or sensitive)
-const NO_SYNC = ['grocery_theme', 'expenses_theme', 'scanner_mode', 'scanner_geminiKey', 'backup_data_'];
+const NO_SYNC = ['grocery_theme', 'expenses_theme', 'budget_theme', 'scanner_mode', 'scanner_geminiKey', 'backup_data_'];
 
 function shouldSync(key) {
   if (NO_SYNC.some(ns => key.startsWith(ns))) return false;
@@ -350,6 +352,21 @@ function showAuthGate() {
         JSON.parse(em).forEach(function(mk) { localStorage.setItem('expenses_data_' + mk, demoGet('expenses_data_' + mk)); });
         window._authGatePreviewKeys = ['expenses_months','expenses_activeMonth'].concat(JSON.parse(em).map(function(mk) { return 'expenses_data_' + mk; }));
       }
+    } else if (path.includes('/Budget/')) {
+      const bs = demoGet('budget_setup');
+      const bm = demoGet('budget_months');
+      if (bm && !localStorage.getItem('budget_months')) {
+        if (bs) localStorage.setItem('budget_setup', bs);
+        localStorage.setItem('budget_months', bm);
+        localStorage.setItem('budget_activeMonth', demoGet('budget_activeMonth'));
+        var bKeys = ['budget_setup','budget_months','budget_activeMonth'];
+        JSON.parse(bm).forEach(function(mk) {
+          var d = demoGet('budget_data_' + mk); if (d) { localStorage.setItem('budget_data_' + mk, d); bKeys.push('budget_data_' + mk); }
+          var inc = demoGet('budget_income_' + mk); if (inc) { localStorage.setItem('budget_income_' + mk, inc); bKeys.push('budget_income_' + mk); }
+          var acc = demoGet('budget_accounts_' + mk); if (acc) { localStorage.setItem('budget_accounts_' + mk, acc); bKeys.push('budget_accounts_' + mk); }
+        });
+        window._authGatePreviewKeys = bKeys;
+      }
     }
   }
 
@@ -463,6 +480,33 @@ async function syncToCloud() {
       }
     }
 
+    // Budget meta
+    const budgetSetup = localStorage.getItem('budget_setup');
+    const budgetMonths = localStorage.getItem('budget_months');
+    const budgetActive = localStorage.getItem('budget_activeMonth');
+    batch.set(fb_db.collection('users').doc(uid).collection('config').doc('budget_meta'), {
+      setup: budgetSetup || '{}',
+      months: budgetMonths || '[]',
+      activeMonth: budgetActive || ''
+    });
+
+    // Budget data + income + accounts per month
+    const bMonths = JSON.parse(budgetMonths || '[]');
+    for (const mk of bMonths) {
+      const data = localStorage.getItem('budget_data_' + mk);
+      if (data) {
+        batch.set(fb_db.collection('users').doc(uid).collection('budget_data').doc(mk), { json: data });
+      }
+      const income = localStorage.getItem('budget_income_' + mk);
+      if (income) {
+        batch.set(fb_db.collection('users').doc(uid).collection('budget_income').doc(mk), { json: income });
+      }
+      const accounts = localStorage.getItem('budget_accounts_' + mk);
+      if (accounts) {
+        batch.set(fb_db.collection('users').doc(uid).collection('budget_accounts').doc(mk), { json: accounts });
+      }
+    }
+
     // Scanner meta
     const abbrevDict = localStorage.getItem('scanner_abbrevDict');
     if (abbrevDict) {
@@ -530,6 +574,32 @@ async function syncFromCloud() {
         const editsDoc = await userRef.collection('expenses_edits').doc(mk).get();
         if (editsDoc.exists && editsDoc.data().json) {
           localStorage.setItem('expenses_edits_' + mk, editsDoc.data().json);
+        }
+      }
+    }
+
+    // Budget meta
+    const bMeta = await userRef.collection('config').doc('budget_meta').get();
+    if (bMeta.exists) {
+      const d = bMeta.data();
+      if (d.setup) localStorage.setItem('budget_setup', d.setup);
+      if (d.months) localStorage.setItem('budget_months', d.months);
+      if (d.activeMonth) localStorage.setItem('budget_activeMonth', d.activeMonth);
+
+      // Budget data + income + accounts per month
+      const bMonths = JSON.parse(d.months || '[]');
+      for (const mk of bMonths) {
+        const dataDoc = await userRef.collection('budget_data').doc(mk).get();
+        if (dataDoc.exists && dataDoc.data().json) {
+          localStorage.setItem('budget_data_' + mk, dataDoc.data().json);
+        }
+        const incomeDoc = await userRef.collection('budget_income').doc(mk).get();
+        if (incomeDoc.exists && incomeDoc.data().json) {
+          localStorage.setItem('budget_income_' + mk, incomeDoc.data().json);
+        }
+        const acctDoc = await userRef.collection('budget_accounts').doc(mk).get();
+        if (acctDoc.exists && acctDoc.data().json) {
+          localStorage.setItem('budget_accounts_' + mk, acctDoc.data().json);
         }
       }
     }

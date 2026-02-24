@@ -323,6 +323,128 @@ const DEMO_EXPENSES_DATA = {
   ]
 };
 
+// ── Budget Demo Data: setup + 2 months ──
+const DEMO_BUDGET_DATA = {
+  setup: {
+    year: 2026, startMonth: 1,
+    categories: [
+      {group:'Household',name:'Rent',budget:1850},{group:'Household',name:'Internet',budget:80},
+      {group:'Household',name:'Utilities',budget:150},{group:'Household',name:'Phone',budget:65},
+      {group:'Food',name:'Groceries',budget:500},{group:'Food',name:'Restaurants',budget:200},
+      {group:'Food',name:'Coffee Shops',budget:60},
+      {group:'Transportation',name:'Public Transportation',budget:50},{group:'Transportation',name:'Taxi Services',budget:40},
+      {group:'Health',name:'Massage Therapist',budget:0},{group:'Health',name:'Dentist',budget:50},
+      {group:'Personal',name:'Personal Care',budget:60},{group:'Personal',name:'Gifts / Donations',budget:50},
+      {group:'Personal',name:'Clothing',budget:100},{group:'Personal',name:'Travel',budget:0},
+      {group:'Personal',name:'Subscriptions',budget:75},{group:'Personal',name:'Fitness',budget:50},
+      {group:'Personal',name:'Other',budget:100}
+    ],
+    extras: Array.from({length:25},function(_,i){return {group:'Extra',name:'Extra '+(i+1),budget:0};}),
+    income: [
+      {name:'Salary',amount:5200},{name:'Side Gig',amount:400},
+      {name:'Income Source 2',amount:0},{name:'Income Source 3',amount:0},{name:'Income Source 4',amount:0}
+    ],
+    savings: [
+      {name:'Emergency Fund',amount:200},{name:'Investment Account',amount:500},
+      {name:'Debt Payment',amount:300},{name:'Extra Account 1',amount:0},
+      {name:'Extra Account 2',amount:0},{name:'Extra Account 3',amount:0},{name:'Extra Account 4',amount:0}
+    ],
+    bigExpenses: [
+      {name:'Annual Insurance',amount:1800},{name:'Vacation Fund',amount:2400},
+      {name:'Big Expense #3',amount:0},{name:'Big Expense #4',amount:0},{name:'Big Expense #5',amount:0}
+    ]
+  },
+  transactions: {
+    "2026_01": [
+      {id:"bt-001",date:"2026-01-01",category:"Rent",description:"Monthly rent payment",paymentMethod:"Transfer",amount:1850},
+      {id:"bt-002",date:"2026-01-03",category:"Groceries",description:"Weekly grocery run",paymentMethod:"Debit",amount:87.42},
+      {id:"bt-003",date:"2026-01-03",category:"Coffee Shops",description:"Starbucks",paymentMethod:"Credit",amount:5.75},
+      {id:"bt-004",date:"2026-01-05",category:"Internet",description:"Spectrum internet",paymentMethod:"Credit",amount:79.99},
+      {id:"bt-005",date:"2026-01-05",category:"Subscriptions",description:"Netflix",paymentMethod:"Credit",amount:15.49},
+      {id:"bt-006",date:"2026-01-06",category:"Fitness",description:"Planet Fitness",paymentMethod:"Credit",amount:24.99},
+      {id:"bt-007",date:"2026-01-07",category:"Utilities",description:"Georgia Power",paymentMethod:"Debit",amount:128.50},
+      {id:"bt-008",date:"2026-01-08",category:"Phone",description:"T-Mobile",paymentMethod:"Credit",amount:65.00},
+      {id:"bt-009",date:"2026-01-10",category:"Groceries",description:"Publix groceries",paymentMethod:"Debit",amount:112.34},
+      {id:"bt-010",date:"2026-01-10",category:"Restaurants",description:"Chipotle dinner",paymentMethod:"Credit",amount:14.85},
+      {id:"bt-011",date:"2026-01-12",category:"Taxi Services",description:"Uber ride",paymentMethod:"Credit",amount:18.50},
+      {id:"bt-012",date:"2026-01-13",category:"Subscriptions",description:"Spotify",paymentMethod:"Credit",amount:10.99},
+      {id:"bt-013",date:"2026-01-14",category:"Coffee Shops",description:"Dunkin Donuts",paymentMethod:"Debit",amount:4.25},
+      {id:"bt-014",date:"2026-01-15",category:"Personal Care",description:"Haircut",paymentMethod:"Cash",amount:35.00},
+      {id:"bt-015",date:"2026-01-16",category:"Restaurants",description:"Pizza Hut delivery",paymentMethod:"Credit",amount:24.99},
+      {id:"bt-016",date:"2026-01-17",category:"Groceries",description:"Walmart groceries",paymentMethod:"Debit",amount:94.67},
+      {id:"bt-017",date:"2026-01-18",category:"Other",description:"Amazon order",paymentMethod:"Credit",amount:42.99},
+      {id:"bt-018",date:"2026-01-19",category:"Subscriptions",description:"YouTube Premium",paymentMethod:"Credit",amount:13.99},
+      {id:"bt-019",date:"2026-01-20",category:"Restaurants",description:"Olive Garden",paymentMethod:"Credit",amount:48.75},
+      {id:"bt-020",date:"2026-01-21",category:"Dentist",description:"Dental cleaning",paymentMethod:"Credit",amount:50.00},
+      {id:"bt-021",date:"2026-01-22",category:"Utilities",description:"Water bill",paymentMethod:"Debit",amount:35.20},
+      {id:"bt-022",date:"2026-01-23",category:"Coffee Shops",description:"Starbucks",paymentMethod:"Credit",amount:6.50},
+      {id:"bt-023",date:"2026-01-24",category:"Groceries",description:"Costco run",paymentMethod:"Debit",amount:156.80},
+      {id:"bt-024",date:"2026-01-25",category:"Clothing",description:"Old Navy",paymentMethod:"Credit",amount:67.49},
+      {id:"bt-025",date:"2026-01-26",category:"Gifts / Donations",description:"Birthday gift",paymentMethod:"Cash",amount:30.00},
+      {id:"bt-026",date:"2026-01-28",category:"Public Transportation",description:"MARTA pass",paymentMethod:"Debit",amount:50.00},
+      {id:"bt-027",date:"2026-01-29",category:"Restaurants",description:"Chick-fil-A",paymentMethod:"Debit",amount:12.45},
+      {id:"bt-028",date:"2026-01-30",category:"Other",description:"Dry cleaning",paymentMethod:"Cash",amount:24.00},
+      {id:"bt-029",date:"2026-01-31",category:"Groceries",description:"Aldi groceries",paymentMethod:"Debit",amount:68.25}
+    ],
+    "2026_02": [
+      {id:"bt-101",date:"2026-02-01",category:"Rent",description:"Monthly rent payment",paymentMethod:"Transfer",amount:1850},
+      {id:"bt-102",date:"2026-02-02",category:"Groceries",description:"Weekly grocery run",paymentMethod:"Debit",amount:92.18},
+      {id:"bt-103",date:"2026-02-03",category:"Coffee Shops",description:"Starbucks",paymentMethod:"Credit",amount:6.25},
+      {id:"bt-104",date:"2026-02-04",category:"Internet",description:"Spectrum internet",paymentMethod:"Credit",amount:79.99},
+      {id:"bt-105",date:"2026-02-05",category:"Subscriptions",description:"Netflix",paymentMethod:"Credit",amount:15.49},
+      {id:"bt-106",date:"2026-02-06",category:"Fitness",description:"Planet Fitness",paymentMethod:"Credit",amount:24.99},
+      {id:"bt-107",date:"2026-02-07",category:"Utilities",description:"Georgia Power",paymentMethod:"Debit",amount:142.30},
+      {id:"bt-108",date:"2026-02-08",category:"Phone",description:"T-Mobile",paymentMethod:"Credit",amount:65.00},
+      {id:"bt-109",date:"2026-02-09",category:"Groceries",description:"Publix groceries",paymentMethod:"Debit",amount:98.45},
+      {id:"bt-110",date:"2026-02-10",category:"Restaurants",description:"Doordash dinner",paymentMethod:"Credit",amount:32.50},
+      {id:"bt-111",date:"2026-02-12",category:"Taxi Services",description:"Lyft ride",paymentMethod:"Credit",amount:22.75},
+      {id:"bt-112",date:"2026-02-13",category:"Subscriptions",description:"Spotify",paymentMethod:"Credit",amount:10.99},
+      {id:"bt-113",date:"2026-02-14",category:"Restaurants",description:"Valentine's dinner",paymentMethod:"Credit",amount:125.00},
+      {id:"bt-114",date:"2026-02-14",category:"Gifts / Donations",description:"Valentine's gift",paymentMethod:"Credit",amount:85.00},
+      {id:"bt-115",date:"2026-02-15",category:"Groceries",description:"Walmart groceries",paymentMethod:"Debit",amount:78.90},
+      {id:"bt-116",date:"2026-02-16",category:"Other",description:"Amazon order",paymentMethod:"Credit",amount:56.78},
+      {id:"bt-117",date:"2026-02-17",category:"Coffee Shops",description:"Dunkin Donuts",paymentMethod:"Debit",amount:4.75},
+      {id:"bt-118",date:"2026-02-18",category:"Subscriptions",description:"YouTube Premium",paymentMethod:"Credit",amount:13.99},
+      {id:"bt-119",date:"2026-02-19",category:"Restaurants",description:"Panera Bread",paymentMethod:"Credit",amount:16.25},
+      {id:"bt-120",date:"2026-02-20",category:"Personal Care",description:"Haircut + products",paymentMethod:"Cash",amount:45.00},
+      {id:"bt-121",date:"2026-02-21",category:"Utilities",description:"Water bill",paymentMethod:"Debit",amount:32.80},
+      {id:"bt-122",date:"2026-02-22",category:"Groceries",description:"Costco run",paymentMethod:"Debit",amount:142.55},
+      {id:"bt-123",date:"2026-02-23",category:"Clothing",description:"Target clothing",paymentMethod:"Credit",amount:45.99},
+      {id:"bt-124",date:"2026-02-24",category:"Public Transportation",description:"MARTA pass",paymentMethod:"Debit",amount:50.00},
+      {id:"bt-125",date:"2026-02-25",category:"Coffee Shops",description:"Starbucks",paymentMethod:"Credit",amount:5.50},
+      {id:"bt-126",date:"2026-02-26",category:"Restaurants",description:"Wingstop",paymentMethod:"Debit",amount:18.99},
+      {id:"bt-127",date:"2026-02-27",category:"Other",description:"Car wash",paymentMethod:"Cash",amount:15.00},
+      {id:"bt-128",date:"2026-02-28",category:"Groceries",description:"Aldi groceries",paymentMethod:"Debit",amount:72.40}
+    ]
+  },
+  income: {
+    "2026_01": {
+      salary:{amount:5200,date:"2026-01-01",description:"Monthly salary"},
+      sources:[{name:"Side Gig",amount:400,date:"2026-01-15",description:"Freelance project"},{name:"Income Source 2",amount:0,date:"",description:""},{name:"Income Source 3",amount:0,date:"",description:""},{name:"Income Source 4",amount:0,date:"",description:""}],
+      other:[{name:"Other 1",amount:0,date:"",description:""},{name:"Other 2",amount:0,date:"",description:""},{name:"Other 3",amount:0,date:"",description:""},{name:"Other 4",amount:0,date:"",description:""},{name:"Other 5",amount:0,date:"",description:""}]
+    },
+    "2026_02": {
+      salary:{amount:5200,date:"2026-02-01",description:"Monthly salary"},
+      sources:[{name:"Side Gig",amount:350,date:"2026-02-15",description:"Freelance project"},{name:"Income Source 2",amount:0,date:"",description:""},{name:"Income Source 3",amount:0,date:"",description:""},{name:"Income Source 4",amount:0,date:"",description:""}],
+      other:[{name:"Other 1",amount:0,date:"",description:""},{name:"Other 2",amount:0,date:"",description:""},{name:"Other 3",amount:0,date:"",description:""},{name:"Other 4",amount:0,date:"",description:""},{name:"Other 5",amount:0,date:"",description:""}]
+    }
+  },
+  accounts: {
+    "2026_01": [
+      {id:"da-01",type:"Checking",name:"Chase Checking",amount:4500,interestRate:0,notes:""},
+      {id:"da-02",type:"Savings",name:"Chase Savings",amount:12000,interestRate:3.5,notes:"Emergency fund"},
+      {id:"da-03",type:"Investing",name:"Fidelity 401k",amount:45000,interestRate:0,notes:"Employer match 4%"},
+      {id:"da-04",type:"Credit Card",name:"Chase Sapphire",amount:-2300,interestRate:24.99,notes:""}
+    ],
+    "2026_02": [
+      {id:"da-05",type:"Checking",name:"Chase Checking",amount:4850,interestRate:0,notes:""},
+      {id:"da-06",type:"Savings",name:"Chase Savings",amount:12200,interestRate:3.5,notes:"Emergency fund"},
+      {id:"da-07",type:"Investing",name:"Fidelity 401k",amount:46200,interestRate:0,notes:"Employer match 4%"},
+      {id:"da-08",type:"Credit Card",name:"Chase Sapphire",amount:-1850,interestRate:24.99,notes:""}
+    ]
+  }
+};
+
 // ── Seed the in-memory store on load ──
 function seedDemoStore() {
   const groceryMonths = Object.keys(DEMO_GROCERY_DATA).sort();
@@ -339,6 +461,21 @@ function seedDemoStore() {
   expenseMonths.forEach(function(mk) {
     _demoStore['expenses_data_' + mk] = JSON.stringify(DEMO_EXPENSES_DATA[mk]);
   });
+
+  // Budget demo data
+  _demoStore['budget_setup'] = JSON.stringify(DEMO_BUDGET_DATA.setup);
+  const budgetMonths = Object.keys(DEMO_BUDGET_DATA.transactions).sort();
+  _demoStore['budget_months'] = JSON.stringify(budgetMonths);
+  _demoStore['budget_activeMonth'] = budgetMonths[budgetMonths.length - 1];
+  budgetMonths.forEach(function(mk) {
+    _demoStore['budget_data_' + mk] = JSON.stringify(DEMO_BUDGET_DATA.transactions[mk]);
+    if (DEMO_BUDGET_DATA.income[mk]) {
+      _demoStore['budget_income_' + mk] = JSON.stringify(DEMO_BUDGET_DATA.income[mk]);
+    }
+    if (DEMO_BUDGET_DATA.accounts[mk]) {
+      _demoStore['budget_accounts_' + mk] = JSON.stringify(DEMO_BUDGET_DATA.accounts[mk]);
+    }
+  });
 }
 
 if (DEMO_MODE) {
@@ -348,16 +485,17 @@ if (DEMO_MODE) {
 // ── Shared demo UI functions ──
 function injectDemoBanner(color) {
   color = color || 'green';
-  var c1 = color === 'blue' ? '#1a2740' : '#1e3a2f';
-  var c2 = color === 'blue' ? '#1e2a3f' : '#1a2740';
-  var accent = color === 'blue' ? 'rgba(59,130,246,0.3)' : 'rgba(34,197,94,0.3)';
-  var accentVar = color === 'blue' ? '#3b82f6' : '#22c55e';
+  var colorMap = { green:{ c1:'#1e3a2f',c2:'#1a2740',accent:'rgba(34,197,94,0.3)',accentVar:'#22c55e',rgb:'34,197,94' },
+    blue:{ c1:'#1a2740',c2:'#1e2a3f',accent:'rgba(59,130,246,0.3)',accentVar:'#3b82f6',rgb:'59,130,246' },
+    purple:{ c1:'#2a1f40',c2:'#1e2a3f',accent:'rgba(168,85,247,0.3)',accentVar:'#a855f7',rgb:'168,85,247' } };
+  var cm = colorMap[color] || colorMap.green;
+  var c1 = cm.c1, c2 = cm.c2, accent = cm.accent, accentVar = cm.accentVar;
   var banner = document.createElement('div');
   banner.id = 'demo-banner';
   banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:10000;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');border-bottom:1px solid ' + accent + ';padding:10px 20px;display:flex;justify-content:center;align-items:center;gap:16px;font-size:13px;color:#e4e4e7;flex-wrap:wrap;';
   banner.innerHTML = '<span style="font-weight:700;color:' + accentVar + '">DEMO MODE</span>' +
     '<span style="color:#71717a">Exploring with sample data</span>' +
-    '<button onclick="exitDemoAndSignUp()" style="background:rgba(' + (color === 'blue' ? '59,130,246' : '34,197,94') + ',0.15);border:1px solid ' + accent + ';color:' + accentVar + ';border-radius:6px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Sign Up to Save Your Data</button>' +
+    '<button onclick="exitDemoAndSignUp()" style="background:rgba(' + cm.rgb + ',0.15);border:1px solid ' + accent + ';color:' + accentVar + ';border-radius:6px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Sign Up to Save Your Data</button>' +
     '<button onclick="exitDemo()" style="background:none;border:none;color:#71717a;cursor:pointer;font-size:12px;text-decoration:underline;font-family:inherit;">Exit Demo</button>';
   document.body.prepend(banner);
   // Push down the header and content
@@ -372,12 +510,14 @@ function injectDemoBanner(color) {
 
 function exitDemo() {
   sessionStorage.removeItem('demo_mode');
-  window.location.href = window.location.pathname.includes('/Groceries/') || window.location.pathname.includes('/Expenses/') || window.location.pathname.includes('/Scanner/') ? '../' : './';
+  var isSubdir = /\/(Groceries|Expenses|Scanner|Budget)\//.test(window.location.pathname);
+  window.location.href = isSubdir ? '../' : './';
 }
 
 function exitDemoAndSignUp() {
   sessionStorage.removeItem('demo_mode');
-  var base = window.location.pathname.includes('/Groceries/') || window.location.pathname.includes('/Expenses/') || window.location.pathname.includes('/Scanner/') ? '../' : './';
+  var isSubdir = /\/(Groceries|Expenses|Scanner|Budget)\//.test(window.location.pathname);
+  var base = isSubdir ? '../' : './';
   window.location.href = base + '?signup=true';
 }
 
@@ -401,7 +541,7 @@ function demofyLinks() {
   if (!DEMO_MODE) return;
   document.querySelectorAll('a').forEach(function(a) {
     var href = a.getAttribute('href') || '';
-    if ((href.includes('Groceries/') || href.includes('Expenses/') || href.includes('../Groceries') || href.includes('../Expenses')) && !href.includes('demo')) {
+    if ((href.includes('Groceries/') || href.includes('Expenses/') || href.includes('Budget/') || href.includes('../Groceries') || href.includes('../Expenses') || href.includes('../Budget')) && !href.includes('demo')) {
       a.setAttribute('href', href + (href.includes('?') ? '&' : '?') + 'demo=true');
     }
   });
