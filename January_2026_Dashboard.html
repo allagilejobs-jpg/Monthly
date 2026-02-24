@@ -2116,9 +2116,10 @@ function renderOverview() {
         suggestions += '\u2022 Click to view full details and price history';
         suggestions += suggEnd;
       }
-      const typeLabel = a.type === 'price' ? '\u26A0\uFE0F Price Spike' : a.type === 'category' ? '\uD83D\uDCC8 Category Dominance' : '\uD83D\uDCB0 High-Cost Item';
+      const store = a.item ? a.item.s : '';
       aHtml += '<div class="insight" style="cursor:pointer;border-color:rgba(244,63,94,0.2);background:rgba(244,63,94,0.04)" onclick="showProductDetail(\'' + escaped + '\',\'overview\')">';
-      aHtml += '<div class="insight-title" style="color:var(--rose)">' + typeLabel + ' \u2014 ' + a.ratio + 'x above average</div>';
+      aHtml += '<div class="insight-title" style="color:var(--rose)">' + a.product + (store ? ' \u2014 ' + store : '') + '</div>';
+      aHtml += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">' + a.ratio + 'x above average \u2022 ' + fmt(a.amount) + '</div>';
       aHtml += '<div class="insight-text" style="margin-bottom:6px">' + description + '</div>';
       aHtml += suggestions;
       aHtml += '</div>';
