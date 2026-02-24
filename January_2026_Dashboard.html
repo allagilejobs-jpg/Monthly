@@ -1249,13 +1249,12 @@ function buildMonthContext(monthKey) {
 }
 
 function getLoadedMonths() {
-  return JSON.parse(localStorage.getItem("grocery_months") || '["2026_01"]').sort();
+  return JSON.parse(localStorage.getItem("grocery_months") || '[]').sort();
 }
 
 function loadMonthData(monthKey) {
   const stored = localStorage.getItem("data_" + monthKey);
   if (stored) return JSON.parse(stored);
-  if (monthKey === "2026_01") return SEED_DATA.map(i => Object.assign({}, i));
   return null;
 }
 
@@ -1430,14 +1429,27 @@ function makeChartClickable(chart, canvas, labels, filterKey) {
 
 // ─────────── RENDER ON LOAD ───────────
 window.addEventListener("DOMContentLoaded", () => {
-  const activeMonthKey = localStorage.getItem("grocery_activeMonth") || "2026_01";
-  ctx = buildMonthContext(activeMonthKey);
-  activeData = loadMonthData(activeMonthKey) || SEED_DATA.map(i => Object.assign({}, i));
-  initMonthData(activeData);
-  recomputeAll();
-  updateHeader();
-  buildMonthSelector();
-  renderAll();
+  const months = getLoadedMonths();
+  const activeMonthKey = localStorage.getItem("grocery_activeMonth") || (months.length ? months[0] : null);
+  if (activeMonthKey) {
+    ctx = buildMonthContext(activeMonthKey);
+    activeData = loadMonthData(activeMonthKey) || [];
+    initMonthData(activeData);
+    recomputeAll();
+    updateHeader();
+    buildMonthSelector();
+    renderAll();
+  } else {
+    // No data — show empty welcome state
+    ctx = buildMonthContext(new Date().getFullYear() + "_" + String(new Date().getMonth() + 1).padStart(2, "0"));
+    activeData = [];
+    updateHeader();
+    buildMonthSelector();
+    const main = document.getElementById("main-content") || document.querySelector(".tabs")?.parentElement;
+    if (main) {
+      main.innerHTML = '<div style="text-align:center;padding:80px 20px"><div style="font-size:48px;margin-bottom:16px">&#128722;</div><div style="font-size:20px;font-weight:700;margin-bottom:8px">No Grocery Data Yet</div><div style="color:var(--text-muted);font-size:14px;margin-bottom:24px">Upload an Excel file or import from the Receipt Scanner to get started.</div><button onclick="openUploadModal()" class="month-nav-btn" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3);padding:10px 24px;font-size:14px">+ Upload Month</button></div>';
+    }
+  }
 });
 
 // ─────────── GLOBAL SEARCH ───────────
@@ -3190,14 +3202,11 @@ function openDataManager() {
     const bytes = dataStr ? new Blob([dataStr]).size : 0;
     totalBytes += bytes;
     const isActive = key === ctx.monthKey;
-    const isSeed = key === "2026_01" && !dataStr;
     html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid var(--card-border)">';
     html += '<div><div style="font-weight:600">' + label;
     if (isActive) html += ' <span style="font-size:10px;color:var(--green)">(ACTIVE)</span>';
-    html += '</div><div style="font-size:11px;color:var(--text-muted)">' + (isSeed ? "Embedded (default)" : formatBytes(bytes)) + '</div></div>';
-    if (months.length > 1) {
-      html += '<button onclick="deleteMonth(\'' + key + '\')" style="background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.25);color:var(--rose);border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:inherit">Delete</button>';
-    }
+    html += '</div><div style="font-size:11px;color:var(--text-muted)">' + formatBytes(bytes) + '</div></div>';
+    html += '<button onclick="deleteMonth(\'' + key + '\')" style="background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.25);color:var(--rose);border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:inherit">Delete</button>';
     html += '</div>';
   });
   document.getElementById("manager-list").innerHTML = html;
@@ -3214,8 +3223,8 @@ function deleteMonth(key) {
   localStorage.removeItem("data_" + key);
   localStorage.removeItem("edits_" + key);
   let months = getLoadedMonths().filter(m => m !== key);
-  if (months.length === 0) months = ["2026_01"];
   localStorage.setItem("grocery_months", JSON.stringify(months));
+  if (months.length === 0) { location.reload(); return; }
   if (key === ctx.monthKey) switchMonth(months[0]);
   buildMonthSelector();
   openDataManager();
@@ -3229,7 +3238,7 @@ function downloadAllData() {
   if (months) keys["grocery_months"] = months;
   const active = localStorage.getItem("grocery_activeMonth");
   if (active) keys["grocery_activeMonth"] = active;
-  const allMonths = JSON.parse(months || '["2026_01"]');
+  const allMonths = JSON.parse(months || '[]');
   allMonths.forEach(mk => {
     const d = localStorage.getItem("data_" + mk);
     if (d) keys["data_" + mk] = d;
