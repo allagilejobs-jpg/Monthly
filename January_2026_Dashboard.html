@@ -1786,7 +1786,7 @@ function renderOverview() {
       if (cS > mxS) mxS = cS;
       if (cN > mxN) mxN = cN;
     }
-    insights.push({ title: "Shopping Streaks", text: `Longest shopping streak: <span class="insight-val">${mxS} days</span> &bull; Longest gap: <span class="insight-val">${mxN} days</span> &bull; ${streakDays.size}/${ctx.daysInMonth} active days`, action: `showView('trends')` });
+    insights.push({ title: "Shopping Streaks", text: `Longest shopping streak: <span class="insight-val">${mxS} days</span> &bull; Longest no-spend streak: <span class="insight-val">${mxN} days</span> &bull; ${streakDays.size}/${ctx.daysInMonth} active days`, action: `showView('trends')` });
   }
 
   document.getElementById("insights").innerHTML = insights.map(ins =>
