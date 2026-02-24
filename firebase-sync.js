@@ -54,6 +54,13 @@ function initFirebase() {
           // If page has a render function, re-render after sync
           if (typeof recomputeAll === 'function') { recomputeAll(); renderAll(); }
         });
+      } else {
+        // Redirect non-authenticated users to landing page
+        const path = window.location.pathname;
+        const isLandingPage = path.endsWith('/Monthly/') || path.endsWith('/Monthly/index.html') || path === '/Monthly';
+        if (!isLandingPage) {
+          window.location.href = '../';
+        }
       }
     });
   } catch(e) {
