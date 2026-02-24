@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>January 2026 - Grocery & Toiletries Spend Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root {
     --bg: #0f1117;
@@ -355,13 +356,68 @@
     display: inline-block; width: 6px; height: 6px; border-radius: 50%;
     background: var(--cyan); margin-left: 6px; vertical-align: middle;
   }
+
+  /* Month navigation */
+  .month-nav {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .month-nav select {
+    background: rgba(255,255,255,0.04); border: 1px solid var(--card-border);
+    border-radius: 8px; padding: 8px 14px; color: var(--text);
+    font-size: 14px; font-weight: 600; font-family: inherit; outline: none;
+  }
+  .month-nav select option { background: var(--card); }
+  .month-nav-btn {
+    border-radius: 8px; padding: 8px 16px; font-size: 13px;
+    font-weight: 600; cursor: pointer; font-family: inherit; border: none;
+    transition: all 0.2s;
+  }
+  .month-nav-btn:hover { transform: translateY(-1px); }
+
+  /* Upload modal */
+  .drop-zone {
+    border: 2px dashed var(--card-border); border-radius: 12px;
+    padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s;
+  }
+  .drop-zone.drag-over { border-color: var(--green); background: rgba(34,197,94,0.06); }
+  .drop-zone-icon { font-size: 32px; margin-bottom: 8px; }
+  .drop-zone-text { font-size: 14px; font-weight: 600; color: var(--text); }
+  .drop-zone-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  /* Compare delta cards */
+  .delta-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px; margin-bottom: 24px;
+  }
+  .delta-card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 18px 20px;
+  }
+  .delta-value { font-size: 22px; font-weight: 700; }
+  .delta-change { font-size: 13px; font-weight: 600; margin-top: 4px; }
+  .delta-up { color: var(--rose); }
+  .delta-down { color: var(--green); }
+  .delta-same { color: var(--text-muted); }
+
+  @media (max-width: 900px) {
+    .month-nav { gap: 8px; }
+    .month-nav select { font-size: 13px; padding: 7px 10px; }
+    .month-nav-btn { font-size: 12px; padding: 7px 12px; }
+    .delta-grid { grid-template-columns: repeat(2, 1fr); }
+  }
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <h1>January 2026 Grocery & Toiletries Dashboard</h1>
-    <p>Family spend analysis across 9 stores &bull; 33 shopping trips &bull; 184 items purchased</p>
+    <h1 id="dashboard-title">Grocery & Toiletries Dashboard</h1>
+    <p id="dashboard-subtitle">Family spend analysis</p>
+  </div>
+
+  <div class="month-nav" id="month-nav">
+    <select id="month-select"></select>
+    <button class="month-nav-btn" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3)" onclick="openUploadModal()">+ Upload Month</button>
+    <button class="month-nav-btn" style="background:rgba(255,255,255,0.04);color:var(--text-muted);border:1px solid var(--card-border)" onclick="openDataManager()">Manage Data</button>
   </div>
 
   <div class="tabs">
@@ -372,6 +428,7 @@
     <button class="tab" data-view="trends" onclick="showView('trends')">Trends</button>
     <button class="tab" data-view="trips" onclick="showView('trips')">Trips</button>
     <button class="tab" data-view="items" onclick="showView('items')">All Items</button>
+    <button class="tab" data-view="compare" onclick="showView('compare')">Compare</button>
   </div>
 
   <!-- ==================== OVERVIEW ==================== -->
@@ -461,7 +518,7 @@
         <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
       </div>
       <div class="card">
-        <div class="card-title">Cumulative Spend Over January</div>
+        <div class="card-title" id="cumulative-title">Cumulative Spend</div>
         <div class="chart-wrap"><canvas id="chart-cumulative"></canvas></div>
       </div>
     </div>
@@ -511,6 +568,51 @@
       <div style="overflow-x:auto"><table id="table-all"></table></div>
     </div>
   </div>
+
+  <!-- ==================== COMPARE ==================== -->
+  <div id="view-compare" class="view">
+    <div id="compare-content"></div>
+  </div>
+
+</div><!-- end container -->
+
+<!-- Upload Modal -->
+<div class="modal-overlay" id="upload-modal" onclick="if(event.target===this)closeUploadModal()">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">Upload Monthly Data</div>
+    <div class="drop-zone" id="drop-zone">
+      <div class="drop-zone-icon">&#128193;</div>
+      <div class="drop-zone-text">Drop your Excel file here or click to browse</div>
+      <div class="drop-zone-hint">Expects an "All Transactions" sheet with columns:<br>Date, Store, Receipt Name, Full Product Name, Category, Qty, Unit Price, Line Total, Non-Grocery?</div>
+      <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none">
+    </div>
+    <div id="upload-preview" style="display:none;margin-top:16px">
+      <div style="font-size:13px;color:var(--green);font-weight:700;margin-bottom:8px" id="upload-month-label"></div>
+      <div style="font-size:12px;color:var(--text-muted)" id="upload-stats"></div>
+      <div style="max-height:200px;overflow-y:auto;margin-top:12px;font-size:12px" id="upload-sample"></div>
+    </div>
+    <div id="upload-actions" style="display:none;margin-top:20px">
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" onclick="closeUploadModal()">Cancel</button>
+        <button class="modal-btn modal-btn-save" onclick="confirmUpload()">Import This Month</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Data Manager Modal -->
+<div class="modal-overlay" id="manager-modal" onclick="if(event.target===this)closeDataManager()">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">Data Manager</div>
+    <div style="margin-bottom:16px;font-size:12px;color:var(--text-muted)">
+      Data is stored in this browser's localStorage. It does not sync across devices.
+    </div>
+    <div id="manager-list"></div>
+    <div id="manager-usage" style="margin-top:12px;font-size:11px;color:var(--text-muted)"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="modal-btn modal-btn-cancel" onclick="closeDataManager()">Close</button>
+    </div>
+  </div>
 </div>
 
 <!-- Edit Modal -->
@@ -543,8 +645,12 @@
 </div>
 
 <script>
-// ─────────── DATA ───────────
-const RAW = [
+// ─────────── MONTH CONSTANTS ───────────
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+// ─────────── SEED DATA (January 2026) ───────────
+const SEED_DATA = [
   {d:"01/01",s:"Instacart (Sprouts)",r:"BOULDER AVO CHIPS",n:"Boulder Canyon Avocado Oil Chips",c:"Snacks & Chips",q:1,u:2.92,t:2.92,ng:false},
   {d:"01/03",s:"Publix",r:"BRIOCHE SLICED LF",n:"Brioche Sliced Loaf",c:"Bakery & Bread",q:2,u:7.19,t:14.38,ng:false},
   {d:"01/03",s:"Publix",r:"RING POPS ASSORTED",n:"Ring Pops Assorted Candy",c:"Candy & Sweets",q:2,u:1.00,t:2.00,ng:false},
@@ -693,33 +799,20 @@ const RAW = [
   {d:"01/31",s:"Walmart",r:"GV JCE",n:"Great Value Juice",c:"Beverages",q:2,u:3.24,t:6.48,ng:false},
 ];
 
-// ─────────── LOAD SAVED EDITS ───────────
-// Store original values for reset
-RAW.forEach((item, idx) => { item._idx = idx; item._origName = item.n; item._origCat = item.c; item._origNg = item.ng; });
-// Apply saved overrides from localStorage
-const savedEdits = JSON.parse(localStorage.getItem("dashboardEdits") || "{}");
-Object.entries(savedEdits).forEach(([idx, edits]) => {
-  const i = parseInt(idx);
-  if (RAW[i]) {
-    if (edits.n !== undefined) RAW[i].n = edits.n;
-    if (edits.c !== undefined) RAW[i].c = edits.c;
-    if (edits.ng !== undefined) RAW[i].ng = edits.ng;
-  }
-});
-
 // ─────────── CLASSIFICATION ───────────
 const TOILETRY_CATS = ["Health & Beauty", "Household & Cleaning", "Paper Products"];
 
 function itemType(item) {
   if (TOILETRY_CATS.includes(item.c)) return "toiletry";
   if (!item.ng) return "grocery";
-  return "other"; // non-grocery non-toiletry (toys, electronics, clothing, housewares)
+  return "other";
 }
 
 // ─────────── UTILITIES ───────────
 const fmt = v => "$" + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 const pct = (v, total) => total > 0 ? (v / total * 100).toFixed(1) + "%" : "0%";
 const sum = arr => arr.reduce((s, i) => s + i.t, 0);
+const formatBytes = b => b < 1024 ? b + " B" : (b / 1024).toFixed(1) + " KB";
 
 const STORE_COLORS = {
   "Publix": "#4ade80",
@@ -740,15 +833,130 @@ const PALETTE = [
   "#84cc16","#d946ef","#f43f5e","#0891b2","#a3e635",
 ];
 
-// ─────────── COMPUTED DATA ───────────
-const groceries = RAW.filter(i => itemType(i) === "grocery");
-const toiletries = RAW.filter(i => itemType(i) === "toiletry");
-const others = RAW.filter(i => itemType(i) === "other");
+const COMPARE_COLORS = ["#22c55e","#3b82f6","#f59e0b","#ef4444","#a855f7","#06b6d4","#ec4899","#14b8a6"];
 
-const grandTotal = sum(RAW);
-const groceryTotal = sum(groceries);
-const toiletryTotal = sum(toiletries);
-const otherTotal = sum(others);
+// ─────────── MONTH CONTEXT & STORAGE ───────────
+let ctx = null;
+let activeData = [];
+let groceries = [], toiletries = [], others = [];
+let grandTotal = 0, groceryTotal = 0, toiletryTotal = 0, otherTotal = 0;
+let allTrips = [];
+let ALL_CATEGORIES = [];
+let filtersInitialized = false;
+
+function buildMonthContext(monthKey) {
+  const [yearStr, monthStr] = monthKey.split("_");
+  const year = parseInt(yearStr);
+  const month = parseInt(monthStr);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const weeks = [];
+  for (let start = 1; start <= daysInMonth; start += 7) {
+    const end = Math.min(start + 6, daysInMonth);
+    weeks.push({
+      name: "Week " + (weeks.length + 1) + " (" + start + "-" + end + ")",
+      label: "Week " + (weeks.length + 1) + " \u2014 " + MONTH_ABBR[month - 1] + " " + start + "\u2013" + end,
+      min: start, max: end
+    });
+  }
+  return { month, year, monthName: MONTH_NAMES[month - 1], monthAbbr: MONTH_ABBR[month - 1], daysInMonth, weeks, editsKey: "edits_" + monthKey, storageKey: "data_" + monthKey, monthKey };
+}
+
+function getLoadedMonths() {
+  return JSON.parse(localStorage.getItem("grocery_months") || '["2026_01"]').sort();
+}
+
+function loadMonthData(monthKey) {
+  const stored = localStorage.getItem("data_" + monthKey);
+  if (stored) return JSON.parse(stored);
+  if (monthKey === "2026_01") return SEED_DATA.map(i => Object.assign({}, i));
+  return null;
+}
+
+function initMonthData(data) {
+  data.forEach((item, idx) => { item._idx = idx; item._origName = item.n; item._origCat = item.c; item._origNg = item.ng; });
+  const savedEdits = JSON.parse(localStorage.getItem(ctx.editsKey) || "{}");
+  Object.entries(savedEdits).forEach(([idx, edits]) => {
+    const i = parseInt(idx);
+    if (data[i]) {
+      if (edits.n !== undefined) data[i].n = edits.n;
+      if (edits.c !== undefined) data[i].c = edits.c;
+      if (edits.ng !== undefined) data[i].ng = edits.ng;
+    }
+  });
+}
+
+function recomputeAll() {
+  groceries = activeData.filter(i => itemType(i) === "grocery");
+  toiletries = activeData.filter(i => itemType(i) === "toiletry");
+  others = activeData.filter(i => itemType(i) === "other");
+  grandTotal = sum(activeData);
+  groceryTotal = sum(groceries);
+  toiletryTotal = sum(toiletries);
+  otherTotal = sum(others);
+  allTrips = buildTrips();
+  ALL_CATEGORIES = [...new Set(activeData.map(i => i._origCat))].sort();
+}
+
+function destroyAllCharts() {
+  Object.values(charts).forEach(c => { if (c && c.destroy) c.destroy(); });
+  charts = {};
+}
+
+function updateHeader() {
+  document.title = ctx.monthName + " " + ctx.year + " - Grocery & Toiletries Spend Dashboard";
+  document.getElementById("dashboard-title").textContent = ctx.monthName + " " + ctx.year + " Grocery & Toiletries Dashboard";
+  const stores = [...new Set(activeData.map(i => i.s))];
+  const trips = [...new Set(activeData.map(i => i.d + "|" + i.s))].length;
+  document.getElementById("dashboard-subtitle").innerHTML = "Family spend analysis across " + stores.length + " stores &bull; " + trips + " shopping trips &bull; " + activeData.length + " items purchased";
+  document.getElementById("cumulative-title").textContent = "Cumulative Spend Over " + ctx.monthName;
+}
+
+function buildMonthSelector() {
+  const months = getLoadedMonths();
+  const select = document.getElementById("month-select");
+  select.innerHTML = months.map(key => {
+    const [y, m] = key.split("_");
+    const name = MONTH_NAMES[parseInt(m) - 1] + " " + y;
+    return '<option value="' + key + '"' + (key === ctx.monthKey ? ' selected' : '') + '>' + name + '</option>';
+  }).join("");
+  select.onchange = function() { switchMonth(this.value); };
+}
+
+function switchMonth(monthKey) {
+  const data = loadMonthData(monthKey);
+  if (!data) { alert("No data found for this month."); return; }
+  localStorage.setItem("grocery_activeMonth", monthKey);
+  ctx = buildMonthContext(monthKey);
+  activeData = data;
+  initMonthData(activeData);
+  recomputeAll();
+  destroyAllCharts();
+  updateHeader();
+  buildMonthSelector();
+  filtersInitialized = false;
+  renderAll();
+  showView("overview");
+}
+
+function renderAll() {
+  renderOverview();
+  renderGroceries();
+  renderToiletries();
+  renderStores();
+  renderTrends();
+  renderTrips();
+  renderAllItems();
+  renderCompare();
+}
+
+// Migrate old edit key on first load
+(function migrateEdits() {
+  const old = localStorage.getItem("dashboardEdits");
+  if (old) {
+    localStorage.setItem("edits_2026_01", old);
+    localStorage.removeItem("dashboardEdits");
+  }
+})();
 
 function groupBy(arr, key) {
   const m = {};
@@ -835,22 +1043,23 @@ function makeChartClickable(chart, canvas, labels, filterKey) {
 
 // ─────────── RENDER ON LOAD ───────────
 window.addEventListener("DOMContentLoaded", () => {
-  renderOverview();
-  renderGroceries();
-  renderToiletries();
-  renderStores();
-  renderTrends();
-  renderTrips();
-  renderAllItems();
+  const activeMonthKey = localStorage.getItem("grocery_activeMonth") || "2026_01";
+  ctx = buildMonthContext(activeMonthKey);
+  activeData = loadMonthData(activeMonthKey) || SEED_DATA.map(i => Object.assign({}, i));
+  initMonthData(activeData);
+  recomputeAll();
+  updateHeader();
+  buildMonthSelector();
+  renderAll();
 });
 
 // ─────────── OVERVIEW ───────────
 function renderOverview() {
-  const stores = [...new Set(RAW.map(i => i.s))];
-  const trips = [...new Set(RAW.map(i => i.d + "|" + i.s))].length;
+  const stores = [...new Set(activeData.map(i => i.s))];
+  const trips = [...new Set(activeData.map(i => i.d + "|" + i.s))].length;
 
   document.getElementById("kpi-overview").innerHTML = [
-    { label: "Total Spend", value: fmt(grandTotal), color: "var(--green)", sub: `${RAW.length} line items`, nav: "items", navLabel: "View all items" },
+    { label: "Total Spend", value: fmt(grandTotal), color: "var(--green)", sub: `${activeData.length} line items`, nav: "items", navLabel: "View all items" },
     { label: "Groceries", value: fmt(groceryTotal), color: "var(--green)", sub: pct(groceryTotal, grandTotal) + " of total", nav: "groceries", navLabel: "View groceries" },
     { label: "Toiletries", value: fmt(toiletryTotal), color: "var(--purple)", sub: pct(toiletryTotal, grandTotal) + " of total", nav: "toiletries", navLabel: "View toiletries" },
     { label: "Other Non-Grocery", value: fmt(otherTotal), color: "var(--rose)", sub: pct(otherTotal, grandTotal) + " of total", nav: "items", filter: "Other", navLabel: "View other items" },
@@ -864,7 +1073,7 @@ function renderOverview() {
     </div>`).join("");
 
   // Category pie
-  const catGroups = groupBy(RAW, "c");
+  const catGroups = groupBy(activeData, "c");
   charts.catPie = new Chart(document.getElementById("chart-cat-pie"), {
     type: "doughnut",
     data: {
@@ -884,7 +1093,7 @@ function renderOverview() {
   makeChartClickable(charts.catPie, document.getElementById("chart-cat-pie"), catGroups.map(g => g.name), "cat");
 
   // Store pie
-  const storeGroups = groupBy(RAW, "s");
+  const storeGroups = groupBy(activeData, "s");
   charts.storePie = new Chart(document.getElementById("chart-store-pie"), {
     type: "doughnut",
     data: {
@@ -904,15 +1113,9 @@ function renderOverview() {
   makeChartClickable(charts.storePie, document.getElementById("chart-store-pie"), storeGroups.map(g => g.name), "store");
 
   // Weekly bar
-  const weeks = [
-    { name: "Week 1 (1-7)", min: 1, max: 7 },
-    { name: "Week 2 (8-14)", min: 8, max: 14 },
-    { name: "Week 3 (15-21)", min: 15, max: 21 },
-    { name: "Week 4 (22-28)", min: 22, max: 28 },
-    { name: "Week 5 (29-31)", min: 29, max: 31 },
-  ];
+  const weeks = ctx.weeks;
   const weeklyData = weeks.map(w => {
-    const items = RAW.filter(i => { const day = parseInt(i.d.split("/")[1]); return day >= w.min && day <= w.max; });
+    const items = activeData.filter(i => { const day = parseInt(i.d.split("/")[1]); return day >= w.min && day <= w.max; });
     const g = items.filter(i => itemType(i) === "grocery");
     const t = items.filter(i => itemType(i) === "toiletry");
     return { name: w.name, grocery: +sum(g).toFixed(2), toiletry: +sum(t).toFixed(2) };
@@ -969,17 +1172,17 @@ function renderOverview() {
   // Insights
   const topCat = catGroups[0];
   const topStore = storeGroups[0];
-  const products = groupProducts(RAW);
+  const products = groupProducts(activeData);
   const topProduct = products[0];
   const freqProducts = products.filter(p => p.count >= 2);
-  const avgTrip = grandTotal / [...new Set(RAW.map(i => i.d + "|" + i.s))].length;
-  const biggestDay = groupBy(RAW, "d").sort((a,b) => b.total - a.total)[0];
+  const avgTrip = grandTotal / [...new Set(activeData.map(i => i.d + "|" + i.s))].length;
+  const biggestDay = groupBy(activeData, "d").sort((a,b) => b.total - a.total)[0];
 
   document.getElementById("insights").innerHTML = [
     { title: "Top Category", text: `<span class="insight-val">${topCat.name}</span> at ${fmt(topCat.total)} (${pct(topCat.total, grandTotal)} of total spend)`, action: `showView('items',null,{cat:'${topCat.name}'})` },
     { title: "Most Spent at Store", text: `<span class="insight-val">${topStore.name}</span> across ${topStore.items.length} items totaling ${fmt(topStore.total)}`, action: `showView('items',null,{store:'${topStore.name}'})` },
     { title: "Costliest Single Product", text: `<span class="insight-val">${topProduct.name}</span> &mdash; ${fmt(topProduct.total)} total (qty ${topProduct.qty})`, action: `showView('items',null,{cat:'${topProduct.cat}'})` },
-    { title: "Biggest Shopping Day", text: `<span class="insight-val">Jan ${parseInt(biggestDay.name.split("/")[1])}</span> &mdash; ${fmt(biggestDay.total)} spent across ${biggestDay.items.length} items`, action: `showView('items',null,{date:'${biggestDay.name}'})` },
+    { title: "Biggest Shopping Day", text: `<span class="insight-val">${ctx.monthAbbr} ${parseInt(biggestDay.name.split("/")[1])}</span> &mdash; ${fmt(biggestDay.total)} spent across ${biggestDay.items.length} items`, action: `showView('items',null,{date:'${biggestDay.name}'})` },
     { title: "Repeat Purchases", text: `<span class="insight-val">${freqProducts.length} products</span> bought 2+ times, totaling ${fmt(freqProducts.reduce((s,p) => s + p.total, 0))}`, action: `showView('groceries')` },
     { title: "Toiletries Share", text: `Household, beauty & paper products accounted for <span class="insight-val">${fmt(toiletryTotal)}</span> (${pct(toiletryTotal, grandTotal)})`, action: `showView('toiletries')` },
   ].map(ins => `<div class="insight" onclick="${ins.action}" style="cursor:pointer"><div class="insight-title">${ins.title}</div><div class="insight-text">${ins.text}</div></div>`).join("");
@@ -1110,7 +1313,7 @@ function renderToiletries() {
 
 // ─────────── STORES TAB ───────────
 function renderStores() {
-  const storeGroups = groupBy(RAW, "s");
+  const storeGroups = groupBy(activeData, "s");
 
   charts.storeBar = new Chart(document.getElementById("chart-store-bar"), {
     type: "bar",
@@ -1145,7 +1348,7 @@ function renderStores() {
 
   // Store breakdown
   const trips = {};
-  RAW.forEach(i => { const key = i.d + "|" + i.s; trips[key] = (trips[key] || { store: i.s, date: i.d }); });
+  activeData.forEach(i => { const key = i.d + "|" + i.s; trips[key] = (trips[key] || { store: i.s, date: i.d }); });
   const tripsByStore = {};
   Object.values(trips).forEach(t => { tripsByStore[t.store] = (tripsByStore[t.store] || 0) + 1; });
 
@@ -1170,13 +1373,13 @@ function renderStores() {
 function renderTrends() {
   // Daily spending
   const dailyMap = {};
-  RAW.forEach(i => { dailyMap[i.d] = (dailyMap[i.d] || 0) + i.t; });
+  activeData.forEach(i => { dailyMap[i.d] = (dailyMap[i.d] || 0) + i.t; });
   const days = Object.entries(dailyMap).sort((a,b) => a[0].localeCompare(b[0]));
 
   charts.daily = new Chart(document.getElementById("chart-daily"), {
     type: "line",
     data: {
-      labels: days.map(d => "Jan " + parseInt(d[0].split("/")[1])),
+      labels: days.map(d => ctx.monthAbbr + " " + parseInt(d[0].split("/")[1])),
       datasets: [{
         label: "Daily Spend",
         data: days.map(d => +d[1].toFixed(2)),
@@ -1193,7 +1396,7 @@ function renderTrends() {
 
   // Cumulative spend
   let cum = 0;
-  const cumData = days.map(d => { cum += d[1]; return { date: "Jan " + parseInt(d[0].split("/")[1]), total: +cum.toFixed(2) }; });
+  const cumData = days.map(d => { cum += d[1]; return { date: ctx.monthAbbr + " " + parseInt(d[0].split("/")[1]), total: +cum.toFixed(2) }; });
   charts.cumulative = new Chart(document.getElementById("chart-cumulative"), {
     type: "line",
     data: {
@@ -1213,14 +1416,12 @@ function renderTrends() {
   });
 
   // Trips per week
-  const weekNames = ["Week 1 (1-7)", "Week 2 (8-14)", "Week 3 (15-21)", "Week 4 (22-28)", "Week 5 (29-31)"];
-  const weekTrips = weekNames.map((wn, wi) => {
-    const mins = [1,8,15,22,29];
-    const maxs = [7,14,21,28,31];
+  const weekNames = ctx.weeks.map(w => w.name);
+  const weekTrips = ctx.weeks.map(w => {
     const tripSet = new Set();
-    RAW.forEach(i => {
+    activeData.forEach(i => {
       const day = parseInt(i.d.split("/")[1]);
-      if (day >= mins[wi] && day <= maxs[wi]) tripSet.add(i.d + "|" + i.s);
+      if (day >= w.min && day <= w.max) tripSet.add(i.d + "|" + i.s);
     });
     return tripSet.size;
   });
@@ -1240,7 +1441,7 @@ function renderTrends() {
   // Avg spend per trip by store
   const tripCounts = {};
   const storeSpend = {};
-  RAW.forEach(i => {
+  activeData.forEach(i => {
     const key = i.d + "|" + i.s;
     if (!tripCounts[i.s]) { tripCounts[i.s] = new Set(); storeSpend[i.s] = 0; }
     tripCounts[i.s].add(key);
@@ -1267,7 +1468,7 @@ function renderTrends() {
 // ─────────── TRIPS TAB ───────────
 function buildTrips() {
   const tripMap = {};
-  RAW.forEach(i => {
+  activeData.forEach(i => {
     const key = i.d + "|" + i.s;
     if (!tripMap[key]) tripMap[key] = { date: i.d, store: i.s, items: [], total: 0, qty: 0 };
     tripMap[key].items.push(i);
@@ -1276,7 +1477,6 @@ function buildTrips() {
   });
   return Object.values(tripMap).sort((a, b) => a.date.localeCompare(b.date) || a.store.localeCompare(b.store));
 }
-const allTrips = buildTrips();
 
 function renderTrips() {
   const totalTrips = allTrips.length;
@@ -1285,31 +1485,24 @@ function renderTrips() {
   const smallTrip = allTrips.reduce((min, t) => t.total < min.total ? t : min, allTrips[0]);
 
   document.getElementById("kpi-trips").innerHTML = [
-    { label: "Total Trips", value: totalTrips, color: "var(--cyan)", sub: "across 9 stores" },
+    { label: "Total Trips", value: totalTrips, color: "var(--cyan)", sub: "across " + [...new Set(activeData.map(i=>i.s))].length + " stores" },
     { label: "Avg Per Trip", value: fmt(avgPerTrip), color: "var(--green)", sub: `${fmt(grandTotal)} total` },
-    { label: "Biggest Trip", value: fmt(bigTrip.total), color: "var(--amber)", sub: `${bigTrip.store} on Jan ${parseInt(bigTrip.date.split("/")[1])}` },
-    { label: "Smallest Trip", value: fmt(smallTrip.total), color: "var(--teal)", sub: `${smallTrip.store} on Jan ${parseInt(smallTrip.date.split("/")[1])}` },
+    { label: "Biggest Trip", value: fmt(bigTrip.total), color: "var(--amber)", sub: `${bigTrip.store} on ${ctx.monthAbbr} ${parseInt(bigTrip.date.split("/")[1])}` },
+    { label: "Smallest Trip", value: fmt(smallTrip.total), color: "var(--teal)", sub: `${smallTrip.store} on ${ctx.monthAbbr} ${parseInt(smallTrip.date.split("/")[1])}` },
   ].map(k => `<div class="kpi-card" style="cursor:default"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:${k.color}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join("");
 
   let html = "";
   let currentWeek = "";
   allTrips.forEach((trip, idx) => {
     const day = parseInt(trip.date.split("/")[1]);
-    let week;
-    if (day <= 7) week = "Week 1 — Jan 1–7";
-    else if (day <= 14) week = "Week 2 — Jan 8–14";
-    else if (day <= 21) week = "Week 3 — Jan 15–21";
-    else if (day <= 28) week = "Week 4 — Jan 22–28";
-    else week = "Week 5 — Jan 29–31";
+    let week = ctx.weeks[ctx.weeks.length - 1].label;
+    for (const w of ctx.weeks) { if (day >= w.min && day <= w.max) { week = w.label; break; } }
 
     if (week !== currentWeek) {
+      const matchedWeek = ctx.weeks.find(w => w.label === week) || ctx.weeks[0];
       const weekItems = allTrips.filter(t => {
         const d = parseInt(t.date.split("/")[1]);
-        if (week.includes("1–7")) return d <= 7;
-        if (week.includes("8–14")) return d >= 8 && d <= 14;
-        if (week.includes("15–21")) return d >= 15 && d <= 21;
-        if (week.includes("22–28")) return d >= 22 && d <= 28;
-        return d >= 29;
+        return d >= matchedWeek.min && d <= matchedWeek.max;
       });
       const weekTotal = weekItems.reduce((s, t) => s + t.total, 0);
       currentWeek = week;
@@ -1321,7 +1514,7 @@ function renderTrips() {
 
     const dayNum = parseInt(trip.date.split("/")[1]);
     const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-    const dateObj = new Date(2026, 0, dayNum);
+    const dateObj = new Date(ctx.year, ctx.month - 1, dayNum);
     const dayName = dayNames[dateObj.getDay()];
     const color = STORE_COLORS[trip.store] || "#888";
     const preview = trip.items.slice(0, 4).map(i => `<span class="trip-item-chip">${i.n}</span>`).join("");
@@ -1330,7 +1523,7 @@ function renderTrips() {
     html += `
       <div class="trip-card" onclick="showTripDetail(${idx})">
         <div class="trip-left">
-          <div class="trip-date">Jan ${dayNum} <span style="font-size:12px;font-weight:500;color:var(--text-muted);margin-left:4px">${dayName}</span></div>
+          <div class="trip-date">${ctx.monthAbbr} ${dayNum} <span style="font-size:12px;font-weight:500;color:var(--text-muted);margin-left:4px">${dayName}</span></div>
           <div class="trip-store"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};margin-right:8px;vertical-align:middle"></span>${trip.store}</div>
           <div class="trip-meta">${trip.items.length} item${trip.items.length > 1 ? 's' : ''} &bull; ${trip.qty} unit${trip.qty > 1 ? 's' : ''}</div>
           <div class="trip-items-preview">${preview}${more}</div>
@@ -1349,8 +1542,7 @@ function showTripDetail(tripIdx) {
   const trip = allTrips[tripIdx];
   const dayNum = parseInt(trip.date.split("/")[1]);
   const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-  const monthNames = ["January"];
-  const dateObj = new Date(2026, 0, dayNum);
+  const dateObj = new Date(ctx.year, ctx.month - 1, dayNum);
   const dayName = dayNames[dateObj.getDay()];
   const color = STORE_COLORS[trip.store] || "#888";
 
@@ -1369,7 +1561,7 @@ function showTripDetail(tripIdx) {
   let html = `
     <div class="trip-detail-header">
       <div>
-        <div class="trip-detail-title">${dayName}, January ${dayNum}, 2026</div>
+        <div class="trip-detail-title">${dayName}, ${ctx.monthName} ${dayNum}, ${ctx.year}</div>
         <div class="trip-detail-store"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${color};margin-right:8px;vertical-align:middle"></span>${trip.store}</div>
       </div>
       <div style="text-align:right">
@@ -1429,28 +1621,34 @@ function showTripDetail(tripIdx) {
 let currentSort = { col: "t", dir: "desc" };
 
 function renderAllItems() {
-  // Populate filter dropdowns
+  // Populate filter dropdowns (clear first for month switches)
   const dateSelect = document.getElementById("filter-date");
   const storeSelect = document.getElementById("filter-store");
   const catSelect = document.getElementById("filter-cat");
-  [...new Set(RAW.map(i => i.d))].sort().forEach(d => {
+  dateSelect.innerHTML = '<option value="All">All Dates</option>';
+  storeSelect.innerHTML = '<option value="All">All Stores</option>';
+  catSelect.innerHTML = '<option value="All">All Categories</option>';
+  [...new Set(activeData.map(i => i.d))].sort().forEach(d => {
     const day = parseInt(d.split("/")[1]);
     const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-    const dateObj = new Date(2026, 0, day);
+    const dateObj = new Date(ctx.year, ctx.month - 1, day);
     const dayName = dayNames[dateObj.getDay()];
-    dateSelect.innerHTML += `<option value="${d}">Jan ${day} (${dayName})</option>`;
+    dateSelect.innerHTML += `<option value="${d}">${ctx.monthAbbr} ${day} (${dayName})</option>`;
   });
-  [...new Set(RAW.map(i => i.s))].sort().forEach(s => {
+  [...new Set(activeData.map(i => i.s))].sort().forEach(s => {
     storeSelect.innerHTML += `<option value="${s}">${s}</option>`;
   });
-  [...new Set(RAW.map(i => i.c))].sort().forEach(c => {
+  [...new Set(activeData.map(i => i.c))].sort().forEach(c => {
     catSelect.innerHTML += `<option value="${c}">${c}</option>`;
   });
 
-  // Attach event listeners
-  ["filter-date","filter-store","filter-cat","filter-type","filter-search"].forEach(id => {
-    document.getElementById(id).addEventListener(id === "filter-search" ? "input" : "change", renderTable);
-  });
+  // Attach event listeners only once
+  if (!filtersInitialized) {
+    ["filter-date","filter-store","filter-cat","filter-type","filter-search"].forEach(id => {
+      document.getElementById(id).addEventListener(id === "filter-search" ? "input" : "change", renderTable);
+    });
+    filtersInitialized = true;
+  }
 
   renderTable();
 }
@@ -1471,7 +1669,7 @@ function renderTable() {
   const type = document.getElementById("filter-type").value;
   const search = document.getElementById("filter-search").value.toLowerCase();
 
-  let data = RAW.filter(i => {
+  let data = activeData.filter(i => {
     if (date !== "All" && i.d !== date) return false;
     if (store !== "All" && i.s !== store) return false;
     if (cat !== "All" && i.c !== cat) return false;
@@ -1542,11 +1740,10 @@ function sortTable(col) {
 
 // ─────────── EDIT MODAL ───────────
 let editIdx = null;
-const ALL_CATEGORIES = [...new Set(RAW.map(i => i._origCat))].sort();
 
 function openEditModal(idx) {
   editIdx = idx;
-  const item = RAW[idx];
+  const item = activeData[idx];
   document.getElementById("edit-modal-title").textContent = `Edit: ${item.r}`;
   document.getElementById("edit-name").value = item.n;
 
@@ -1577,7 +1774,7 @@ function closeEditModal() {
 
 function saveEdit() {
   if (editIdx === null) return;
-  const item = RAW[editIdx];
+  const item = activeData[editIdx];
   const newName = document.getElementById("edit-name").value.trim();
   const newCat = document.getElementById("edit-category").value;
   const newNg = document.getElementById("edit-type").value === "true";
@@ -1589,14 +1786,14 @@ function saveEdit() {
   item.ng = newNg;
 
   // Save to localStorage
-  const edits = JSON.parse(localStorage.getItem("dashboardEdits") || "{}");
+  const edits = JSON.parse(localStorage.getItem(ctx.editsKey) || "{}");
   const hasChanges = newName !== item._origName || newCat !== item._origCat || newNg !== item._origNg;
   if (hasChanges) {
     edits[editIdx] = { n: newName, c: newCat, ng: newNg };
   } else {
     delete edits[editIdx];
   }
-  localStorage.setItem("dashboardEdits", JSON.stringify(edits));
+  localStorage.setItem(ctx.editsKey, JSON.stringify(edits));
 
   closeEditModal();
   renderTable();
@@ -1604,22 +1801,349 @@ function saveEdit() {
 
 function resetEdit() {
   if (editIdx === null) return;
-  const item = RAW[editIdx];
+  const item = activeData[editIdx];
   item.n = item._origName;
   item.c = item._origCat;
   item.ng = item._origNg;
 
   // Remove from localStorage
-  const edits = JSON.parse(localStorage.getItem("dashboardEdits") || "{}");
+  const edits = JSON.parse(localStorage.getItem(ctx.editsKey) || "{}");
   delete edits[editIdx];
-  localStorage.setItem("dashboardEdits", JSON.stringify(edits));
+  localStorage.setItem(ctx.editsKey, JSON.stringify(edits));
 
   closeEditModal();
   renderTable();
 }
 
 // Close modal on Escape
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeEditModal(); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { closeEditModal(); closeUploadModal(); closeDataManager(); }
+});
+
+// ─────────── UPLOAD MODAL ───────────
+let pendingUploadData = null;
+let pendingUploadKey = null;
+
+function openUploadModal() {
+  document.getElementById("upload-preview").style.display = "none";
+  document.getElementById("upload-actions").style.display = "none";
+  document.getElementById("drop-zone").style.display = "";
+  pendingUploadData = null;
+  pendingUploadKey = null;
+  document.getElementById("upload-modal").classList.add("open");
+}
+
+function closeUploadModal() {
+  document.getElementById("upload-modal").classList.remove("open");
+  document.getElementById("file-input").value = "";
+}
+
+// Wire up drop zone
+(function initDropZone() {
+  const dz = document.getElementById("drop-zone");
+  const fi = document.getElementById("file-input");
+  dz.addEventListener("click", () => fi.click());
+  dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("drag-over"); });
+  dz.addEventListener("dragleave", () => dz.classList.remove("drag-over"));
+  dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("drag-over"); if (e.dataTransfer.files.length) parseExcelFile(e.dataTransfer.files[0]); });
+  fi.addEventListener("change", () => { if (fi.files.length) parseExcelFile(fi.files[0]); });
+})();
+
+function normalizeDate(val) {
+  if (val instanceof Date) {
+    return String(val.getMonth() + 1).padStart(2, "0") + "/" + String(val.getDate()).padStart(2, "0");
+  }
+  if (typeof val === "number") {
+    const d = new Date((val - 25569) * 86400000);
+    return String(d.getMonth() + 1).padStart(2, "0") + "/" + String(d.getDate()).padStart(2, "0");
+  }
+  const str = String(val).trim();
+  const parts = str.split(/[\/\-]/);
+  if (parts.length >= 2) return parts[0].padStart(2, "0") + "/" + parts[1].padStart(2, "0");
+  return str;
+}
+
+function extractYear(val) {
+  if (val instanceof Date) return val.getFullYear();
+  if (typeof val === "number") return new Date((val - 25569) * 86400000).getFullYear();
+  const parts = String(val).trim().split(/[\/\-]/);
+  if (parts.length === 3 && parts[2].length === 4) return parseInt(parts[2]);
+  if (parts.length === 3 && parts[0].length === 4) return parseInt(parts[0]);
+  return new Date().getFullYear();
+}
+
+function parseBool(val) {
+  if (typeof val === "boolean") return val;
+  const s = String(val).trim().toLowerCase();
+  return s === "true" || s === "yes" || s === "1" || s === "y" || s === "x";
+}
+
+function autoDetectColumns(headers) {
+  const find = patterns => headers.find(h => patterns.some(p => h.toLowerCase().includes(p))) || null;
+  return {
+    date: find(["date"]) || headers[0],
+    store: find(["store"]) || headers[1],
+    receipt: find(["receipt", "desc"]) || headers[2],
+    name: find(["product", "full product", "item", "name"]) || headers[3],
+    category: find(["category", "cat"]) || headers[4],
+    qty: find(["qty", "quantity"]) || headers[5],
+    unitPrice: find(["unit price", "unit"]) || headers[6],
+    total: find(["line total", "total", "ext", "amount"]) || headers[7],
+    nonGrocery: find(["non-grocery", "nongrocery", "non grocery"]) || headers[8],
+  };
+}
+
+function parseExcelFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const workbook = XLSX.read(e.target.result, { type: "array", cellDates: true });
+      let sheetName = workbook.SheetNames.find(n =>
+        n.toLowerCase().includes("all transaction") || n.toLowerCase().includes("transactions")
+      ) || workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      if (rows.length === 0) { alert("No data found in sheet: " + sheetName); return; }
+
+      const headers = Object.keys(rows[0]);
+      const mapping = autoDetectColumns(headers);
+
+      let detectedYear = null;
+      const parsed = rows.map(row => {
+        const dateVal = row[mapping.date];
+        if (!detectedYear) detectedYear = extractYear(dateVal);
+        const d = normalizeDate(dateVal);
+        return {
+          d: d,
+          s: String(row[mapping.store] || "").trim(),
+          r: String(row[mapping.receipt] || "").trim(),
+          n: String(row[mapping.name] || "").trim(),
+          c: String(row[mapping.category] || "").trim(),
+          q: Number(row[mapping.qty]) || 1,
+          u: parseFloat(row[mapping.unitPrice]) || 0,
+          t: parseFloat(row[mapping.total]) || 0,
+          ng: parseBool(row[mapping.nonGrocery]),
+        };
+      }).filter(item => item.d && item.n && item.t > 0);
+
+      if (parsed.length === 0) { alert("No valid items found. Check column headers."); return; }
+
+      const monthNum = parseInt(parsed[0].d.split("/")[0]);
+      const year = detectedYear || new Date().getFullYear();
+      pendingUploadKey = year + "_" + String(monthNum).padStart(2, "0");
+      pendingUploadData = parsed;
+
+      showUploadPreview(parsed, pendingUploadKey, sheetName);
+    } catch(err) {
+      alert("Error parsing file: " + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function showUploadPreview(data, monthKey, sheetName) {
+  const [y, m] = monthKey.split("_");
+  const label = MONTH_NAMES[parseInt(m) - 1] + " " + y;
+  const total = data.reduce((s, i) => s + i.t, 0);
+  const stores = [...new Set(data.map(i => i.s))].length;
+  const trips = [...new Set(data.map(i => i.d + "|" + i.s))].length;
+  const existing = getLoadedMonths().includes(monthKey);
+
+  document.getElementById("upload-month-label").textContent = label + (existing ? " (will replace existing data)" : "");
+  document.getElementById("upload-stats").innerHTML = `Sheet: ${sheetName} | ${data.length} items | ${stores} stores | ${trips} trips | ${fmt(total)} total`;
+
+  let sampleHtml = '<table style="width:100%;font-size:11px"><thead><tr><th>Date</th><th>Store</th><th>Product</th><th>Category</th><th>Qty</th><th>Total</th></tr></thead><tbody>';
+  data.slice(0, 5).forEach(i => {
+    sampleHtml += `<tr><td>${i.d}</td><td>${i.s}</td><td>${i.n}</td><td>${i.c}</td><td>${i.q}</td><td>${fmt(i.t)}</td></tr>`;
+  });
+  if (data.length > 5) sampleHtml += `<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">... and ${data.length - 5} more items</td></tr>`;
+  sampleHtml += '</tbody></table>';
+  document.getElementById("upload-sample").innerHTML = sampleHtml;
+
+  document.getElementById("drop-zone").style.display = "none";
+  document.getElementById("upload-preview").style.display = "";
+  document.getElementById("upload-actions").style.display = "";
+}
+
+function confirmUpload() {
+  if (!pendingUploadData || !pendingUploadKey) return;
+  const existing = getLoadedMonths().includes(pendingUploadKey);
+  if (existing && !confirm("Data for this month already exists. Replace it?")) return;
+
+  localStorage.setItem("data_" + pendingUploadKey, JSON.stringify(pendingUploadData));
+  const months = getLoadedMonths();
+  if (!months.includes(pendingUploadKey)) {
+    months.push(pendingUploadKey);
+    months.sort();
+    localStorage.setItem("grocery_months", JSON.stringify(months));
+  }
+  closeUploadModal();
+  switchMonth(pendingUploadKey);
+}
+
+// ─────────── DATA MANAGER ───────────
+function openDataManager() {
+  const months = getLoadedMonths();
+  let totalBytes = 0;
+  let html = "";
+  months.forEach(key => {
+    const [y, m] = key.split("_");
+    const label = MONTH_NAMES[parseInt(m) - 1] + " " + y;
+    const dataStr = localStorage.getItem("data_" + key);
+    const bytes = dataStr ? new Blob([dataStr]).size : 0;
+    totalBytes += bytes;
+    const isActive = key === ctx.monthKey;
+    const isSeed = key === "2026_01" && !dataStr;
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid var(--card-border)">';
+    html += '<div><div style="font-weight:600">' + label;
+    if (isActive) html += ' <span style="font-size:10px;color:var(--green)">(ACTIVE)</span>';
+    html += '</div><div style="font-size:11px;color:var(--text-muted)">' + (isSeed ? "Embedded (default)" : formatBytes(bytes)) + '</div></div>';
+    if (months.length > 1) {
+      html += '<button onclick="deleteMonth(\'' + key + '\')" style="background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.25);color:var(--rose);border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:inherit">Delete</button>';
+    }
+    html += '</div>';
+  });
+  document.getElementById("manager-list").innerHTML = html;
+  document.getElementById("manager-usage").textContent = "Total storage: " + formatBytes(totalBytes) + " of ~5 MB available";
+  document.getElementById("manager-modal").classList.add("open");
+}
+
+function closeDataManager() {
+  document.getElementById("manager-modal").classList.remove("open");
+}
+
+function deleteMonth(key) {
+  if (!confirm("Delete all data for this month? This cannot be undone.")) return;
+  localStorage.removeItem("data_" + key);
+  localStorage.removeItem("edits_" + key);
+  let months = getLoadedMonths().filter(m => m !== key);
+  if (months.length === 0) months = ["2026_01"];
+  localStorage.setItem("grocery_months", JSON.stringify(months));
+  if (key === ctx.monthKey) switchMonth(months[0]);
+  buildMonthSelector();
+  openDataManager();
+}
+
+// ─────────── COMPARE TAB ───────────
+function renderCompare() {
+  const months = getLoadedMonths();
+  const container = document.getElementById("compare-content");
+
+  if (months.length < 2) {
+    container.innerHTML = '<div class="card" style="text-align:center;padding:60px 20px">' +
+      '<div style="font-size:16px;font-weight:700;color:var(--text-muted);margin-bottom:8px">No Comparison Data Yet</div>' +
+      '<div style="font-size:13px;color:var(--text-muted)">Upload a second month\'s data to see month-over-month comparisons.</div>' +
+      '<button onclick="openUploadModal()" class="month-nav-btn" style="margin-top:16px;background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3)">+ Upload Month</button></div>';
+    return;
+  }
+
+  // Load all months' summary
+  const allMonthData = months.map((key, idx) => {
+    const data = loadMonthData(key);
+    if (!data) return null;
+    const [y, m] = key.split("_");
+    const g = data.filter(i => itemType(i) === "grocery");
+    const t = data.filter(i => itemType(i) === "toiletry");
+    return {
+      key, label: MONTH_ABBR[parseInt(m) - 1] + " " + y,
+      fullLabel: MONTH_NAMES[parseInt(m) - 1] + " " + y,
+      color: COMPARE_COLORS[idx % COMPARE_COLORS.length],
+      total: data.reduce((s, i) => s + i.t, 0),
+      groceryTotal: sum(g), toiletryTotal: sum(t),
+      items: data.length,
+      trips: [...new Set(data.map(i => i.d + "|" + i.s))].length,
+      stores: [...new Set(data.map(i => i.s))].length,
+      categories: groupBy(data, "c"),
+      storeGroups: groupBy(data, "s"),
+    };
+  }).filter(Boolean);
+
+  if (allMonthData.length < 2) {
+    container.innerHTML = '<div class="card" style="text-align:center;padding:40px"><div style="color:var(--text-muted)">Not enough valid month data to compare.</div></div>';
+    return;
+  }
+
+  // Delta cards (compare last 2 months)
+  const curr = allMonthData[allMonthData.length - 1];
+  const prev = allMonthData[allMonthData.length - 2];
+  function deltaHtml(label, currVal, prevVal, isMoney) {
+    const diff = currVal - prevVal;
+    const pctChange = prevVal > 0 ? ((diff / prevVal) * 100).toFixed(1) : "0";
+    const cls = diff > 0 ? "delta-up" : diff < 0 ? "delta-down" : "delta-same";
+    const sign = diff > 0 ? "+" : "";
+    const valStr = isMoney ? fmt(currVal) : currVal;
+    const diffStr = isMoney ? sign + fmt(Math.abs(diff)) : sign + diff;
+    return '<div class="delta-card"><div class="kpi-label">' + label + '</div>' +
+      '<div class="delta-value" style="color:var(--text)">' + valStr + '</div>' +
+      '<div class="delta-change ' + cls + '">' + diffStr + ' (' + (diff > 0 ? "+" : "") + pctChange + '%) vs ' + prev.label + '</div></div>';
+  }
+
+  let html = '<div class="delta-grid">';
+  html += deltaHtml("Total Spend", curr.total, prev.total, true);
+  html += deltaHtml("Grocery Spend", curr.groceryTotal, prev.groceryTotal, true);
+  html += deltaHtml("Toiletry Spend", curr.toiletryTotal, prev.toiletryTotal, true);
+  html += deltaHtml("Shopping Trips", curr.trips, prev.trips, false);
+  html += deltaHtml("Items Purchased", curr.items, prev.items, false);
+  html += deltaHtml("Avg Per Trip", curr.total / curr.trips, prev.total / prev.trips, true);
+  html += '</div>';
+
+  // Spend trend chart
+  html += '<div class="card"><div class="card-title">Monthly Spend Trend</div><div class="chart-wrap"><canvas id="chart-compare-trend"></canvas></div></div>';
+
+  // Category comparison
+  html += '<div class="card"><div class="card-title">Category Comparison</div><div class="chart-wrap-tall"><canvas id="chart-compare-cats"></canvas></div></div>';
+
+  // Store comparison
+  html += '<div class="card"><div class="card-title">Store Comparison</div><div class="chart-wrap-tall"><canvas id="chart-compare-stores"></canvas></div></div>';
+
+  container.innerHTML = html;
+
+  // Render trend chart
+  charts.compareTrend = new Chart(document.getElementById("chart-compare-trend"), {
+    type: "line",
+    data: {
+      labels: allMonthData.map(m => m.label),
+      datasets: [
+        { label: "Total", data: allMonthData.map(m => +m.total.toFixed(2)), borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.1)", fill: true, tension: 0.3, pointRadius: 6, pointBackgroundColor: "#22c55e" },
+        { label: "Groceries", data: allMonthData.map(m => +m.groceryTotal.toFixed(2)), borderColor: "#3b82f6", tension: 0.3, pointRadius: 5, pointBackgroundColor: "#3b82f6" },
+        { label: "Toiletries", data: allMonthData.map(m => +m.toiletryTotal.toFixed(2)), borderColor: "#a855f7", tension: 0.3, pointRadius: 5, pointBackgroundColor: "#a855f7" },
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => "$" + v } } }, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmt(c.raw) } } } }
+  });
+
+  // Category comparison grouped bar
+  const allCats = [...new Set(allMonthData.flatMap(m => m.categories.map(c => c.name)))].sort();
+  charts.compareCats = new Chart(document.getElementById("chart-compare-cats"), {
+    type: "bar",
+    data: {
+      labels: allCats,
+      datasets: allMonthData.map((m, i) => ({
+        label: m.label,
+        data: allCats.map(cat => { const found = m.categories.find(c => c.name === cat); return found ? +found.total.toFixed(2) : 0; }),
+        backgroundColor: m.color,
+        borderRadius: 4,
+      }))
+    },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => "$" + v } } }, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmt(c.raw) } } } }
+  });
+
+  // Store comparison grouped bar
+  const allStores = [...new Set(allMonthData.flatMap(m => m.storeGroups.map(s => s.name)))].sort();
+  charts.compareStores = new Chart(document.getElementById("chart-compare-stores"), {
+    type: "bar",
+    data: {
+      labels: allStores,
+      datasets: allMonthData.map((m, i) => ({
+        label: m.label,
+        data: allStores.map(store => { const found = m.storeGroups.find(s => s.name === store); return found ? +found.total.toFixed(2) : 0; }),
+        backgroundColor: m.color,
+        borderRadius: 4,
+      }))
+    },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => "$" + v } } }, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmt(c.raw) } } } }
+  });
+}
 </script>
 </body>
 </html>
