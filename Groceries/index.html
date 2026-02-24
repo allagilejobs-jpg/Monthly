@@ -2091,7 +2091,7 @@ function renderTable() {
     const arrow = currentSort.col === col.key ? (currentSort.dir === "asc" ? " ↑" : " ↓") : "";
     html += `<th onclick="sortTable('${col.key}')">${col.label}${arrow}</th>`;
   });
-  html += `</tr></thead><tbody>`;
+  html += `<th style="width:50px"></th></tr></thead><tbody>`;
 
   data.forEach(i => {
     const typ = itemType(i);
@@ -2100,14 +2100,15 @@ function renderTable() {
     const isEdited = i.n !== i._origName || i.c !== i._origCat || i.ng !== i._origNg;
     const editDot = isEdited ? '<span class="edit-dot" title="Edited"></span>' : '';
     const escaped = i.n.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-    html += `<tr onclick="openEditModal(${i._idx})" style="cursor:pointer">
+    html += `<tr onclick="showProductDetail('${escaped}','items')" style="cursor:pointer" title="View purchase history">
       <td class="mono">${i.d}</td>
       <td>${i.s}</td>
-      <td class="bold">${i.n}${editDot} <span class="tag ${tagClass}">${tagLabel}</span><span class="edit-icon">&#9998;</span><span class="edit-icon" onclick="event.stopPropagation();showProductDetail('${escaped}','items')" title="View purchase history" style="margin-left:4px">&#8594;</span></td>
+      <td class="bold">${i.n}${editDot} <span class="tag ${tagClass}">${tagLabel}</span></td>
       <td style="color:var(--text-muted)">${i.c}</td>
       <td class="text-center">${i.q}</td>
       <td class="text-right mono">${fmt(i.u)}</td>
       <td class="text-right mono amt">${fmt(i.t)}</td>
+      <td class="text-center"><span onclick="event.stopPropagation();openEditModal(${i._idx})" title="Edit item" style="cursor:pointer;font-size:14px;color:var(--text-muted);padding:4px 8px;border-radius:6px;transition:all 0.2s" onmouseover="this.style.color='var(--green)';this.style.background='rgba(34,197,94,0.1)'" onmouseout="this.style.color='var(--text-muted)';this.style.background='none'">&#9998;</span></td>
     </tr>`;
   });
   html += `</tbody>`;
