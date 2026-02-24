@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Monthly Grocery & Toiletries Dashboard</title>
+<title>Monthly Grocery & Household Spend Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
@@ -496,7 +496,7 @@
 <div class="container">
   <div class="header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
     <div>
-      <h1 id="dashboard-title">Monthly Grocery & Toiletries Dashboard</h1>
+      <h1 id="dashboard-title">Monthly Grocery & Household Spend Dashboard</h1>
       <p id="dashboard-subtitle">Family spend analysis</p>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -1296,8 +1296,8 @@ function destroyAllCharts() {
 }
 
 function updateHeader() {
-  document.title = "Monthly Grocery & Toiletries Dashboard";
-  document.getElementById("dashboard-title").textContent = "Monthly Grocery & Toiletries Dashboard";
+  document.title = "Monthly Grocery & Household Spend Dashboard";
+  document.getElementById("dashboard-title").textContent = "Monthly Grocery & Household Spend Dashboard";
   const stores = [...new Set(activeData.map(i => i.s))];
   const trips = [...new Set(activeData.map(i => i.d + "|" + i.s))].length;
   document.getElementById("dashboard-subtitle").innerHTML = "Family spend analysis across " + stores.length + " stores &bull; " + trips + " shopping trips &bull; " + activeData.length + " items purchased";
