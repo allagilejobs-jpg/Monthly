@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Receipt Scanner</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<style>
+:root {
+  --bg: #0f1117; --surface: #1a1b23; --surface2: #23242e; --border: #2a2b35;
+  --text: #e4e4e7; --muted: #71717a; --orange: #f97316; --orange-dim: rgba(249,115,22,0.15);
+  --green: #22c55e; --red: #ef4444; --blue: #3b82f6; --yellow: #eab308;
+  --radius: 12px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); line-height:1.5; }
+.header { background:var(--surface); border-bottom:1px solid var(--border); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; }
+.header h1 { font-size:20px; font-weight:700; display:flex; align-items:center; gap:10px; }
+.header h1 span { color:var(--orange); }
+.header-links { display:flex; gap:16px; }
+.header-links a { color:var(--muted); text-decoration:none; font-size:13px; transition:color .2s; }
+.header-links a:hover { color:var(--orange); }
+.container { max-width:1100px; margin:0 auto; padding:24px; }
+
+/* Steps indicator */
+.steps { display:flex; gap:0; margin-bottom:32px; }
+.step-item { flex:1; text-align:center; padding:12px 8px; background:var(--surface); border:1px solid var(--border); font-size:13px; color:var(--muted); cursor:default; position:relative; transition:all .2s; }
+.step-item:first-child { border-radius:var(--radius) 0 0 var(--radius); }
+.step-item:last-child { border-radius:0 var(--radius) var(--radius) 0; }
+.step-item.active { background:var(--orange-dim); border-color:var(--orange); color:var(--orange); font-weight:600; }
+.step-item.done { background:rgba(34,197,94,0.1); border-color:var(--green); color:var(--green); }
+.step-num { font-weight:700; margin-right:6px; }
+
+/* Panels */
+.panel { display:none; }
+.panel.active { display:block; }
+
+/* Upload panel */
+.drop-zone {
+  border:2px dashed var(--border); border-radius:var(--radius); padding:48px 24px; text-align:center;
+  cursor:pointer; transition:all .2s; background:var(--surface);
+}
+.drop-zone.dragover { border-color:var(--orange); background:var(--orange-dim); }
+.drop-zone-icon { font-size:48px; margin-bottom:12px; }
+.drop-zone-text { font-size:15px; margin-bottom:4px; }
+.drop-zone-sub { font-size:12px; color:var(--muted); }
+.file-input { display:none; }
+
+.thumb-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; margin-top:20px; }
+.thumb-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; position:relative; }
+.thumb-card img { width:100%; height:100px; object-fit:cover; }
+.thumb-name { padding:6px 8px; font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.thumb-remove { position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.7); color:#fff; border:none; border-radius:50%; width:22px; height:22px; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; }
+.thumb-remove:hover { background:var(--red); }
+
+.upload-actions { margin-top:20px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.upload-count { font-size:13px; color:var(--muted); }
+
+/* Settings row */
+.settings-row { margin-top:20px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 20px; display:flex; flex-wrap:wrap; gap:16px; align-items:center; }
+.settings-row label { font-size:13px; display:flex; align-items:center; gap:6px; color:var(--muted); cursor:pointer; }
+.settings-row input[type="checkbox"] { accent-color:var(--orange); }
+.gemini-input { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:12px; width:280px; }
+.gemini-input::placeholder { color:var(--muted); }
+
+/* Buttons */
+.btn { padding:10px 24px; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:6px; }
+.btn-primary { background:var(--orange); color:#fff; }
+.btn-primary:hover { filter:brightness(1.1); }
+.btn-primary:disabled { opacity:0.4; cursor:not-allowed; }
+.btn-secondary { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+.btn-secondary:hover { border-color:var(--orange); }
+.btn-danger { background:rgba(239,68,68,0.15); color:var(--red); border:1px solid rgba(239,68,68,0.3); }
+.btn-danger:hover { background:rgba(239,68,68,0.25); }
+.btn-green { background:var(--green); color:#fff; }
+.btn-green:hover { filter:brightness(1.1); }
+.btn-sm { padding:6px 14px; font-size:12px; }
+
+/* Processing panel */
+.progress-section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px; }
+.progress-overall { margin-bottom:20px; }
+.progress-label { font-size:13px; color:var(--muted); margin-bottom:6px; display:flex; justify-content:space-between; }
+.progress-bar { height:8px; background:var(--surface2); border-radius:4px; overflow:hidden; }
+.progress-fill { height:100%; background:var(--orange); border-radius:4px; transition:width .3s; width:0%; }
+.progress-fill.done { background:var(--green); }
+.log-box { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px; max-height:300px; overflow-y:auto; margin-top:16px; font-family:'Cascadia Code','Fira Code',monospace; font-size:12px; line-height:1.8; }
+.log-line { color:var(--muted); }
+.log-line.success { color:var(--green); }
+.log-line.error { color:var(--red); }
+.log-line.info { color:var(--orange); }
+
+/* Review panel */
+.review-summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
+.review-stat { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px 16px; text-align:center; }
+.review-stat .val { font-size:22px; font-weight:700; color:var(--orange); }
+.review-stat .lbl { font-size:11px; color:var(--muted); margin-top:2px; }
+
+.receipt-group { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:16px; overflow:hidden; }
+.receipt-header { padding:14px 20px; background:var(--surface2); cursor:pointer; display:flex; align-items:center; justify-content:space-between; transition:background .2s; }
+.receipt-header:hover { background:rgba(249,115,22,0.1); }
+.receipt-header .file-name { font-weight:600; font-size:14px; display:flex; align-items:center; gap:8px; }
+.receipt-header .file-meta { font-size:12px; color:var(--muted); display:flex; gap:12px; }
+.receipt-header .chevron { transition:transform .2s; color:var(--muted); }
+.receipt-header.collapsed .chevron { transform:rotate(-90deg); }
+.receipt-body { padding:0; }
+.receipt-body.collapsed { display:none; }
+
+.review-table { width:100%; border-collapse:collapse; font-size:12px; }
+.review-table th { background:var(--surface2); padding:8px 10px; text-align:left; font-weight:600; font-size:11px; text-transform:uppercase; color:var(--muted); letter-spacing:0.5px; border-bottom:1px solid var(--border); position:sticky; top:0; }
+.review-table td { padding:6px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+.review-table tr:hover { background:rgba(249,115,22,0.05); }
+.review-table input, .review-table select { background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:4px 6px; color:var(--text); font-size:12px; width:100%; }
+.review-table input:focus, .review-table select:focus { outline:none; border-color:var(--orange); }
+.review-table input[type="checkbox"] { width:auto; accent-color:var(--orange); }
+.review-table .num-input { width:70px; text-align:right; }
+.low-confidence { color:var(--yellow); cursor:help; }
+
+.store-date-row { padding:10px 20px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; border-bottom:1px solid var(--border); background:var(--surface); }
+.store-date-row label { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+.store-date-row input, .store-date-row select { background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:4px 8px; color:var(--text); font-size:12px; }
+
+/* Export panel */
+.export-cards { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px; }
+.export-card { background:var(--surface); border:2px solid var(--border); border-radius:var(--radius); padding:28px 24px; text-align:center; cursor:pointer; transition:all .2s; }
+.export-card:hover { border-color:var(--orange); transform:translateY(-2px); }
+.export-card.selected { border-color:var(--orange); background:var(--orange-dim); }
+.export-card .icon { font-size:40px; margin-bottom:12px; }
+.export-card .title { font-size:18px; font-weight:700; margin-bottom:6px; }
+.export-card .desc { font-size:12px; color:var(--muted); line-height:1.6; }
+
+.export-options { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:20px; }
+.export-options h3 { font-size:14px; margin-bottom:12px; }
+.month-picker { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.month-picker label { font-size:13px; color:var(--muted); }
+.month-picker select, .month-picker input { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:8px 12px; color:var(--text); font-size:13px; }
+.merge-warning { margin-top:12px; padding:10px 14px; background:rgba(234,179,8,0.1); border:1px solid rgba(234,179,8,0.3); border-radius:8px; font-size:12px; color:var(--yellow); display:none; }
+.merge-options { margin-top:8px; display:flex; gap:12px; }
+.merge-options label { font-size:12px; display:flex; align-items:center; gap:4px; cursor:pointer; }
+
+.export-result { text-align:center; padding:32px; }
+.export-result .check { font-size:48px; margin-bottom:12px; }
+.export-result .msg { font-size:16px; font-weight:600; margin-bottom:8px; }
+.export-result .sub { font-size:13px; color:var(--muted); margin-bottom:20px; }
+
+/* Responsive */
+@media(max-width:700px){
+  .container { padding:16px; }
+  .steps { flex-wrap:wrap; }
+  .step-item { flex:1 1 45%; border-radius:8px !important; margin:2px; }
+  .export-cards { grid-template-columns:1fr; }
+  .thumb-grid { grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); }
+  .review-table { font-size:11px; }
+  .settings-row { flex-direction:column; align-items:flex-start; }
+  .gemini-input { width:100%; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>&#128247; <span>Receipt Scanner</span></h1>
+  <div class="header-links">
+    <a href="../">Home</a>
+    <a href="../Groceries/">Groceries</a>
+    <a href="../Expenses/">Expenses</a>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Steps Indicator -->
+  <div class="steps">
+    <div class="step-item active" data-step="1"><span class="step-num">1</span>Upload</div>
+    <div class="step-item" data-step="2"><span class="step-num">2</span>Processing</div>
+    <div class="step-item" data-step="3"><span class="step-num">3</span>Review</div>
+    <div class="step-item" data-step="4"><span class="step-num">4</span>Export</div>
+  </div>
+
+  <!-- Step 1: Upload -->
+  <div class="panel active" id="panelUpload">
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-zone-icon">&#128228;</div>
+      <div class="drop-zone-text">Drop receipt images here or click to browse</div>
+      <div class="drop-zone-sub">Accepts JPG, PNG, HEIC, WebP, BMP, TIFF &mdash; up to 100 images at once</div>
+    </div>
+    <input type="file" class="file-input" id="fileInput" multiple accept="image/jpeg,image/png,image/heic,image/webp,image/bmp,image/tiff,.heic,.jpg,.jpeg,.png,.webp,.bmp,.tiff,.tif">
+    <div class="thumb-grid" id="thumbGrid"></div>
+    <div class="upload-actions" id="uploadActions" style="display:none">
+      <span class="upload-count" id="uploadCount">0 images</span>
+      <button class="btn btn-danger btn-sm" onclick="clearAll()">Clear All</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-primary" id="btnProcess" onclick="startProcessing()">Scan Receipts &#8594;</button>
+    </div>
+    <div class="settings-row">
+      <label><input type="checkbox" id="chkAutoDetect" checked> Auto-detect store &amp; date</label>
+      <label><input type="checkbox" id="chkPreprocess" checked> Image preprocessing (recommended)</label>
+      <label style="flex:1;min-width:280px">
+        Gemini API Key (optional):
+        <input type="password" class="gemini-input" id="geminiKey" placeholder="Paste key for AI-powered scanning">
+      </label>
+    </div>
+  </div>
+
+  <!-- Step 2: Processing -->
+  <div class="panel" id="panelProcessing">
+    <div class="progress-section">
+      <div class="progress-overall">
+        <div class="progress-label"><span id="progressText">Processing...</span><span id="progressPct">0%</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+      <div class="progress-label"><span id="currentFileText">Waiting...</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="currentFileFill"></div></div>
+      <div class="log-box" id="logBox"></div>
+    </div>
+    <div style="margin-top:16px;text-align:right">
+      <button class="btn btn-secondary" id="btnCancelProcess" onclick="cancelProcessing()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Review -->
+  <div class="panel" id="panelReview">
+    <div class="review-summary" id="reviewSummary"></div>
+    <div id="reviewGroups"></div>
+    <div style="margin-top:20px;display:flex;gap:12px;justify-content:space-between">
+      <button class="btn btn-secondary" onclick="goToStep(1)">&#8592; Back to Upload</button>
+      <button class="btn btn-primary" onclick="goToStep(4)">Export &#8594;</button>
+    </div>
+  </div>
+
+  <!-- Step 4: Export -->
+  <div class="panel" id="panelExport">
+    <div class="export-cards">
+      <div class="export-card" id="exportExcel" onclick="selectExport('excel')">
+        <div class="icon">&#128196;</div>
+        <div class="title">Excel Spreadsheet</div>
+        <div class="desc">Download a styled .xlsx file with 6 sheets: All Transactions, By Store, By Category, Top Items, Frequently Purchased, Summary</div>
+      </div>
+      <div class="export-card" id="exportDashboard" onclick="selectExport('dashboard')">
+        <div class="icon">&#128202;</div>
+        <div class="title">Import to Dashboard</div>
+        <div class="desc">Send directly to the Groceries dashboard. Data will appear immediately when you open it.</div>
+      </div>
+    </div>
+
+    <div class="export-options" id="excelOptions" style="display:none">
+      <h3>Excel Export Settings</h3>
+      <div class="month-picker">
+        <label>Month for filename:</label>
+        <input type="month" id="excelMonth">
+      </div>
+      <div style="margin-top:16px">
+        <button class="btn btn-primary" onclick="doExcelExport()">&#11015; Download Excel</button>
+      </div>
+    </div>
+
+    <div class="export-options" id="dashboardOptions" style="display:none">
+      <h3>Dashboard Import Settings</h3>
+      <div class="month-picker">
+        <label>Import as month:</label>
+        <input type="month" id="dashMonth">
+      </div>
+      <div class="merge-warning" id="mergeWarning">
+        This month already has data in the dashboard.
+        <div class="merge-options">
+          <label><input type="radio" name="mergeMode" value="merge" checked> Merge (add to existing)</label>
+          <label><input type="radio" name="mergeMode" value="replace"> Replace existing</label>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <button class="btn btn-green" onclick="doDashboardImport()">&#128640; Import to Dashboard</button>
+      </div>
+    </div>
+
+    <div class="export-result" id="exportResult" style="display:none"></div>
+
+    <div style="margin-top:20px">
+      <button class="btn btn-secondary" onclick="goToStep(3)">&#8592; Back to Review</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let uploadedFiles = [];      // Array of { file, dataUrl, name }
+let extractedData = [];      // Array of items per plan data model
+let processingCancelled = false;
+let tesseractWorker = null;
+
+// ============================================================
+// ABBREVIATION DICTIONARY
+// ============================================================
+const DEFAULT_ABBREVS = {
+  "GV":"Great Value","GRT VL":"Great Value","GRTVL":"Great Value",
+  "ORG":"Organic","ORGN":"Organic","WHL":"Whole","MLK":"Milk",
+  "CKN":"Chicken","CHKN":"Chicken","BF":"Beef","GRND":"Ground",
+  "BNLS":"Boneless","SKNLS":"Skinless","BRST":"Breast","THGH":"Thigh",
+  "LG":"Large","SM":"Small","MD":"Medium","XL":"Extra Large",
+  "FRZ":"Frozen","FRZN":"Frozen","CND":"Canned","PKG":"Package",
+  "BRD":"Bread","WHT":"White","WW":"Whole Wheat","MLT":"Multi",
+  "GRN":"Green","RED":"Red","YLW":"Yellow","FRH":"Fresh",
+  "VEG":"Vegetable","VEGS":"Vegetables","FRT":"Fruit","FRTS":"Fruits",
+  "JCE":"Juice","WTR":"Water","SDR":"Soda","SPRT":"Sprite",
+  "BTR":"Butter","CHS":"Cheese","CHDR":"Cheddar","MOZ":"Mozzarella",
+  "YGT":"Yogurt","YGRT":"Yogurt","CRM":"Cream","SR CRM":"Sour Cream",
+  "EGG":"Eggs","EGGS":"Eggs","DZ":"Dozen",
+  "RC":"Rice","PST":"Pasta","SPAG":"Spaghetti","MAC":"Macaroni",
+  "SG":"Sugar","FLR":"Flour","OL":"Oil","OLV":"Olive",
+  "SLT":"Salt","PPR":"Pepper","SSNNG":"Seasoning","SPC":"Spice",
+  "SAU":"Sauce","KTCHP":"Ketchup","MSTRD":"Mustard","MAYO":"Mayonnaise",
+  "TP":"Toilet Paper","TLTP":"Toilet Paper","PT":"Paper Towels","PPTW":"Paper Towels",
+  "DET":"Detergent","LNDRY":"Laundry","DSHWSH":"Dishwasher","CLNR":"Cleaner",
+  "SHMP":"Shampoo","CNDTNR":"Conditioner","TPST":"Toothpaste","DDRNT":"Deodorant",
+  "BCON":"Bacon","SAUS":"Sausage","HM":"Ham","TRKY":"Turkey",
+  "TUNA":"Tuna","SLMN":"Salmon","SHRMP":"Shrimp",
+  "CRCKR":"Crackers","CHP":"Chips","CHPS":"Chips","CKIE":"Cookie","CKIES":"Cookies",
+  "CRL":"Cereal","OTM":"Oatmeal","PNCKE":"Pancake",
+  "TMT":"Tomato","TMTS":"Tomatoes","PTT":"Potato","PTTS":"Potatoes",
+  "ONI":"Onion","ONIS":"Onions","GRLIC":"Garlic","CRRT":"Carrot",
+  "BRCLI":"Broccoli","SPNCH":"Spinach","LTCE":"Lettuce",
+  "APL":"Apple","APLS":"Apples","BNN":"Banana","BNNS":"Bananas",
+  "ORNGE":"Orange","ORNGS":"Oranges","STRW":"Strawberry","STRWS":"Strawberries",
+  "BLUBY":"Blueberry","BLUBYS":"Blueberries","GRP":"Grape","GRPS":"Grapes",
+  "LMN":"Lemon","LME":"Lime","AVCD":"Avocado",
+  "BN":"Bean","BNS":"Beans","CRN":"Corn","PEA":"Peas",
+  "SNDWCH":"Sandwich","WRAP":"Wrap","TRTLA":"Tortilla",
+  "CF":"Coffee","TEA":"Tea","CHOC":"Chocolate","VNL":"Vanilla",
+  "PNT":"Peanut","ALMND":"Almond","WLNT":"Walnut",
+  "BBY":"Baby","DIPR":"Diaper","DPRS":"Diapers","WIPE":"Wipes",
+  "DOG":"Dog","CAT":"Cat","PET":"Pet","FD":"Food",
+  "SNCK":"Snack","SNKS":"Snacks","BAR":"Bar","BARS":"Bars",
+  "ICE CRM":"Ice Cream","ICRM":"Ice Cream","PZZA":"Pizza","PSTA":"Pasta",
+  "SHP":"Shop","MRKT":"Market","SS":"Stainless Steel","PLSTC":"Plastic",
+  "GALLN":"Gallon","GAL":"Gallon","QT":"Quart","OZ":"Ounce","LB":"Pound","CT":"Count","PK":"Pack",
+  "KS":"Kirkland Signature","MM":"Members Mark","MKT":"Marketside","SS":"Simply","HMSTL":"Homestyle"
+};
+
+function loadAbbrevDict() {
+  const saved = localStorage.getItem('scanner_abbrevDict');
+  if (saved) {
+    try { return { ...DEFAULT_ABBREVS, ...JSON.parse(saved) }; } catch(e) {}
+  }
+  return { ...DEFAULT_ABBREVS };
+}
+function saveAbbrevDict(dict) {
+  const custom = {};
+  for (const [k,v] of Object.entries(dict)) {
+    if (!DEFAULT_ABBREVS[k] || DEFAULT_ABBREVS[k] !== v) custom[k] = v;
+  }
+  localStorage.setItem('scanner_abbrevDict', JSON.stringify(custom));
+}
+
+let abbrevDict = loadAbbrevDict();
+
+function bigrams(s) {
+  s = s.toUpperCase();
+  const b = [];
+  for (let i = 0; i < s.length - 1; i++) b.push(s.slice(i, i+2));
+  return b;
+}
+function diceCoefficient(a, b) {
+  const ba = bigrams(a), bb = bigrams(b);
+  if (!ba.length && !bb.length) return 1;
+  if (!ba.length || !bb.length) return 0;
+  const setB = new Set(bb);
+  let matches = 0;
+  for (const bg of ba) if (setB.has(bg)) matches++;
+  return (2 * matches) / (ba.length + bb.length);
+}
+function fuzzyMatch(token, dict) {
+  let best = null, bestScore = 0;
+  const up = token.toUpperCase();
+  for (const [abbr, full] of Object.entries(dict)) {
+    const score = diceCoefficient(up, abbr);
+    if (score > bestScore && score >= 0.6) { best = full; bestScore = score; }
+  }
+  return best;
+}
+function decodeAbbreviation(rawName) {
+  const tokens = rawName.trim().split(/\s+/);
+  const decoded = tokens.map(t => {
+    const up = t.toUpperCase();
+    if (abbrevDict[up]) return abbrevDict[up];
+    const fm = fuzzyMatch(up, abbrevDict);
+    if (fm) return fm;
+    return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+  });
+  return decoded.join(' ');
+}
+
+// ============================================================
+// CATEGORY ASSIGNMENT
+// ============================================================
+const CATEGORY_KEYWORDS = {
+  "Dairy & Eggs":["milk","cheese","yogurt","butter","cream","egg","sour cream","cottage","cheddar","mozzarella","parmesan","whip","creamer","half & half"],
+  "Meat & Seafood":["chicken","beef","pork","turkey","salmon","shrimp","fish","steak","sausage","bacon","ham","ground","tilapia","tuna","crab","ribs","lamb","hot dog","deli","roast"],
+  "Produce":["apple","banana","orange","grape","strawberr","blueberr","raspberr","avocado","tomato","potato","onion","garlic","lettuce","spinach","broccoli","carrot","pepper","celery","cucumber","mushroom","lemon","lime","watermelon","mango","pineapple","peach","pear","kiwi","corn","zucchini","squash","cabbage","cilantro","basil","ginger","berry"],
+  "Bakery & Bread":["bread","bagel","muffin","roll","tortilla","bun","croissant","cake","donut","pie crust","biscuit","pita","english muffin"],
+  "Frozen":["frozen","ice cream","pizza","waffle","popsicle","ice pop","freezer","lean cuisine","hot pocket","tv dinner","eggo"],
+  "Canned & Packaged":["canned","can ","soup","beans","broth","stock","tomato sauce","diced tomato","paste","tuna can","spam","vienna","ramen","noodle","mac & cheese","mac and cheese","instant","cup noodle","chef boyardee"],
+  "Snacks & Candy":["chips","cookie","cracker","pretzel","popcorn","candy","chocolate","gummy","granola bar","trail mix","nut","snack","goldfish","cheez","oreo","doritos","lays","pringles","m&m"],
+  "Beverages":["water","juice","soda","cola","tea","coffee","drink","gatorade","powerade","lemonade","sprite","pepsi","coke","fanta","kool","capri sun","v8","wine","beer"],
+  "Condiments & Sauces":["ketchup","mustard","mayo","sauce","dressing","salsa","soy sauce","hot sauce","vinegar","bbq","ranch","honey","syrup","jam","jelly","peanut butter","nutella","relish","marinade","oil","olive oil"],
+  "Grains & Pasta":["rice","pasta","spaghetti","macaroni","penne","flour","oat","cereal","granola","quinoa","couscous","cornmeal","grits","pancake mix","stuffing"],
+  "Baking & Cooking":["sugar","baking","vanilla","yeast","cocoa","frosting","sprinkles","cornstarch","baking soda","baking powder","shortening","extract","food color","pie filling","marshmallow"],
+  "Baby Products":["baby","diaper","wipes","formula","gerber","enfamil","similac","sippy","pacifier","baby food","infant"],
+  "Pet Supplies":["dog","cat","pet","puppy","kitten","treats","kibble","litter","purina","pedigree","meow"],
+  "Other Grocery":["seasoning","spice","salt","pepper","herb","cumin","paprika","oregano","cinnamon","garlic powder","onion powder"],
+  "Cleaning Products":["cleaner","bleach","lysol","windex","clorox","mop","broom","sponge","trash bag","garbage bag","disinfect","scrub","pine sol","ajax","dawn dish"],
+  "Paper Products":["paper towel","toilet paper","tissue","napkin","plate","cup ","bowl ","aluminum foil","plastic wrap","ziploc","glad","dixie","bounty","charmin"],
+  "Personal Care":["shampoo","conditioner","body wash","soap","toothpaste","toothbrush","deodorant","lotion","razor","shaving","cotton","q-tip","floss","mouthwash","feminine","tampon","pad ","dove","pantene","crest","colgate"],
+  "Health & Medicine":["vitamin","medicine","tylenol","advil","bandaid","band-aid","first aid","cough","cold ","allergy","antacid","ibuprofen","thermometer","alcohol","peroxide","neosporin"],
+  "Kitchen & Home":["container","storage","candle","light bulb","battery","extension","hanger","glue","tape","scissors","towel","rug","curtain"],
+  "Laundry":["detergent","laundry","fabric softener","dryer sheet","stain","tide","downy","oxiclean","bleach"],
+  "Electronics & Misc":["charger","cable","usb","phone","headphone","adapter","flash drive","memory card"],
+  "Other Non-Grocery":[]
+};
+
+const NON_GROCERY_CATS = new Set(["Cleaning Products","Paper Products","Personal Care","Health & Medicine","Kitchen & Home","Laundry","Electronics & Misc","Other Non-Grocery"]);
+
+function assignCategory(productName) {
+  const lower = productName.toLowerCase();
+  for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    for (const kw of keywords) {
+      if (lower.includes(kw)) return cat;
+    }
+  }
+  return "Other Grocery";
+}
+function isNonGrocery(category) { return NON_GROCERY_CATS.has(category); }
+
+// ============================================================
+// STORE DETECTION
+// ============================================================
+const STORE_PATTERNS = [
+  { regex: /walmart|wal[\s-]*mart|wm\s*supercenter/i, name: "Walmart" },
+  { regex: /publix/i, name: "Publix" },
+  { regex: /target/i, name: "Target" },
+  { regex: /costco/i, name: "Costco" },
+  { regex: /kroger/i, name: "Kroger" },
+  { regex: /aldi/i, name: "Aldi" },
+  { regex: /h[\s-]*e[\s-]*b\b/i, name: "HEB" },
+  { regex: /trader\s*joe/i, name: "Trader Joes" },
+  { regex: /whole\s*foods/i, name: "Whole Foods" },
+  { regex: /safeway/i, name: "Safeway" },
+  { regex: /albertson/i, name: "Albertsons" },
+  { regex: /meijer/i, name: "Meijer" },
+  { regex: /food\s*lion/i, name: "Food Lion" },
+  { regex: /winco/i, name: "WinCo" },
+  { regex: /wegman/i, name: "Wegmans" },
+  { regex: /sprout/i, name: "Sprouts" },
+  { regex: /sam'?s\s*club/i, name: "Sams Club" },
+  { regex: /bj'?s/i, name: "BJs" },
+  { regex: /dollar\s*(tree|general)/i, name: "Dollar Store" },
+  { regex: /cvs/i, name: "CVS" },
+  { regex: /walgreen/i, name: "Walgreens" }
+];
+
+function detectStore(text) {
+  for (const sp of STORE_PATTERNS) {
+    if (sp.regex.test(text)) return sp.name;
+  }
+  return "Unknown Store";
+}
+
+function extractDate(text) {
+  // Try various date formats
+  const patterns = [
+    /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/,
+    /(\w{3,9})\s+(\d{1,2}),?\s+(\d{2,4})/i,
+    /(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+(\d{2,4})/i
+  ];
+  const months = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12,
+    january:1,february:2,march:3,april:4,may:5,june:6,july:7,august:8,september:9,october:10,november:11,december:12};
+
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m) {
+      let month, day;
+      if (/\d/.test(m[1])) {
+        // Numeric format MM/DD/YYYY
+        month = parseInt(m[1]); day = parseInt(m[2]);
+        if (month > 12) { const t = month; month = day; day = t; }
+      } else {
+        // Named month
+        month = months[m[1].toLowerCase()];
+        day = parseInt(m[2]);
+      }
+      if (month && day && month <= 12 && day <= 31) {
+        return String(month).padStart(2,'0') + '/' + String(day).padStart(2,'0');
+      }
+    }
+  }
+  // Default to today
+  const now = new Date();
+  return String(now.getMonth()+1).padStart(2,'0') + '/' + String(now.getDate()).padStart(2,'0');
+}
+
+// ============================================================
+// RECEIPT LINE PARSERS
+// ============================================================
+function parseReceiptLines(text, store) {
+  switch(store) {
+    case 'Walmart': return parseWalmart(text);
+    case 'Target': return parseTarget(text);
+    case 'Costco': return parseCostco(text);
+    case 'Publix': return parsePublix(text);
+    default: return parseGeneric(text);
+  }
+}
+
+function parseWalmart(text) {
+  const items = [];
+  const lines = text.split('\n');
+  // Walmart format: ITEM NAME    PRICE (with possible letter code at end like N, T, X)
+  const priceRe = /^(.+?)\s+(\d+\.\d{2})\s*[A-Z]?\s*$/;
+  const qtyRe = /^(\d+)\s*@\s*(\d+\.\d{2})/;
+  let pendingQty = null;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    // Skip subtotal/tax/total lines
+    if (/subtotal|total|tax|change|cash|credit|debit|visa|mastercard|amex|account|card|balance|tend/i.test(trimmed)) continue;
+    if (/^\*{2,}|^\-{2,}|^={2,}/.test(trimmed)) continue;
+
+    const qm = trimmed.match(qtyRe);
+    if (qm) { pendingQty = { qty: parseInt(qm[1]), unit: parseFloat(qm[2]) }; continue; }
+
+    const pm = trimmed.match(priceRe);
+    if (pm) {
+      const name = pm[1].trim();
+      const price = parseFloat(pm[2]);
+      if (name.length < 2 || price > 500) continue;
+      const qty = pendingQty ? pendingQty.qty : 1;
+      const unit = pendingQty ? pendingQty.unit : price;
+      items.push({ rawName: name, qty, unitPrice: unit, total: price });
+      pendingQty = null;
+    }
+  }
+  return items;
+}
+
+function parseTarget(text) {
+  // Target: similar to Walmart but uses letter codes more
+  return parseGeneric(text);
+}
+
+function parseCostco(text) {
+  // Costco: item number + description + price
+  const items = [];
+  const lines = text.split('\n');
+  const re = /^\d{5,}\s+(.+?)\s+(\d+\.\d{2})\s*[A-Z]?\s*$/;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/subtotal|total|tax/i.test(trimmed)) continue;
+    const m = trimmed.match(re);
+    if (m) {
+      const name = m[1].trim();
+      const price = parseFloat(m[2]);
+      if (name.length >= 2 && price <= 500) items.push({ rawName: name, qty: 1, unitPrice: price, total: price });
+    }
+  }
+  if (items.length === 0) return parseGeneric(text);
+  return items;
+}
+
+function parsePublix(text) {
+  return parseGeneric(text);
+}
+
+function parseGeneric(text) {
+  const items = [];
+  const lines = text.split('\n');
+  // Generic: look for lines ending in a price (X.XX)
+  const priceRe = /^(.+?)\s+\$?(\d+\.\d{2})\s*[A-Z]?\s*$/;
+  const qtyPriceRe = /^(\d+)\s*(?:@|x)\s*\$?(\d+\.\d{2})/i;
+  let pendingQty = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.length < 3) continue;
+    // Skip non-item lines
+    if (/subtotal|sub\s*total|total|tax|change|cash|credit|debit|visa|master|amex|account|balance|tend|thank|welcome|store|receipt|phone|address|www\.|\.com|member|saving|you saved|regular price|^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/i.test(trimmed)) continue;
+    if (/^\*|^\-{3,}|^={3,}|^#{3,}/.test(trimmed)) continue;
+
+    const qm = trimmed.match(qtyPriceRe);
+    if (qm) { pendingQty = { qty: parseInt(qm[1]), unit: parseFloat(qm[2]) }; continue; }
+
+    const pm = trimmed.match(priceRe);
+    if (pm) {
+      const name = pm[1].replace(/^\d{5,}\s*/, '').trim();
+      const price = parseFloat(pm[2]);
+      if (name.length < 2 || price > 500 || price === 0) continue;
+      const qty = pendingQty ? pendingQty.qty : 1;
+      const unit = pendingQty ? pendingQty.unit : price;
+      items.push({ rawName: name, qty, unitPrice: unit, total: price });
+      pendingQty = null;
+    }
+  }
+  return items;
+}
+
+// ============================================================
+// IMAGE PREPROCESSING
+// ============================================================
+function preprocessImage(dataUrl) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      // Scale up small images
+      const scale = w < 1000 ? 2 : 1;
+      w *= scale; h *= scale;
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      // Grayscale + contrast + threshold
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const d = imageData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        let gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+        // Increase contrast (1.5x)
+        gray = ((gray / 255 - 0.5) * 1.5 + 0.5) * 255;
+        gray = Math.max(0, Math.min(255, gray));
+        // Threshold
+        gray = gray > 128 ? 255 : 0;
+        d[i] = d[i+1] = d[i+2] = gray;
+      }
+      ctx.putImageData(imageData, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.src = dataUrl;
+  });
+}
+
+// ============================================================
+// FILE UPLOAD HANDLING
+// ============================================================
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const thumbGrid = document.getElementById('thumbGrid');
+const uploadActions = document.getElementById('uploadActions');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', () => { handleFiles(fileInput.files); fileInput.value = ''; });
+
+function handleFiles(fileList) {
+  const newFiles = Array.from(fileList).filter(f => f.type.startsWith('image/') || /\.(heic|tif|tiff)$/i.test(f.name));
+  const remaining = 100 - uploadedFiles.length;
+  const toAdd = newFiles.slice(0, remaining);
+  if (newFiles.length > remaining) {
+    log(`Only adding ${remaining} more images (100 max). ${newFiles.length - remaining} files skipped.`, 'error');
+  }
+  for (const file of toAdd) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      uploadedFiles.push({ file, dataUrl: reader.result, name: file.name });
+      renderThumbnails();
+    };
+    reader.readAsDataURL(file);
+  }
+  if (toAdd.length) setTimeout(renderThumbnails, 100);
+}
+
+function renderThumbnails() {
+  thumbGrid.innerHTML = '';
+  for (let i = 0; i < uploadedFiles.length; i++) {
+    const uf = uploadedFiles[i];
+    const card = document.createElement('div');
+    card.className = 'thumb-card';
+    card.innerHTML = `<img src="${uf.dataUrl}" alt="${uf.name}"><div class="thumb-name" title="${uf.name}">${uf.name}</div><button class="thumb-remove" onclick="removeFile(${i})">&times;</button>`;
+    thumbGrid.appendChild(card);
+  }
+  uploadActions.style.display = uploadedFiles.length ? 'flex' : 'none';
+  document.getElementById('uploadCount').textContent = uploadedFiles.length + ' image' + (uploadedFiles.length !== 1 ? 's' : '');
+  document.getElementById('btnProcess').disabled = !uploadedFiles.length;
+}
+
+function removeFile(idx) {
+  uploadedFiles.splice(idx, 1);
+  renderThumbnails();
+}
+function clearAll() {
+  uploadedFiles = [];
+  renderThumbnails();
+}
+
+// ============================================================
+// STEP NAVIGATION
+// ============================================================
+function goToStep(n) {
+  document.querySelectorAll('.step-item').forEach(el => {
+    const s = parseInt(el.dataset.step);
+    el.classList.toggle('active', s === n);
+    el.classList.toggle('done', s < n);
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(['','panelUpload','panelProcessing','panelReview','panelExport'][n]).classList.add('active');
+}
+
+// ============================================================
+// PROCESSING (OCR)
+// ============================================================
+function log(msg, type='') {
+  const box = document.getElementById('logBox');
+  if (!box) return;
+  const div = document.createElement('div');
+  div.className = 'log-line ' + type;
+  div.textContent = msg;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function startProcessing() {
+  if (!uploadedFiles.length) return;
+  processingCancelled = false;
+  extractedData = [];
+  goToStep(2);
+  document.getElementById('logBox').innerHTML = '';
+
+  const geminiKey = document.getElementById('geminiKey').value.trim();
+  const doPreprocess = document.getElementById('chkPreprocess').checked;
+  const doAutoDetect = document.getElementById('chkAutoDetect').checked;
+  const useGemini = !!geminiKey;
+
+  const total = uploadedFiles.length;
+  log(`Starting scan of ${total} receipt(s)...`, 'info');
+  if (useGemini) log('Using Gemini Vision AI for enhanced scanning', 'info');
+  else log('Using Tesseract.js offline OCR', 'info');
+
+  // Initialize Tesseract worker if not using Gemini
+  if (!useGemini) {
+    log('Initializing OCR engine...');
+    try {
+      tesseractWorker = await Tesseract.createWorker('eng', 1, {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            const pct = Math.round((m.progress || 0) * 100);
+            document.getElementById('currentFileFill').style.width = pct + '%';
+          }
+        }
+      });
+      log('OCR engine ready', 'success');
+    } catch(e) {
+      log('Failed to initialize OCR: ' + e.message, 'error');
+      return;
+    }
+  }
+
+  for (let i = 0; i < total; i++) {
+    if (processingCancelled) { log('Processing cancelled by user', 'error'); break; }
+    const uf = uploadedFiles[i];
+    const pct = Math.round(((i) / total) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressPct').textContent = pct + '%';
+    document.getElementById('progressText').textContent = `Processing ${i+1} of ${total}`;
+    document.getElementById('currentFileText').textContent = uf.name;
+    document.getElementById('currentFileFill').style.width = '0%';
+
+    log(`[${i+1}/${total}] ${uf.name}`);
+
+    try {
+      let items;
+      if (useGemini) {
+        items = await processWithGemini(uf, geminiKey, doAutoDetect);
+      } else {
+        items = await processWithTesseract(uf, doPreprocess, doAutoDetect);
+      }
+      if (items.length) {
+        log(`  Found ${items.length} item(s)`, 'success');
+        extractedData.push(...items);
+      } else {
+        log(`  No items detected`, 'error');
+      }
+    } catch(e) {
+      log(`  Error: ${e.message}`, 'error');
+    }
+  }
+
+  // Cleanup
+  if (tesseractWorker) {
+    try { await tesseractWorker.terminate(); } catch(e) {}
+    tesseractWorker = null;
+  }
+
+  document.getElementById('progressFill').style.width = '100%';
+  document.getElementById('progressFill').classList.add('done');
+  document.getElementById('progressPct').textContent = '100%';
+  document.getElementById('progressText').textContent = 'Complete!';
+  document.getElementById('currentFileFill').style.width = '100%';
+  document.getElementById('currentFileFill').classList.add('done');
+  document.getElementById('currentFileText').textContent = 'Done';
+
+  log(`\nScan complete: ${extractedData.length} total items from ${total} receipt(s)`, 'success');
+
+  if (extractedData.length > 0) {
+    setTimeout(() => {
+      goToStep(3);
+      renderReview();
+    }, 1000);
+  }
+}
+
+async function processWithTesseract(uf, doPreprocess, doAutoDetect) {
+  let imageData = uf.dataUrl;
+  if (doPreprocess) {
+    log('  Preprocessing image...');
+    imageData = await preprocessImage(imageData);
+  }
+  log('  Running OCR...');
+  const result = await tesseractWorker.recognize(imageData);
+  const text = result.data.text;
+  const confidence = result.data.confidence;
+
+  if (!text || text.trim().length < 10) return [];
+
+  // Detect store and date
+  let store = 'Unknown Store', date = extractDate(text);
+  if (doAutoDetect) {
+    store = detectStore(text);
+    log(`  Store: ${store}, Date: ${date}`);
+  }
+
+  // Parse items
+  const rawItems = parseReceiptLines(text, store);
+  log(`  Parsed ${rawItems.length} line(s) from OCR text`);
+
+  // Convert to data model
+  return rawItems.map(ri => {
+    const fullName = decodeAbbreviation(ri.rawName);
+    const category = assignCategory(fullName);
+    return {
+      d: date,
+      s: store,
+      r: ri.rawName,
+      n: fullName,
+      c: category,
+      q: ri.qty,
+      u: ri.unitPrice,
+      t: ri.total,
+      ng: isNonGrocery(category),
+      _file: uf.name,
+      _confidence: confidence
+    };
+  });
+}
+
+async function processWithGemini(uf, apiKey, doAutoDetect) {
+  log('  Sending to Gemini Vision API...');
+
+  const base64 = uf.dataUrl.split(',')[1];
+  const mimeType = uf.dataUrl.split(';')[0].split(':')[1] || 'image/jpeg';
+
+  const payload = {
+    contents: [{
+      parts: [
+        { inlineData: { mimeType, data: base64 } },
+        { text: `Analyze this grocery receipt image and extract all purchased items. For each item, return:
+- rawName: the abbreviated name exactly as printed on the receipt
+- fullName: the decoded/full product name
+- category: one of these categories: Dairy & Eggs, Meat & Seafood, Produce, Bakery & Bread, Frozen, Canned & Packaged, Snacks & Candy, Beverages, Condiments & Sauces, Grains & Pasta, Baking & Cooking, Baby Products, Pet Supplies, Other Grocery, Cleaning Products, Paper Products, Personal Care, Health & Medicine, Kitchen & Home, Laundry, Electronics & Misc, Other Non-Grocery
+- quantity: number (default 1)
+- unitPrice: price per unit as number
+- total: line total as number
+- storeName: the store name if visible
+- date: the transaction date in MM/DD format if visible
+
+Return ONLY a JSON object with this exact structure:
+{"store":"StoreName","date":"MM/DD","items":[{"rawName":"...","fullName":"...","category":"...","quantity":1,"unitPrice":0.00,"total":0.00}]}` }
+      ]
+    }]
+  };
+
+  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error('Gemini API error: ' + resp.status + ' ' + err.slice(0, 200));
+  }
+
+  const data = await resp.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+  // Extract JSON from response
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('No JSON in Gemini response');
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  const store = (doAutoDetect && parsed.store) || 'Unknown Store';
+  const date = (doAutoDetect && parsed.date) || extractDate('');
+
+  return (parsed.items || []).map(item => ({
+    d: date,
+    s: store,
+    r: item.rawName || item.fullName || '',
+    n: item.fullName || item.rawName || '',
+    c: item.category || assignCategory(item.fullName || ''),
+    q: item.quantity || 1,
+    u: item.unitPrice || 0,
+    t: item.total || (item.unitPrice * (item.quantity || 1)) || 0,
+    ng: isNonGrocery(item.category || ''),
+    _file: uf.name,
+    _confidence: 95
+  }));
+}
+
+function cancelProcessing() {
+  processingCancelled = true;
+}
+
+// ============================================================
+// REVIEW
+// ============================================================
+const ALL_CATEGORIES = [
+  "Dairy & Eggs","Meat & Seafood","Produce","Bakery & Bread","Frozen",
+  "Canned & Packaged","Snacks & Candy","Beverages","Condiments & Sauces",
+  "Grains & Pasta","Baking & Cooking","Baby Products","Pet Supplies","Other Grocery",
+  "Cleaning Products","Paper Products","Personal Care","Health & Medicine",
+  "Kitchen & Home","Laundry","Electronics & Misc","Other Non-Grocery"
+];
+
+function renderReview() {
+  // Summary stats
+  const totalItems = extractedData.length;
+  const totalAmount = extractedData.reduce((s,i) => s + (i.t || 0), 0);
+  const fileGroups = {};
+  extractedData.forEach(item => {
+    if (!fileGroups[item._file]) fileGroups[item._file] = [];
+    fileGroups[item._file].push(item);
+  });
+  const fileCount = Object.keys(fileGroups).length;
+  const storeSet = new Set(extractedData.map(i => i.s));
+
+  document.getElementById('reviewSummary').innerHTML = `
+    <div class="review-stat"><div class="val">${totalItems}</div><div class="lbl">Total Items</div></div>
+    <div class="review-stat"><div class="val">$${fmt(totalAmount)}</div><div class="lbl">Total Amount</div></div>
+    <div class="review-stat"><div class="val">${fileCount}</div><div class="lbl">Receipts</div></div>
+    <div class="review-stat"><div class="val">${storeSet.size}</div><div class="lbl">Stores</div></div>
+  `;
+
+  // Per-receipt groups
+  let groupsHtml = '';
+  let globalIdx = 0;
+  for (const [fileName, items] of Object.entries(fileGroups)) {
+    const fileTotal = items.reduce((s,i) => s + (i.t || 0), 0);
+    const store = items[0]?.s || 'Unknown';
+    const date = items[0]?.d || '';
+    const groupId = 'grp_' + globalIdx;
+
+    groupsHtml += `<div class="receipt-group">`;
+    groupsHtml += `<div class="receipt-header" onclick="toggleGroup('${groupId}')">
+      <div class="file-name">&#128206; ${fileName} &mdash; ${items.length} item(s)</div>
+      <div class="file-meta"><span>${store}</span><span>${date}</span><span>$${fmt(fileTotal)}</span><span class="chevron">&#9660;</span></div>
+    </div>`;
+
+    groupsHtml += `<div class="store-date-row" id="${groupId}_meta">
+      <label>Store: <input type="text" value="${escHtml(store)}" onchange="updateGroupField('${fileName}','s',this.value)"></label>
+      <label>Date: <input type="text" value="${escHtml(date)}" placeholder="MM/DD" onchange="updateGroupField('${fileName}','d',this.value)"></label>
+    </div>`;
+
+    groupsHtml += `<div class="receipt-body" id="${groupId}">`;
+    groupsHtml += `<table class="review-table"><thead><tr>
+      <th>Receipt Name</th><th>Full Name</th><th>Category</th><th>Qty</th><th>Unit $</th><th>Total</th><th>Non-Groc</th>
+      ${items[0]?._confidence !== undefined ? '<th>Conf</th>' : ''}
+    </tr></thead><tbody>`;
+
+    for (const item of items) {
+      const idx = extractedData.indexOf(item);
+      const catOptions = ALL_CATEGORIES.map(c => `<option value="${c}"${c===item.c?' selected':''}>${c}</option>`).join('');
+      const lowConf = (item._confidence || 0) < 70;
+      groupsHtml += `<tr>
+        <td><input value="${escHtml(item.r)}" onchange="updateItem(${idx},'r',this.value)"></td>
+        <td><input value="${escHtml(item.n)}" onchange="updateItemName(${idx},this.value)"></td>
+        <td><select onchange="updateItem(${idx},'c',this.value);updateItem(${idx},'ng',isNonGrocery(this.value))">${catOptions}</select></td>
+        <td><input type="number" class="num-input" value="${item.q}" min="1" onchange="updateItemNum(${idx},'q',this.value)"></td>
+        <td><input type="number" class="num-input" value="${item.u.toFixed(2)}" step="0.01" min="0" onchange="updateItemNum(${idx},'u',this.value)"></td>
+        <td><input type="number" class="num-input" value="${item.t.toFixed(2)}" step="0.01" min="0" onchange="updateItemNum(${idx},'t',this.value)"></td>
+        <td style="text-align:center"><input type="checkbox" ${item.ng?'checked':''} onchange="updateItem(${idx},'ng',this.checked)"></td>
+        ${item._confidence !== undefined ? `<td>${lowConf ? '<span class="low-confidence" title="Low OCR confidence">&#9888;</span>' : ''}${Math.round(item._confidence)}%</td>` : ''}
+      </tr>`;
+    }
+    groupsHtml += `</tbody></table></div></div>`;
+    globalIdx++;
+  }
+
+  document.getElementById('reviewGroups').innerHTML = groupsHtml;
+}
+
+function toggleGroup(groupId) {
+  const body = document.getElementById(groupId);
+  const header = body.previousElementSibling.previousElementSibling;
+  body.classList.toggle('collapsed');
+  header.classList.toggle('collapsed');
+}
+
+function updateItem(idx, field, value) {
+  if (idx >= 0 && idx < extractedData.length) extractedData[idx][field] = value;
+}
+function updateItemNum(idx, field, value) {
+  if (idx >= 0 && idx < extractedData.length) {
+    extractedData[idx][field] = parseFloat(value) || 0;
+    if (field === 'q' || field === 'u') {
+      extractedData[idx].t = extractedData[idx].q * extractedData[idx].u;
+    }
+  }
+}
+function updateItemName(idx, value) {
+  if (idx >= 0 && idx < extractedData.length) {
+    const old = extractedData[idx];
+    old.n = value;
+    // Learn abbreviation
+    if (old.r && value && old.r !== value) {
+      abbrevDict[old.r.toUpperCase()] = value;
+      saveAbbrevDict(abbrevDict);
+    }
+    // Re-categorize
+    old.c = assignCategory(value);
+    old.ng = isNonGrocery(old.c);
+    renderReview();
+  }
+}
+function updateGroupField(fileName, field, value) {
+  extractedData.forEach(item => {
+    if (item._file === fileName) item[field] = value;
+  });
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmt(n) {
+  return Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+// ============================================================
+// EXPORT SELECTION
+// ============================================================
+let selectedExport = null;
+
+function selectExport(type) {
+  selectedExport = type;
+  document.getElementById('exportExcel').classList.toggle('selected', type === 'excel');
+  document.getElementById('exportDashboard').classList.toggle('selected', type === 'dashboard');
+  document.getElementById('excelOptions').style.display = type === 'excel' ? 'block' : 'none';
+  document.getElementById('dashboardOptions').style.display = type === 'dashboard' ? 'block' : 'none';
+  document.getElementById('exportResult').style.display = 'none';
+
+  // Set default month from data
+  const dates = extractedData.map(i => i.d).filter(Boolean);
+  const now = new Date();
+  let yr = now.getFullYear(), mo = now.getMonth() + 1;
+  if (dates.length) {
+    // Try to infer month from most common date
+    const monthCounts = {};
+    dates.forEach(d => { const m = d.split('/')[0]; monthCounts[m] = (monthCounts[m]||0) + 1; });
+    mo = parseInt(Object.entries(monthCounts).sort((a,b)=>b[1]-a[1])[0][0]) || mo;
+  }
+  const monthStr = yr + '-' + String(mo).padStart(2,'0');
+  if (type === 'excel') document.getElementById('excelMonth').value = monthStr;
+  if (type === 'dashboard') {
+    document.getElementById('dashMonth').value = monthStr;
+    checkExistingMonth(yr + '_' + String(mo).padStart(2,'0'));
+  }
+}
+
+function checkExistingMonth(monthKey) {
+  const existing = localStorage.getItem('data_' + monthKey);
+  document.getElementById('mergeWarning').style.display = existing ? 'block' : 'none';
+}
+
+// ============================================================
+// EXCEL EXPORT
+// ============================================================
+async function doExcelExport() {
+  const monthVal = document.getElementById('excelMonth').value;
+  if (!monthVal) { alert('Please select a month'); return; }
+  const [yr, mo] = monthVal.split('-');
+  const monthName = new Date(yr, parseInt(mo)-1).toLocaleString('default',{month:'long'});
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Receipt Scanner';
+
+  const headerFill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF2F5496'} };
+  const headerFont = { bold:true, color:{argb:'FFFFFFFF'}, size:11 };
+  const currFmt = '$#,##0.00';
+  const yellowFill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFF2CC'} };
+  const thinBorder = {
+    top:{style:'thin',color:{argb:'FFD0D0D0'}},
+    bottom:{style:'thin',color:{argb:'FFD0D0D0'}},
+    left:{style:'thin',color:{argb:'FFD0D0D0'}},
+    right:{style:'thin',color:{argb:'FFD0D0D0'}}
+  };
+
+  // Sheet 1: All Transactions
+  const ws1 = workbook.addWorksheet('All Transactions');
+  ws1.columns = [
+    {header:'Date',key:'d',width:10},{header:'Store',key:'s',width:16},
+    {header:'Receipt Name',key:'r',width:22},{header:'Full Product Name',key:'n',width:30},
+    {header:'Category',key:'c',width:18},{header:'Qty',key:'q',width:6},
+    {header:'Unit Price',key:'u',width:12},{header:'Line Total',key:'t',width:12},
+    {header:'Non-Grocery?',key:'ng',width:13},{header:'Source File',key:'f',width:25}
+  ];
+  ws1.getRow(1).eachCell(cell => { cell.fill = headerFill; cell.font = headerFont; cell.border = thinBorder; });
+  extractedData.forEach(item => {
+    const row = ws1.addRow({d:item.d,s:item.s,r:item.r,n:item.n,c:item.c,q:item.q,u:item.u,t:item.t,ng:item.ng?'Yes':'No',f:item._file});
+    row.getCell('u').numFmt = currFmt;
+    row.getCell('t').numFmt = currFmt;
+    row.eachCell(cell => { cell.border = thinBorder; });
+    if (item.ng) row.eachCell(cell => { cell.fill = yellowFill; });
+  });
+
+  // Sheet 2: By Store
+  const ws2 = workbook.addWorksheet('By Store');
+  ws2.columns = [{header:'Store',key:'store',width:20},{header:'Items',key:'items',width:10},{header:'Total',key:'total',width:14},{header:'Avg/Item',key:'avg',width:14}];
+  ws2.getRow(1).eachCell(cell => { cell.fill = headerFill; cell.font = headerFont; cell.border = thinBorder; });
+  const byStore = {};
+  extractedData.forEach(i => { if(!byStore[i.s]) byStore[i.s]={items:0,total:0}; byStore[i.s].items+=i.q; byStore[i.s].total+=i.t; });
+  Object.entries(byStore).sort((a,b)=>b[1].total-a[1].total).forEach(([store,data]) => {
+    const row = ws2.addRow({store,items:data.items,total:data.total,avg:data.total/data.items});
+    row.getCell('total').numFmt = currFmt; row.getCell('avg').numFmt = currFmt;
+    row.eachCell(cell => { cell.border = thinBorder; });
+  });
+
+  // Sheet 3: By Category
+  const ws3 = workbook.addWorksheet('By Category');
+  ws3.columns = [{header:'Category',key:'cat',width:22},{header:'Items',key:'items',width:10},{header:'Total',key:'total',width:14},{header:'% of Total',key:'pct',width:12}];
+  ws3.getRow(1).eachCell(cell => { cell.fill = headerFill; cell.font = headerFont; cell.border = thinBorder; });
+  const byCat = {};
+  const grandTotal = extractedData.reduce((s,i)=>s+i.t,0);
+  extractedData.forEach(i => { if(!byCat[i.c]) byCat[i.c]={items:0,total:0}; byCat[i.c].items+=i.q; byCat[i.c].total+=i.t; });
+  Object.entries(byCat).sort((a,b)=>b[1].total-a[1].total).forEach(([cat,data]) => {
+    const row = ws3.addRow({cat,items:data.items,total:data.total,pct:(data.total/grandTotal*100).toFixed(1)+'%'});
+    row.getCell('total').numFmt = currFmt;
+    row.eachCell(cell => { cell.border = thinBorder; });
+    if (isNonGrocery(cat)) row.eachCell(cell => { cell.fill = yellowFill; });
+  });
+
+  // Sheet 4: Top Spent Items
+  const ws4 = workbook.addWorksheet('Top Spent Items');
+  ws4.columns = [{header:'Product',key:'name',width:30},{header:'Category',key:'cat',width:18},{header:'Total Spent',key:'total',width:14},{header:'Times Bought',key:'count',width:14}];
+  ws4.getRow(1).eachCell(cell => { cell.fill = headerFill; cell.font = headerFont; cell.border = thinBorder; });
+  const byProduct = {};
+  extractedData.forEach(i => { const k=i.n; if(!byProduct[k]) byProduct[k]={cat:i.c,total:0,count:0}; byProduct[k].total+=i.t; byProduct[k].count+=i.q; });
+  Object.entries(byProduct).sort((a,b)=>b[1].total-a[1].total).slice(0,20).forEach(([name,data]) => {
+    const row = ws4.addRow({name,cat:data.cat,total:data.total,count:data.count});
+    row.getCell('total').numFmt = currFmt;
+    row.eachCell(cell => { cell.border = thinBorder; });
+  });
+
+  // Sheet 5: Frequently Purchased
+  const ws5 = workbook.addWorksheet('Frequently Purchased');
+  ws5.columns = [{header:'Product',key:'name',width:30},{header:'Category',key:'cat',width:18},{header:'Times Bought',key:'count',width:14},{header:'Total Spent',key:'total',width:14}];
+  ws5.getRow(1).eachCell(cell => { cell.fill = headerFill; cell.font = headerFont; cell.border = thinBorder; });
+  Object.entries(byProduct).sort((a,b)=>b[1].count-a[1].count).slice(0,20).forEach(([name,data]) => {
+    const row = ws5.addRow({name,cat:data.cat,count:data.count,total:data.total});
+    row.getCell('total').numFmt = currFmt;
+    row.eachCell(cell => { cell.border = thinBorder; });
+  });
+
+  // Sheet 6: Summary Dashboard
+  const ws6 = workbook.addWorksheet('Summary Dashboard');
+  ws6.getColumn(1).width = 25;
+  ws6.getColumn(2).width = 20;
+  const summaryRows = [
+    ['Monthly Grocery Summary',''],
+    ['Month', monthName + ' ' + yr],
+    ['Total Spend', grandTotal],
+    ['Total Items', extractedData.length],
+    ['Unique Products', Object.keys(byProduct).length],
+    ['Stores Visited', Object.keys(byStore).length],
+    ['Categories', Object.keys(byCat).length],
+    ['Avg per Item', grandTotal / (extractedData.length || 1)],
+    ['Receipts Scanned', new Set(extractedData.map(i=>i._file)).size]
+  ];
+  summaryRows.forEach((r,i) => {
+    const row = ws6.addRow(r);
+    if (i === 0) { row.getCell(1).font = { bold:true, size:14, color:{argb:'FF2F5496'} }; }
+    else {
+      row.getCell(1).font = { bold:true };
+      if (typeof r[1] === 'number' && (i === 2 || i === 7)) row.getCell(2).numFmt = currFmt;
+    }
+  });
+
+  // Generate and download
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Grocery_Receipts_${yr}_${mo}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  document.getElementById('exportResult').style.display = 'block';
+  document.getElementById('exportResult').innerHTML = `
+    <div class="check">&#9989;</div>
+    <div class="msg">Excel file downloaded!</div>
+    <div class="sub">Grocery_Receipts_${yr}_${mo}.xlsx &mdash; ${extractedData.length} items across 6 sheets</div>
+    <button class="btn btn-secondary" onclick="goToStep(1);resetAll()">Scan More Receipts</button>
+  `;
+}
+
+// ============================================================
+// DASHBOARD IMPORT
+// ============================================================
+function doDashboardImport() {
+  const monthVal = document.getElementById('dashMonth').value;
+  if (!monthVal) { alert('Please select a month'); return; }
+  const [yr, mo] = monthVal.split('-');
+  const monthKey = yr + '_' + mo;
+
+  // Prepare items without internal fields
+  const items = extractedData.map(item => ({
+    d: item.d, s: item.s, r: item.r, n: item.n, c: item.c,
+    q: item.q, u: item.u, t: item.t, ng: item.ng
+  }));
+
+  // Check merge mode
+  const existing = localStorage.getItem('data_' + monthKey);
+  let finalItems = items;
+  if (existing) {
+    const mergeMode = document.querySelector('input[name="mergeMode"]:checked')?.value || 'merge';
+    if (mergeMode === 'merge') {
+      try {
+        const prev = JSON.parse(existing);
+        finalItems = [...prev, ...items];
+      } catch(e) {
+        finalItems = items;
+      }
+    }
+  }
+
+  // Write to localStorage (same pattern as V1)
+  localStorage.setItem('data_' + monthKey, JSON.stringify(finalItems));
+  const months = JSON.parse(localStorage.getItem('grocery_months') || '[]');
+  if (!months.includes(monthKey)) {
+    months.push(monthKey);
+    months.sort();
+    localStorage.setItem('grocery_months', JSON.stringify(months));
+  }
+  localStorage.setItem('grocery_activeMonth', monthKey);
+
+  document.getElementById('exportResult').style.display = 'block';
+  document.getElementById('dashboardOptions').style.display = 'none';
+  document.getElementById('exportResult').innerHTML = `
+    <div class="check">&#128640;</div>
+    <div class="msg">Imported to Dashboard!</div>
+    <div class="sub">${finalItems.length} items loaded for ${new Date(yr, parseInt(mo)-1).toLocaleString('default',{month:'long'})} ${yr}</div>
+    <a href="../Groceries/" class="btn btn-green">Open Groceries Dashboard &#8594;</a>
+    <button class="btn btn-secondary" style="margin-left:12px" onclick="goToStep(1);resetAll()">Scan More</button>
+  `;
+}
+
+function resetAll() {
+  uploadedFiles = [];
+  extractedData = [];
+  selectedExport = null;
+  renderThumbnails();
+  document.getElementById('exportResult').style.display = 'none';
+  document.getElementById('excelOptions').style.display = 'none';
+  document.getElementById('dashboardOptions').style.display = 'none';
+  document.getElementById('exportExcel').classList.remove('selected');
+  document.getElementById('exportDashboard').classList.remove('selected');
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('progressFill').classList.remove('done');
+  document.getElementById('currentFileFill').style.width = '0%';
+  document.getElementById('currentFileFill').classList.remove('done');
+}
+
+// Load saved Gemini key
+(function(){
+  const saved = localStorage.getItem('scanner_geminiKey');
+  if (saved) document.getElementById('geminiKey').value = saved;
+  document.getElementById('geminiKey').addEventListener('change', function() {
+    if (this.value.trim()) localStorage.setItem('scanner_geminiKey', this.value.trim());
+    else localStorage.removeItem('scanner_geminiKey');
+  });
+})();
+</script>
+</body>
+</html>
