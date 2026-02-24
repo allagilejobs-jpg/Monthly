@@ -329,25 +329,33 @@ function showAuthGate() {
   const existing = document.getElementById('fb-auth-gate');
   if (existing) existing.remove();
 
-  // Clear any unauthorized data left in localStorage from unauthenticated sessions
-  const path = window.location.pathname;
-  if (path.includes('/Groceries/')) {
-    ['grocery_months','grocery_activeMonth'].forEach(k => localStorage.removeItem(k));
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const k = localStorage.key(i);
-      if (k && (k.startsWith('data_') || k.startsWith('edits_'))) localStorage.removeItem(k);
-    }
-  } else if (path.includes('/Expenses/')) {
-    ['expenses_months','expenses_activeMonth','expenses_categoryRules'].forEach(k => localStorage.removeItem(k));
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const k = localStorage.key(i);
-      if (k && (k.startsWith('expenses_data_') || k.startsWith('expenses_edits_'))) localStorage.removeItem(k);
+  // Load demo data behind the gate as a teaser preview
+  if (typeof DEMO_MODE !== 'undefined' && !DEMO_MODE && typeof seedDemoStore === 'function') {
+    seedDemoStore();
+    // Temporarily feed demo data into localStorage so the dashboard renders a preview
+    const path = window.location.pathname;
+    if (path.includes('/Groceries/')) {
+      const gm = demoGet('grocery_months');
+      if (gm && !localStorage.getItem('grocery_months')) {
+        localStorage.setItem('grocery_months', gm);
+        localStorage.setItem('grocery_activeMonth', demoGet('grocery_activeMonth'));
+        JSON.parse(gm).forEach(function(mk) { localStorage.setItem('data_' + mk, demoGet('data_' + mk)); });
+        window._authGatePreviewKeys = ['grocery_months','grocery_activeMonth'].concat(JSON.parse(gm).map(function(mk) { return 'data_' + mk; }));
+      }
+    } else if (path.includes('/Expenses/')) {
+      const em = demoGet('expenses_months');
+      if (em && !localStorage.getItem('expenses_months')) {
+        localStorage.setItem('expenses_months', em);
+        localStorage.setItem('expenses_activeMonth', demoGet('expenses_activeMonth'));
+        JSON.parse(em).forEach(function(mk) { localStorage.setItem('expenses_data_' + mk, demoGet('expenses_data_' + mk)); });
+        window._authGatePreviewKeys = ['expenses_months','expenses_activeMonth'].concat(JSON.parse(em).map(function(mk) { return 'expenses_data_' + mk; }));
+      }
     }
   }
 
   const gate = document.createElement('div');
   gate.id = 'fb-auth-gate';
-  gate.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,17,23,0.95);z-index:9998;display:flex;justify-content:center;align-items:center;padding:20px;';
+  gate.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,17,23,0.80);z-index:9998;display:flex;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(2px);';
   gate.innerHTML = '<div style="background:#1a1b23;border:1px solid #2a2b35;border-radius:20px;padding:40px;max-width:440px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5)">' +
     '<div style="font-size:48px;margin-bottom:16px">&#128274;</div>' +
     '<div style="font-size:22px;font-weight:700;margin-bottom:8px;background:linear-gradient(135deg,#22c55e,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Sign In Required</div>' +
@@ -364,6 +372,11 @@ function showAuthGate() {
 function removeAuthGate() {
   const gate = document.getElementById('fb-auth-gate');
   if (gate) gate.remove();
+  // Clean up preview data that was loaded for the teaser
+  if (window._authGatePreviewKeys) {
+    window._authGatePreviewKeys.forEach(function(k) { localStorage.removeItem(k); });
+    delete window._authGatePreviewKeys;
+  }
 }
 
 // ============================================================
