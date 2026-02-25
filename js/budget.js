@@ -21,7 +21,7 @@ let editingTxId = null;
 let editingAcctId = null;
 
 // ── Utility ──
-function fmt(v) { return '$' + (Number(v)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmt(v) { var n = Number(v)||0; return (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtPct(v) { return (Number(v)||0).toFixed(1) + '%'; }
 function generateId() { return 'id-' + Date.now() + '-' + Math.random().toString(36).substr(2,6); }
 function getCatColor(i) { return CAT_PALETTE[i % CAT_PALETTE.length]; }
@@ -1694,7 +1694,12 @@ function parseStatementCSV(text) {
     var cols = parseLine(lines[i]);
     if (cols.length < 3) continue;
     var tx = extractStatementTx(headers, cols, bank);
-    if (tx && tx.amount > 0) transactions.push(tx);
+    if (tx && tx.amount !== 0) transactions.push(tx);
+  }
+  // Detect sign convention: if most amounts negative, flip all (charges→positive, credits→negative)
+  var negCount = transactions.filter(function(t) { return t.amount < 0; }).length;
+  if (negCount > transactions.length / 2) {
+    transactions.forEach(function(t) { t.amount = -t.amount; });
   }
   return transactions;
 }
@@ -1749,24 +1754,35 @@ function extractStatementTx(headers, cols, bank) {
       break;
     default:
       dateStr = ''; desc = ''; amount = NaN;
+      var _deb = NaN, _cred = NaN;
       for (var i = 0; i < headers.length; i++) {
         if (!dateStr && /date/i.test(headers[i])) dateStr = cols[i];
         if (!desc && /desc|memo|payee|narration|particular/i.test(headers[i])) desc = cols[i];
-        if (isNaN(amount) && /amount|debit|value/i.test(headers[i])) {
-          var v = parseFloat(cols[i]);
-          if (!isNaN(v)) amount = Math.abs(v);
+        if (isNaN(amount) && /^amount$|^total$|^charge$|^sale/i.test(headers[i])) {
+          var v = parseFloat((cols[i]||'').replace(/[$,]/g,''));
+          if (!isNaN(v)) amount = v;
+        }
+        if (isNaN(_deb) && /debit|withdrawal|expense/i.test(headers[i])) {
+          var d2 = parseFloat((cols[i]||'').replace(/[$,]/g,''));
+          if (!isNaN(d2) && d2 !== 0) _deb = Math.abs(d2);
+        }
+        if (isNaN(_cred) && /credit|deposit|payment/i.test(headers[i])) {
+          var c2 = parseFloat((cols[i]||'').replace(/[$,]/g,''));
+          if (!isNaN(c2) && c2 !== 0) _cred = Math.abs(c2);
         }
       }
+      if (isNaN(amount) && !isNaN(_deb)) amount = _deb;
+      if (isNaN(amount) && !isNaN(_cred)) amount = -_cred;
       if (isNaN(amount)) return null;
   }
-  if (!dateStr || amount <= 0) return null;
+  if (!dateStr || amount === 0) return null;
   var merchant = cleanMerchant(desc);
   var cat = categorizeTx(merchant);
   return {
     id: generateId(), date: normalizeStatementDate(dateStr),
     category: cat, description: merchant,
     paymentMethod: (bank === 'chase' || bank === 'capital_one' || bank === 'citi') ? 'Credit' : 'Debit',
-    amount: Math.abs(amount)
+    amount: amount
   };
 }
 
@@ -1805,27 +1821,30 @@ function parseStatementPDF(arrayBuffer) {
 }
 
 function parseStatementPDFLine(line) {
-  var patterns = [
-    /^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(.+?)\s+(-?\$?[\d,]+\.\d{2})\s*$/,
-    /^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(.+?)\s+\$?([\d,]+\.\d{2})\s*(?:CR|DR)?\s*$/i,
-    /^(\d{1,2}-\d{1,2}(?:-\d{2,4})?)\s+(.+?)\s+(-?\$?[\d,]+\.\d{2})\s*$/
-  ];
-  for (var pi = 0; pi < patterns.length; pi++) {
-    var m = line.match(patterns[pi]);
-    if (m) {
-      var desc = m[2].trim();
-      if (/payment|thank you|credit|refund/i.test(desc)) return null;
-      var amount = parseFloat(m[3].replace(/[$,]/g, ''));
-      if (isNaN(amount) || amount <= 0) return null;
-      var merchant = cleanMerchant(desc);
-      return {
-        id: generateId(), date: normalizeStatementDate(m[1]),
-        category: categorizeTx(merchant), description: merchant,
-        paymentMethod: 'Credit', amount: Math.abs(amount)
-      };
-    }
-  }
-  return null;
+  var m;
+  // Pattern 1: Wells Fargo — trans date, post date, reference number, description, amount(s)
+  m = line.match(/^(\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\s+\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?\s+[A-Za-z0-9]*[A-Za-z][A-Za-z0-9]{8,24}\s+(.+?)\s+(-?\$?[\d,]+\.\d{2})(?:\s+-?\$?[\d,]+\.\d{2})*\s*$/);
+  // Pattern 2: dual date, no ref number
+  if (!m) m = line.match(/^(\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\s+\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?\s+(.+?)\s+(-?\$?[\d,]+\.\d{2})(?:\s+-?\$?[\d,]+\.\d{2})*\s*$/);
+  // Pattern 3: single date
+  if (!m) m = line.match(/^(\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\s+(.+?)\s+(-?\$?[\d,]+\.\d{2})(?:\s+-?\$?[\d,]+\.\d{2})*\s*$/);
+  if (!m) return null;
+  var desc = m[2].trim();
+  // Strip reference numbers that leaked into description
+  desc = desc.replace(/^[A-Za-z0-9]*[A-Za-z][A-Za-z0-9]{8,24}\s+/, '').trim();
+  desc = desc.replace(/\s+-?\$?[\d,]+\.\d{2}\s*$/g, '').trim();
+  if (!desc) return null;
+  if (/^(payment|thank you|total|balance|previous|new balance|finance charge)/i.test(desc)) return null;
+  if (/\btotal\s+\d{10,}/i.test(line)) return null;
+  var amount = parseFloat(m[3].replace(/[$,]/g, ''));
+  if (isNaN(amount) || amount === 0) return null;
+  if (amount > 50000) return null;
+  var merchant = cleanMerchant(desc);
+  return {
+    id: generateId(), date: normalizeStatementDate(m[1]),
+    category: categorizeTx(merchant), description: merchant,
+    paymentMethod: 'Credit', amount: Math.abs(amount)
+  };
 }
 
 // ── Excel (statement) parsing ──
@@ -1849,6 +1868,7 @@ function parseStatementExcel(arrayBuffer) {
   var dateCol = findCol('date');
   var descCol = findCol('description','desc','memo','payee','narration','particular');
   var amountCol = findCol('amount','debit','value','total');
+  var creditCol2 = findCol('credit');
   var transactions = [];
   data.forEach(function(row) {
     var dateStr = row[dateCol];
@@ -1856,8 +1876,11 @@ function parseStatementExcel(arrayBuffer) {
     else dateStr = String(dateStr);
     var desc = String(row[descCol]||'');
     var amount = parseFloat(String(row[amountCol]).replace(/[$,]/g, ''));
+    if ((isNaN(amount) || amount === 0) && creditCol2) {
+      var cr2 = parseFloat(String(row[creditCol2]).replace(/[$,]/g, ''));
+      if (!isNaN(cr2) && cr2 !== 0) amount = -Math.abs(cr2);
+    }
     if (isNaN(amount) || amount === 0) return;
-    amount = Math.abs(amount);
     var merchant = cleanMerchant(desc);
     transactions.push({
       id: generateId(), date: normalizeStatementDate(dateStr),
@@ -1865,6 +1888,11 @@ function parseStatementExcel(arrayBuffer) {
       paymentMethod: 'Debit', amount: amount
     });
   });
+  // Detect sign convention: if most amounts negative, flip all
+  var negC = transactions.filter(function(t) { return t.amount < 0; }).length;
+  if (negC > transactions.length / 2) {
+    transactions.forEach(function(t) { t.amount = -t.amount; });
+  }
   return transactions;
 }
 

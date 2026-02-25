@@ -737,7 +737,13 @@ function parseCSV(text) {
     const cols = parseLine(lines[i]);
     if (cols.length < 3) continue;
     const tx = extractTransaction(headers, cols, bank);
-    if (tx && tx.amount > 0) transactions.push(tx);
+    if (tx && tx.amount !== 0) transactions.push(tx);
+  }
+  // Detect sign convention: if most amounts are negative, this is credit card format
+  // (negative = charges, positive = credits). Flip all signs so charges are positive.
+  var negCount = transactions.filter(function(t) { return t.amount < 0; }).length;
+  if (negCount > transactions.length / 2) {
+    transactions.forEach(function(t) { t.amount = -t.amount; });
   }
   return transactions;
 }
@@ -845,7 +851,7 @@ function extractTransaction(headers, cols, bank) {
         if (!desc && /desc|memo|payee|narration|particular|merchant|name|detail|reference/i.test(hdr)) desc = cols[i];
         if (isNaN(amount) && /^amount$|^total$|^charge$|^sale/i.test(hdr)) {
           var v = parseFloat((cols[i] || '').replace(/[$,]/g, ''));
-          if (!isNaN(v)) amount = Math.abs(v);
+          if (!isNaN(v)) amount = v; // keep sign — convention detected later
         }
         if (isNaN(_debit) && /debit|withdrawal|expense|charge/i.test(hdr)) {
           var d = parseFloat((cols[i] || '').replace(/[$,]/g, ''));
@@ -856,26 +862,26 @@ function extractTransaction(headers, cols, bank) {
           if (!isNaN(c) && c !== 0) _credit = Math.abs(c);
         }
       }
-      // Prefer amount column, fall back to debit, skip credits (payments/refunds)
+      // Prefer amount column, fall back to debit, then credit as negative (refund)
       if (isNaN(amount) && !isNaN(_debit)) amount = _debit;
-      if (isNaN(amount) && !isNaN(_credit)) return null; // credit-only row = payment
+      if (isNaN(amount) && !isNaN(_credit)) amount = -_credit;
       if (isNaN(amount)) {
         // Last resort: scan for any numeric column that isn't the date
         for (let i = 0; i < cols.length; i++) {
           if (headers[i] && /date/i.test(headers[i])) continue;
           if (headers[i] && /desc|memo|payee|merchant|name/i.test(headers[i])) continue;
           var num = parseFloat((cols[i] || '').replace(/[$,]/g, ''));
-          if (!isNaN(num) && num !== 0) { amount = Math.abs(num); break; }
+          if (!isNaN(num) && num !== 0) { amount = num; break; }
         }
       }
       if (isNaN(amount)) return null;
   }
 
-  if (!dateStr || amount <= 0) return null;
+  if (!dateStr || amount === 0) return null;
   var resolved = resolveMerchant(desc);
   return {
     id: uuid(), date: normalizeDate(dateStr), description: desc,
-    merchant: resolved.merchant, category: resolved.category, amount: Math.abs(amount),
+    merchant: resolved.merchant, category: resolved.category, amount: amount,
     source: 'csv', bank, _origCategory: resolved.category, _manualCategory: false
   };
 }
@@ -1030,6 +1036,7 @@ function parseExcel(arrayBuffer) {
   const dateCol = findCol('date');
   const descCol = findCol('description', 'desc', 'memo', 'payee', 'narration', 'particular');
   const amountCol = findCol('amount', 'debit', 'value', 'total');
+  const creditCol = findCol('credit');
   const transactions = [];
   data.forEach(row => {
     let dateStr = row[dateCol];
@@ -1037,15 +1044,24 @@ function parseExcel(arrayBuffer) {
     else dateStr = String(dateStr);
     const desc = String(row[descCol] || '');
     let amount = parseFloat(String(row[amountCol]).replace(/[$,]/g, ''));
+    // If no amount but there's a credit column, import as negative
+    if ((isNaN(amount) || amount === 0) && creditCol) {
+      var cr = parseFloat(String(row[creditCol]).replace(/[$,]/g, ''));
+      if (!isNaN(cr) && cr !== 0) amount = -Math.abs(cr);
+    }
     if (isNaN(amount) || amount === 0) return;
-    amount = Math.abs(amount);
     var resolved = resolveMerchant(desc);
     transactions.push({
       id: uuid(), date: normalizeDate(dateStr), description: desc,
-      merchant: resolved.merchant, category: resolved.category, amount,
+      merchant: resolved.merchant, category: resolved.category, amount: amount,
       source: 'xlsx', bank: 'unknown', _origCategory: resolved.category, _manualCategory: false
     });
   });
+  // Detect sign convention: if most amounts negative, flip all (charges→positive, credits→negative)
+  var negCount = transactions.filter(function(t) { return t.amount < 0; }).length;
+  if (negCount > transactions.length / 2) {
+    transactions.forEach(function(t) { t.amount = -t.amount; });
+  }
   return transactions;
 }
 
