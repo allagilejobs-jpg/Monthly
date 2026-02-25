@@ -924,12 +924,34 @@ async function parsePDF(arrayBuffer) {
     // Scan for column headers: "Credits" and "Charges" (or "Debit"/"Credit")
     if (creditX < 0 || chargeX < 0) {
       for (var h = 0; h < rows.length; h++) {
-        for (var c = 0; c < rows[h].length; c++) {
-          var txt = rows[h][c].str.trim().toLowerCase();
-          if (txt === 'credits' || txt === 'credit') creditX = rows[h][c].transform[4];
-          if (txt === 'charges' || txt === 'charge' || txt === 'debit') chargeX = rows[h][c].transform[4];
+        var rowText = rows[h].map(function(it) { return it.str; }).join(' ').toLowerCase();
+        // Look for rows containing both credit and charge keywords
+        if (/credits?/i.test(rowText) && /charges?|debit/i.test(rowText)) {
+          for (var c = 0; c < rows[h].length; c++) {
+            var txt = rows[h][c].str.trim().toLowerCase();
+            if (/^credits?$/.test(txt)) creditX = rows[h][c].transform[4];
+            if (/^charges?$|^debit$/.test(txt)) chargeX = rows[h][c].transform[4];
+          }
+          // If exact match failed, try partial match (PDF may merge text items)
+          if (creditX < 0 || chargeX < 0) {
+            for (var c2 = 0; c2 < rows[h].length; c2++) {
+              var txt2 = rows[h][c2].str.trim().toLowerCase();
+              if (creditX < 0 && /credit/i.test(txt2) && !/card/i.test(txt2)) creditX = rows[h][c2].transform[4];
+              if (chargeX < 0 && /charge/i.test(txt2) && !/finance|other/i.test(txt2)) chargeX = rows[h][c2].transform[4];
+            }
+          }
+          if (creditX > 0 && chargeX > 0) {
+            console.log('[PDF] Found column headers — Credits X:', creditX, 'Charges X:', chargeX);
+            break;
+          }
         }
-        if (creditX > 0 && chargeX > 0) break;
+      }
+      if (creditX < 0 || chargeX < 0) {
+        console.log('[PDF] Page', p, '— could not find Credits/Charges headers. Row samples:');
+        rows.slice(0, 10).forEach(function(row, ri) {
+          var items = row.map(function(it) { return '"' + it.str.trim() + '"@' + Math.round(it.transform[4]); });
+          console.log('  Row', ri, ':', items.join(' | '));
+        });
       }
     }
 
