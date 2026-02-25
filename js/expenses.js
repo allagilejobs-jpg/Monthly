@@ -1284,7 +1284,9 @@ async function processUploadedFiles() {
           addLog('  Headers: ' + firstLine, 'info');
         }
       } else if (uf.format === 'pdf') {
-        txns = await parsePDF(uf.data);
+        // PDF.js detaches (transfers) the ArrayBuffer, so copy it to preserve original
+        var pdfCopy = uf.data instanceof ArrayBuffer ? uf.data.slice(0) : uf.data;
+        txns = await parsePDF(pdfCopy);
       } else if (uf.format === 'xlsx') {
         txns = parseExcel(uf.data);
       } else {
