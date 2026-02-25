@@ -2288,6 +2288,7 @@ function renderTrends() {
 // ══════════════════════════════════════════════════════════
 let txFilterCat = 'All', txFilterMerchant = '', txFilterDate = 'All';
 let txSortCol = 'date', txSortDir = 'asc';
+let txPerPage = 50, txCurrentPage = 1;
 
 function renderTransactions() {
   const el = document.getElementById('view-transactions');
@@ -2324,9 +2325,9 @@ function renderTransactions() {
   el.innerHTML = html;
 
   if (!filtersInitialized) {
-    document.getElementById('tx-filter-date').addEventListener('change', () => { txFilterDate = document.getElementById('tx-filter-date').value; renderTxRows(); });
-    document.getElementById('tx-filter-cat').addEventListener('change', () => { txFilterCat = document.getElementById('tx-filter-cat').value; renderTxRows(); });
-    document.getElementById('tx-filter-merchant').addEventListener('input', () => { txFilterMerchant = document.getElementById('tx-filter-merchant').value; renderTxRows(); });
+    document.getElementById('tx-filter-date').addEventListener('change', () => { txFilterDate = document.getElementById('tx-filter-date').value; txCurrentPage = 1; renderTxRows(); });
+    document.getElementById('tx-filter-cat').addEventListener('change', () => { txFilterCat = document.getElementById('tx-filter-cat').value; txCurrentPage = 1; renderTxRows(); });
+    document.getElementById('tx-filter-merchant').addEventListener('input', () => { txFilterMerchant = document.getElementById('tx-filter-merchant').value; txCurrentPage = 1; renderTxRows(); });
     filtersInitialized = true;
   }
   renderTxRows();
@@ -2349,10 +2350,16 @@ function renderTxRows() {
     else { va = a.amount; vb = b.amount; }
     return txSortDir === 'asc' ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
   });
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filtered.length / txPerPage));
+  if (txCurrentPage > totalPages) txCurrentPage = totalPages;
+  const startIdx = (txCurrentPage - 1) * txPerPage;
+  const pageData = filtered.slice(startIdx, startIdx + txPerPage);
+
   const tbody = document.getElementById('tx-tbody');
   if (!tbody) return;
   const edits = loadEdits(ctx.monthKey || '');
-  tbody.innerHTML = filtered.map(t => {
+  tbody.innerHTML = pageData.map(t => {
     const edited = edits[t.id];
     const editDot = edited ? '<span class="edit-dot" title="Edited"></span>' : '';
     return '<tr><td class="mono">' + t.date + '</td>' +
@@ -2364,12 +2371,41 @@ function renderTxRows() {
       '<td><span class="edit-icon" onclick="event.stopPropagation();openEditModal(\'' + t.id + '\')" title="Edit">&#9998;</span> <span class="delete-icon" onclick="event.stopPropagation();deleteTx(\'' + t.id + '\')" title="Delete">&#128465;</span></td></tr>';
   }).join('');
   const countEl = document.getElementById('tx-count');
-  if (countEl) countEl.textContent = 'Showing ' + filtered.length + ' of ' + activeData.length + ' transactions' + (filtered.length !== activeData.length ? ' \u2022 Total: ' + fmt(filtered.reduce((s, t) => s + t.amount, 0)) : '');
+  if (countEl) countEl.textContent = 'Showing ' + (startIdx+1) + '\u2013' + Math.min(startIdx+txPerPage,filtered.length) + ' of ' + filtered.length + ' transactions' + (filtered.length !== activeData.length ? ' (filtered from ' + activeData.length + ')' : '') + ' \u2022 Total: ' + fmt(filtered.reduce((s, t) => s + t.amount, 0));
+
+  // Pagination controls
+  let pgEl = document.getElementById('tx-pagination');
+  if (!pgEl) {
+    pgEl = document.createElement('div');
+    pgEl.id = 'tx-pagination';
+    pgEl.className = 'pagination-bar';
+    const tableCard = document.getElementById('tx-table').closest('.card');
+    if (tableCard) tableCard.after(pgEl);
+  }
+  if (filtered.length <= 20) { pgEl.innerHTML = ''; return; }
+  let pgHtml = '<div class="page-size-wrap"><label>Show</label><select class="page-size-select" onchange="txPerPage=+this.value;txCurrentPage=1;renderTxRows()">';
+  [20,50,100].forEach(function(n) { pgHtml += '<option value="'+n+'"'+(txPerPage===n?' selected':'')+'>'+n+'</option>'; });
+  pgHtml += '</select><label>per page</label></div>';
+  pgHtml += '<div class="page-info">Page '+txCurrentPage+' of '+totalPages+'</div>';
+  pgHtml += '<div class="page-btns">';
+  pgHtml += '<button class="page-btn" onclick="txCurrentPage=1;renderTxRows()"'+(txCurrentPage<=1?' disabled':'')+'>&#171;</button>';
+  pgHtml += '<button class="page-btn" onclick="txCurrentPage--;renderTxRows()"'+(txCurrentPage<=1?' disabled':'')+'>&#8249;</button>';
+  for (var p = 1; p <= totalPages; p++) {
+    if (totalPages <= 7 || Math.abs(p - txCurrentPage) <= 2 || p === 1 || p === totalPages) {
+      pgHtml += '<button class="page-btn'+(p===txCurrentPage?' active':'')+'" onclick="txCurrentPage='+p+';renderTxRows()">'+p+'</button>';
+    } else if (p === 2 && txCurrentPage > 4) { pgHtml += '<span style="padding:0 4px;color:var(--text-muted)">\u2026</span>'; }
+    else if (p === totalPages - 1 && txCurrentPage < totalPages - 3) { pgHtml += '<span style="padding:0 4px;color:var(--text-muted)">\u2026</span>'; }
+  }
+  pgHtml += '<button class="page-btn" onclick="txCurrentPage++;renderTxRows()"'+(txCurrentPage>=totalPages?' disabled':'')+'>&#8250;</button>';
+  pgHtml += '<button class="page-btn" onclick="txCurrentPage='+totalPages+';renderTxRows()"'+(txCurrentPage>=totalPages?' disabled':'')+'>&#187;</button>';
+  pgHtml += '</div>';
+  pgEl.innerHTML = pgHtml;
 }
 
 function sortTxTable(col) {
   if (txSortCol === col) txSortDir = txSortDir === 'asc' ? 'desc' : 'asc';
   else { txSortCol = col; txSortDir = col === 'amount' ? 'desc' : 'asc'; }
+  txCurrentPage = 1;
   updateTxSortHeaders();
   renderTxRows();
 }
@@ -2394,6 +2430,7 @@ function clearTxFilters() {
   const fd = document.getElementById('tx-filter-date'); if (fd) fd.value = 'All';
   const fc = document.getElementById('tx-filter-cat'); if (fc) fc.value = 'All';
   const fm = document.getElementById('tx-filter-merchant'); if (fm) fm.value = '';
+  txCurrentPage = 1;
   renderTxRows();
 }
 
@@ -2591,6 +2628,63 @@ function toggleTheme() {
 }
 
 // ══════════════════════════════════════════════════════════
+// DETAIL PAGINATION HELPER
+// ══════════════════════════════════════════════════════════
+let _detailTxs = [];
+let _detailPage = 1;
+let _detailPerPage = 50;
+let _detailType = 'merchant'; // 'merchant' or 'category'
+
+function renderDetailTxPage() {
+  var tbody = document.getElementById('detail-tx-tbody');
+  if (!tbody) return;
+  var total = _detailTxs.length;
+  var totalPages = Math.max(1, Math.ceil(total / _detailPerPage));
+  if (_detailPage > totalPages) _detailPage = totalPages;
+  var start = (_detailPage - 1) * _detailPerPage;
+  var page = _detailTxs.slice(start, start + _detailPerPage);
+
+  tbody.innerHTML = page.map(function(t) {
+    var row = _detailType === 'category'
+      ? '<tr style="cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + t.merchant.replace(/'/g,"\\'") + '\',source:\'categories\'})">'
+        + '<td class="mono">' + t.date + '</td>'
+        + '<td style="font-weight:600">' + t.merchant + '</td>'
+        + '<td style="font-size:12px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g,'&quot;') + '">' + (t.description || t.merchant) + '</td>'
+        + '<td class="text-right amt"' + (t.amount < 0 ? ' style="color:var(--green)"' : '') + '>' + fmt(t.amount) + '</td>'
+        + '<td class="text-center" style="font-size:12px">' + (t.sourceType || '\u2014') + '</td>'
+        + '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + (t.source || '').toUpperCase() + '</span></td></tr>'
+      : '<tr><td class="mono">' + t.date + '</td>'
+        + '<td style="font-size:12px;color:var(--text-muted);max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g, '&quot;') + '">' + (t.description || t.merchant) + '</td>'
+        + '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>'
+        + '<td class="text-right amt"' + (t.amount < 0 ? ' style="color:var(--green)"' : '') + '>' + fmt(t.amount) + '</td>'
+        + '<td class="text-center" style="font-size:12px">' + (t.sourceType || '\u2014') + '</td>'
+        + '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + (t.source || '').toUpperCase() + '</span></td></tr>';
+    return row;
+  }).join('');
+
+  var pgEl = document.getElementById('detail-tx-pagination');
+  if (!pgEl) return;
+  if (total <= 20) { pgEl.innerHTML = ''; return; }
+  var h = '<div class="page-size-wrap"><label>Show</label><select class="page-size-select" onchange="_detailPerPage=+this.value;_detailPage=1;renderDetailTxPage()">';
+  [20,50,100].forEach(function(n) { h += '<option value="'+n+'"'+(_detailPerPage===n?' selected':'')+'>'+n+'</option>'; });
+  h += '</select><label>per page</label></div>';
+  h += '<div class="page-info">'+( start+1)+'\u2013'+Math.min(start+_detailPerPage,total)+' of '+total+'</div>';
+  h += '<div class="page-btns">';
+  h += '<button class="page-btn" onclick="_detailPage=1;renderDetailTxPage()"'+(_detailPage<=1?' disabled':'')+'>&#171;</button>';
+  h += '<button class="page-btn" onclick="_detailPage--;renderDetailTxPage()"'+(_detailPage<=1?' disabled':'')+'>&#8249;</button>';
+  for (var p=1;p<=totalPages;p++){
+    if(totalPages<=7||Math.abs(p-_detailPage)<=2||p===1||p===totalPages){
+      h+='<button class="page-btn'+(p===_detailPage?' active':'')+'" onclick="_detailPage='+p+';renderDetailTxPage()">'+p+'</button>';
+    } else if(p===2&&_detailPage>4){h+='<span style="padding:0 4px;color:var(--text-muted)">\u2026</span>';}
+    else if(p===totalPages-1&&_detailPage<totalPages-3){h+='<span style="padding:0 4px;color:var(--text-muted)">\u2026</span>';}
+  }
+  h += '<button class="page-btn" onclick="_detailPage++;renderDetailTxPage()"'+(_detailPage>=totalPages?' disabled':'')+'>&#8250;</button>';
+  h += '<button class="page-btn" onclick="_detailPage='+totalPages+';renderDetailTxPage()"'+(_detailPage>=totalPages?' disabled':'')+'>&#187;</button>';
+  h += '</div>';
+  pgEl.innerHTML = h;
+}
+
+// ══════════════════════════════════════════════════════════
 // MERCHANT DETAIL VIEW
 // ══════════════════════════════════════════════════════════
 function showMerchantDetail(merchantName, source) {
@@ -2655,20 +2749,14 @@ function showMerchantDetail(merchantName, source) {
     html += '</tbody></table></div>';
   }
 
-  // All transactions
+  // All transactions (paginated)
   html += '<div class="card"><div class="card-title">All Transactions (' + txs.length + ')</div>';
-  html += '<table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th class="text-right">Amount</th><th>Source</th><th>Import</th></tr></thead><tbody>';
-  txs.forEach(t => {
-    html += '<tr><td class="mono">' + t.date + '</td>';
-    html += '<td style="font-size:12px;color:var(--text-muted);max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g, '&quot;') + '">' + (t.description || t.merchant) + '</td>';
-    html += '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>';
-    html += '<td class="text-right amt"' + (t.amount < 0 ? ' style="color:var(--green)"' : '') + '>' + fmt(t.amount) + '</td>';
-    html += '<td class="text-center" style="font-size:12px">' + (t.sourceType || '\u2014') + '</td>';
-    html += '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + (t.source || '').toUpperCase() + '</span></td></tr>';
-  });
-  html += '</tbody></table></div>';
+  html += '<table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th class="text-right">Amount</th><th>Source</th><th>Import</th></tr></thead><tbody id="detail-tx-tbody"></tbody></table>';
+  html += '<div id="detail-tx-pagination" class="pagination-bar"></div></div>';
 
   container.innerHTML = html;
+  _detailTxs = txs; _detailPage = 1; _detailType = 'merchant';
+  renderDetailTxPage();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -2736,21 +2824,14 @@ function showCategoryDetail(categoryName, source) {
     html += '<div class="card"><div class="card-title">Daily Spending in ' + categoryName + '</div><div class="chart-wrap"><canvas id="chart-cat-detail-daily"></canvas></div></div>';
   }
 
-  // All transactions
+  // All transactions (paginated)
   html += '<div class="card"><div class="card-title">All Transactions (' + txs.length + ')</div>';
-  html += '<table><thead><tr><th>Date</th><th>Merchant</th><th>Description</th><th class="text-right">Amount</th><th>Source</th><th>Import</th></tr></thead><tbody>';
-  txs.forEach(t => {
-    html += '<tr style="cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + t.merchant.replace(/'/g,"\\'") + '\',source:\'categories\'})">';
-    html += '<td class="mono">' + t.date + '</td>';
-    html += '<td style="font-weight:600">' + t.merchant + '</td>';
-    html += '<td style="font-size:12px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g,'&quot;') + '">' + (t.description || t.merchant) + '</td>';
-    html += '<td class="text-right amt"' + (t.amount < 0 ? ' style="color:var(--green)"' : '') + '>' + fmt(t.amount) + '</td>';
-    html += '<td class="text-center" style="font-size:12px">' + (t.sourceType || '\u2014') + '</td>';
-    html += '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + (t.source || '').toUpperCase() + '</span></td></tr>';
-  });
-  html += '</tbody></table></div>';
+  html += '<table><thead><tr><th>Date</th><th>Merchant</th><th>Description</th><th class="text-right">Amount</th><th>Source</th><th>Import</th></tr></thead><tbody id="detail-tx-tbody"></tbody></table>';
+  html += '<div id="detail-tx-pagination" class="pagination-bar"></div></div>';
 
   container.innerHTML = html;
+  _detailTxs = txs; _detailPage = 1; _detailType = 'category';
+  renderDetailTxPage();
 
   // Render daily chart
   if (ctx.daysInMonth) {

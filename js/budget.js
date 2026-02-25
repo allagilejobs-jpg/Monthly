@@ -17,6 +17,7 @@ let activeData = []; // current month's transactions
 let activeIncome = null; // current month's income
 let activeAccounts = []; // current month's accounts
 let txSortCol = 'date', txSortDir = 1;
+let txPerPage = 50, txCurrentPage = 1;
 let editingTxId = null;
 let editingAcctId = null;
 
@@ -458,10 +459,17 @@ function renderTxTable() {
 
   if (sorted.length === 0 && activeData.length > 0) {
     body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:20px">No transactions match your filters</td></tr>';
+    var pgE = document.getElementById('v3-tx-pagination'); if (pgE) pgE.innerHTML = '';
     return;
   }
 
-  body.innerHTML = sorted.map(function(tx) {
+  // Pagination
+  var totalPages = Math.max(1, Math.ceil(sorted.length / txPerPage));
+  if (txCurrentPage > totalPages) txCurrentPage = totalPages;
+  var startIdx = (txCurrentPage - 1) * txPerPage;
+  var pageData = sorted.slice(startIdx, startIdx + txPerPage);
+
+  body.innerHTML = pageData.map(function(tx) {
     return '<tr>'
       + '<td>'+escHtml(tx.date)+'</td>'
       + '<td>'+escHtml(tx.category)+'</td>'
@@ -482,11 +490,40 @@ function renderTxTable() {
   });
   var activeCol = document.querySelector('#tx-table thead th[onclick*="' + txSortCol + '"]');
   if (activeCol) activeCol.classList.add(txSortDir === 1 ? 'sort-asc' : 'sort-desc');
+
+  // Pagination controls
+  var pgEl = document.getElementById('v3-tx-pagination');
+  if (!pgEl) {
+    pgEl = document.createElement('div');
+    pgEl.id = 'v3-tx-pagination';
+    pgEl.className = 'pagination-bar';
+    var tbl = document.getElementById('tx-table');
+    if (tbl && tbl.parentNode) tbl.parentNode.after(pgEl);
+  }
+  if (sorted.length <= 20) { pgEl.innerHTML = ''; return; }
+  var h = '<div class="page-size-wrap"><label>Show</label><select class="page-size-select" onchange="txPerPage=+this.value;txCurrentPage=1;renderTxTable()">';
+  [20,50,100].forEach(function(n) { h += '<option value="'+n+'"'+(txPerPage===n?' selected':'')+'>'+n+'</option>'; });
+  h += '</select><label>per page</label></div>';
+  h += '<div class="page-info">Showing '+(startIdx+1)+'\u2013'+Math.min(startIdx+txPerPage,sorted.length)+' of '+sorted.length+'</div>';
+  h += '<div class="page-btns">';
+  h += '<button class="page-btn" onclick="txCurrentPage=1;renderTxTable()"'+(txCurrentPage<=1?' disabled':'')+'>&#171;</button>';
+  h += '<button class="page-btn" onclick="txCurrentPage--;renderTxTable()"'+(txCurrentPage<=1?' disabled':'')+'>&#8249;</button>';
+  for (var p=1;p<=totalPages;p++){
+    if(totalPages<=7||Math.abs(p-txCurrentPage)<=2||p===1||p===totalPages){
+      h+='<button class="page-btn'+(p===txCurrentPage?' active':'')+'" onclick="txCurrentPage='+p+';renderTxTable()">'+p+'</button>';
+    } else if(p===2&&txCurrentPage>4){h+='<span style="padding:0 4px;color:var(--text-muted)">\u2026</span>';}
+    else if(p===totalPages-1&&txCurrentPage<totalPages-3){h+='<span style="padding:0 4px;color:var(--text-muted)">\u2026</span>';}
+  }
+  h += '<button class="page-btn" onclick="txCurrentPage++;renderTxTable()"'+(txCurrentPage>=totalPages?' disabled':'')+'>&#8250;</button>';
+  h += '<button class="page-btn" onclick="txCurrentPage='+totalPages+';renderTxTable()"'+(txCurrentPage>=totalPages?' disabled':'')+'>&#187;</button>';
+  h += '</div>';
+  pgEl.innerHTML = h;
 }
 
 function sortTx(col) {
   if (txSortCol === col) txSortDir *= -1;
   else { txSortCol = col; txSortDir = 1; }
+  txCurrentPage = 1;
   renderTxTable();
 }
 
@@ -2389,6 +2426,7 @@ function filterTxTable() {
   _txSearchQuery = (document.getElementById('tx-search').value || '').toLowerCase().trim();
   _txCatFilter = document.getElementById('tx-cat-filter').value;
   _txMethodFilter = document.getElementById('tx-method-filter').value;
+  txCurrentPage = 1;
   renderTxTable();
 }
 

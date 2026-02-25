@@ -89,6 +89,29 @@
     transition: all 0.2s;
   }
   .theme-toggle:hover { border-color: var(--blue); }
+  .home-auth-area { display: flex; gap: 8px; align-items: center; }
+  .home-auth-btn {
+    border-radius: 8px; padding: 7px 16px; font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: all 0.2s; border: 1px solid;
+  }
+  .home-signin-btn {
+    background: transparent; border-color: var(--card-border); color: var(--text);
+  }
+  .home-signin-btn:hover { border-color: var(--blue); color: var(--blue); }
+  .home-signup-btn {
+    background: var(--blue); border-color: var(--blue); color: #fff;
+  }
+  .home-signup-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .home-signout-btn {
+    background: transparent; border-color: var(--card-border); color: var(--text-muted);
+    font-size: 12px; padding: 5px 12px;
+  }
+  .home-signout-btn:hover { border-color: var(--text); color: var(--text); }
+  .home-user-info {
+    display: inline-flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-muted);
+  }
+  .home-user-email { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .header { gap: 10px; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
@@ -96,6 +119,14 @@
 </head>
 <body>
 <div class="header">
+  <div id="home-auth-area" class="home-auth-area">
+    <button class="home-auth-btn home-signin-btn" onclick="openAuthModal();switchAuthTab('signin')">Sign In</button>
+    <button class="home-auth-btn home-signup-btn" onclick="openAuthModal();switchAuthTab('signup')">Sign Up</button>
+  </div>
+  <span id="home-user-info" class="home-user-info" style="display:none">
+    <span id="home-user-email" class="home-user-email"></span>
+    <button class="home-auth-btn home-signout-btn" onclick="doSignOut()">Sign Out</button>
+  </span>
   <button class="theme-toggle" id="theme-toggle" onclick="toggleHomeTheme()" title="Toggle light/dark mode">&#127769;</button>
 </div>
 <div class="container">
@@ -185,6 +216,30 @@ function enterDemoMode(dashboard) {
   sessionStorage.setItem('demo_mode', 'true');
   window.location.href = (dashboard || 'Groceries') + '/?demo=true';
 }
+
+// Update homepage auth buttons on auth state change
+function updateHomeAuth() {
+  var authArea = document.getElementById('home-auth-area');
+  var userInfo = document.getElementById('home-user-info');
+  if (!authArea || !userInfo) return;
+  if (typeof fb_user !== 'undefined' && fb_user) {
+    authArea.style.display = 'none';
+    userInfo.style.display = 'inline-flex';
+    document.getElementById('home-user-email').textContent = fb_user.email;
+  } else {
+    authArea.style.display = 'flex';
+    userInfo.style.display = 'none';
+  }
+}
+// Hook into firebase auth state
+(function() {
+  var origUpdate = typeof updateAuthUI === 'function' ? updateAuthUI : null;
+  if (origUpdate) {
+    updateAuthUI = function() { origUpdate(); updateHomeAuth(); };
+  }
+  // Initial check after a short delay for Firebase init
+  setTimeout(updateHomeAuth, 600);
+})();
 </script>
 </body>
 </html>

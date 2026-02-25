@@ -1836,6 +1836,8 @@ function showTripDetail(tripIdx) {
 
 // ─────────── ALL ITEMS TAB ───────────
 let currentSort = { col: "d", dir: "asc" };
+let itemsPerPage = 50;
+let itemsCurrentPage = 1;
 
 function renderAllItems() {
   // Populate filter dropdowns (clear first for month switches)
@@ -1862,7 +1864,7 @@ function renderAllItems() {
   // Attach event listeners only once
   if (!filtersInitialized) {
     ["filter-date","filter-store","filter-cat","filter-type","filter-search"].forEach(id => {
-      document.getElementById(id).addEventListener(id === "filter-search" ? "input" : "change", renderTable);
+      document.getElementById(id).addEventListener(id === "filter-search" ? "input" : "change", function() { itemsCurrentPage = 1; renderTable(); });
     });
     filtersInitialized = true;
   }
@@ -1876,6 +1878,7 @@ function clearFilters() {
   document.getElementById("filter-cat").value = "All";
   document.getElementById("filter-type").value = "All";
   document.getElementById("filter-search").value = "";
+  itemsCurrentPage = 1;
   renderTable();
 }
 
@@ -1906,6 +1909,13 @@ function renderTable() {
   });
 
   const total = sum(data);
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(data.length / itemsPerPage));
+  if (itemsCurrentPage > totalPages) itemsCurrentPage = totalPages;
+  const startIdx = (itemsCurrentPage - 1) * itemsPerPage;
+  const pageData = data.slice(startIdx, startIdx + itemsPerPage);
+
   document.getElementById("filter-count").textContent = `${data.length} items | ${fmt(total)}`;
 
   const cols = [
@@ -1925,7 +1935,7 @@ function renderTable() {
   });
   html += `<th style="width:50px"></th></tr></thead><tbody>`;
 
-  data.forEach(i => {
+  pageData.forEach(i => {
     const typ = itemType(i);
     const tagClass = typ === "grocery" ? "tag-grocery" : typ === "toiletry" ? "tag-toiletry" : "tag-nongrocery";
     const tagLabel = typ === "grocery" ? "GROCERY" : typ === "toiletry" ? "TOILETRY" : "OTHER";
@@ -1945,6 +1955,33 @@ function renderTable() {
   });
   html += `</tbody>`;
   document.getElementById("table-all").innerHTML = html;
+
+  // Pagination controls
+  let pgEl = document.getElementById("items-pagination");
+  if (!pgEl) {
+    pgEl = document.createElement("div");
+    pgEl.id = "items-pagination";
+    pgEl.className = "pagination-bar";
+    document.getElementById("table-all").parentNode.after(pgEl);
+  }
+  if (data.length <= 20) { pgEl.innerHTML = ''; return; }
+  let pgHtml = '<div class="page-size-wrap"><label>Show</label><select class="page-size-select" onchange="itemsPerPage=+this.value;itemsCurrentPage=1;renderTable()">';
+  [20,50,100].forEach(n => { pgHtml += '<option value="'+n+'"'+(itemsPerPage===n?' selected':'')+'>'+n+'</option>'; });
+  pgHtml += '</select><label>per page</label></div>';
+  pgHtml += '<div class="page-info">Showing '+(startIdx+1)+'\u2013'+Math.min(startIdx+itemsPerPage,data.length)+' of '+data.length+'</div>';
+  pgHtml += '<div class="page-btns">';
+  pgHtml += '<button class="page-btn" onclick="itemsCurrentPage=1;renderTable()"'+(itemsCurrentPage<=1?' disabled':'')+'>&#171;</button>';
+  pgHtml += '<button class="page-btn" onclick="itemsCurrentPage--;renderTable()"'+(itemsCurrentPage<=1?' disabled':'')+'>&#8249;</button>';
+  for (let p = 1; p <= totalPages; p++) {
+    if (totalPages <= 7 || Math.abs(p - itemsCurrentPage) <= 2 || p === 1 || p === totalPages) {
+      pgHtml += '<button class="page-btn'+(p===itemsCurrentPage?' active':'')+'" onclick="itemsCurrentPage='+p+';renderTable()">'+p+'</button>';
+    } else if (p === 2 && itemsCurrentPage > 4) { pgHtml += '<span style="padding:0 4px;color:var(--text-muted)">\u2026</span>'; }
+    else if (p === totalPages - 1 && itemsCurrentPage < totalPages - 3) { pgHtml += '<span style="padding:0 4px;color:var(--text-muted)">\u2026</span>'; }
+  }
+  pgHtml += '<button class="page-btn" onclick="itemsCurrentPage++;renderTable()"'+(itemsCurrentPage>=totalPages?' disabled':'')+'>&#8250;</button>';
+  pgHtml += '<button class="page-btn" onclick="itemsCurrentPage='+totalPages+';renderTable()"'+(itemsCurrentPage>=totalPages?' disabled':'')+'>&#187;</button>';
+  pgHtml += '</div>';
+  pgEl.innerHTML = pgHtml;
 }
 
 function sortTable(col) {
@@ -1954,6 +1991,7 @@ function sortTable(col) {
     currentSort.col = col;
     currentSort.dir = "desc";
   }
+  itemsCurrentPage = 1;
   renderTable();
 }
 
