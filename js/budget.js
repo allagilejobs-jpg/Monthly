@@ -208,7 +208,7 @@ function toggleTheme() {
   var isLight = document.body.classList.toggle('light');
   if (_isDemo) sessionStorage.setItem('budget_theme', isLight ? 'light' : 'dark');
   else localStorage.setItem('budget_theme', isLight ? 'light' : 'dark');
-  document.getElementById('theme-toggle').textContent = isLight ? '\u2600\uFE0F' : '\uD83C\uDF19';
+  document.getElementById('theme-toggle').innerHTML = isLight ? '&#9788;' : '&#9790;';
 }
 
 // ── Chart Helpers ──
@@ -2953,7 +2953,7 @@ function renderRecurring() {
   var theme = _isDemo ? sessionStorage.getItem('budget_theme') : localStorage.getItem('budget_theme');
   if (theme === 'light') {
     document.body.classList.add('light');
-    document.getElementById('theme-toggle').textContent = '\u2600\uFE0F';
+    document.getElementById('theme-toggle').innerHTML = '&#9788;';
   }
 
   // Chart defaults

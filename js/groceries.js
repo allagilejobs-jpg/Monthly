@@ -867,7 +867,7 @@ function toggleTheme() {
   const isLight = document.body.classList.toggle("light");
   if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) sessionStorage.setItem("demo_grocery_theme", isLight ? "light" : "dark");
   else localStorage.setItem("grocery_theme", isLight ? "light" : "dark");
-  document.getElementById("theme-toggle").textContent = isLight ? "\u2600\uFE0F" : "\uD83C\uDF19";
+  document.getElementById("theme-toggle").innerHTML = isLight ? "&#9788;" : "&#9790;";
 }
 // Apply saved theme on load
 (function() {
@@ -876,7 +876,7 @@ function toggleTheme() {
     : localStorage.getItem("grocery_theme");
   if (saved === "light") {
     document.body.classList.add("light");
-    document.getElementById("theme-toggle").textContent = "\u2600\uFE0F";
+    document.getElementById("theme-toggle").innerHTML = "&#9788;";
   }
 })();
 

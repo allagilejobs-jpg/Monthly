@@ -192,7 +192,8 @@
   .modal-overlay {
     display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0,0,0,0.7); z-index: 1000;
-    justify-content: center; align-items: center; padding: 20px;
+    justify-content: center; align-items: flex-start; padding: 20px;
+    overflow-y: auto;
   }
   .modal-overlay.open { display: flex; }
   .modal {
@@ -200,6 +201,12 @@
     border-radius: 16px; padding: 28px; max-width: 480px; width: 100%;
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     max-height: calc(100vh - 40px); display: flex; flex-direction: column;
+    margin: auto;
+  }
+  @media (max-width: 600px) {
+    .modal-overlay { padding: 10px; }
+    .modal { padding: 18px 14px; border-radius: 12px; max-width: 100%; max-height: none; }
+    .modal[style*="max-width:740px"] { max-width: 100% !important; }
   }
   .modal-wide { max-width: 640px; }
   /* Upload steps scroll content, keep buttons visible */

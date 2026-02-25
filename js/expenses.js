@@ -2624,7 +2624,7 @@ function toggleTheme() {
   const isLight = document.body.classList.toggle('light');
   if (_isDemo) sessionStorage.setItem('demo_expenses_theme', isLight ? 'light' : 'dark');
   else localStorage.setItem('expenses_theme', isLight ? 'light' : 'dark');
-  document.getElementById('theme-toggle').innerHTML = isLight ? '&#9728;' : '&#127769;';
+  document.getElementById('theme-toggle').innerHTML = isLight ? '&#9788;' : '&#9790;';
 }
 
 // ══════════════════════════════════════════════════════════
@@ -3014,7 +3014,7 @@ function detectRecurring() {
   const savedTheme = _isDemo ? sessionStorage.getItem('demo_expenses_theme') : localStorage.getItem('expenses_theme');
   if (savedTheme === 'light') {
     document.body.classList.add('light');
-    document.getElementById('theme-toggle').innerHTML = '&#9728;';
+    document.getElementById('theme-toggle').innerHTML = '&#9788;';
   }
 
   const months = loadMonths();

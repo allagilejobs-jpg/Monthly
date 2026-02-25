@@ -98,31 +98,33 @@ function initFirebase() {
 // ============================================================
 
 function injectAuthUI() {
-  // Skip on homepage — it has its own auth buttons
   const path = window.location.pathname;
-  if (path.endsWith('/Monthly/') || path.endsWith('/Monthly/index.html') || path === '/Monthly') return;
+  const isHomepage = path.endsWith('/Monthly/') || path.endsWith('/Monthly/index.html') || path === '/Monthly';
 
-  // Auth button in header
-  const header = document.querySelector('.header') || document.querySelector('header');
-  if (!header) return;
+  // On homepage, skip the header button injection but still create the modal
+  if (!isHomepage) {
+    // Auth button in header
+    const header = document.querySelector('.header') || document.querySelector('header');
+    if (!header) return;
 
-  const authContainer = document.createElement('div');
-  authContainer.id = 'fb-auth-container';
-  authContainer.className = 'fb-auth-container';
-  authContainer.innerHTML = `
-    <span id="fb-sync-status" class="fb-sync-status" style="display:none"></span>
-    <button id="fb-auth-btn" class="fb-auth-btn" onclick="openAuthModal()" style="display:none;">Sign In</button>
-    <span id="fb-user-info" class="fb-user-info" style="display:none;">
-      <span id="fb-user-email" class="fb-user-email"></span>
-      <button onclick="doSignOut()" class="fb-signout-btn">Sign Out</button>
-    </span>
-  `;
+    const authContainer = document.createElement('div');
+    authContainer.id = 'fb-auth-container';
+    authContainer.className = 'fb-auth-container';
+    authContainer.innerHTML = `
+      <span id="fb-sync-status" class="fb-sync-status" style="display:none"></span>
+      <button id="fb-auth-btn" class="fb-auth-btn" onclick="openAuthModal()" style="display:none;">Sign In</button>
+      <span id="fb-user-info" class="fb-user-info" style="display:none;">
+        <span id="fb-user-email" class="fb-user-email"></span>
+        <button onclick="doSignOut()" class="fb-signout-btn">Sign Out</button>
+      </span>
+    `;
 
-  // Insert before the last child (typically the nav links area)
-  const rightArea = header.querySelector('div:last-child') || header;
-  rightArea.insertBefore(authContainer, rightArea.firstChild);
+    // Insert before the last child (typically the nav links area)
+    const rightArea = header.querySelector('div:last-child') || header;
+    rightArea.insertBefore(authContainer, rightArea.firstChild);
+  } // end if (!isHomepage)
 
-  // Auth modal
+  // Auth modal (always injected — all pages need it)
   const modal = document.createElement('div');
   modal.id = 'fb-auth-modal';
   modal.style.cssText = `
