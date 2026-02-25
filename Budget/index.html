@@ -92,13 +92,13 @@ body {
 /* ── Tables ── */
 .tbl { width:100%; border-collapse:collapse; font-size:13px; }
 .tbl th {
-  text-align:left; padding:8px 10px; color:var(--text-muted); font-weight:600;
+  text-align:center; padding:8px 10px; color:var(--text-muted); font-weight:600;
   border-bottom:1px solid var(--card-border); font-size:11px; text-transform:uppercase;
   letter-spacing:0.5px; cursor:default; white-space:nowrap;
 }
 .tbl th.sortable { cursor:pointer; }
 .tbl th.sortable:hover { color:var(--accent); }
-.tbl td { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.04); }
+.tbl td { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.04); text-align:center; }
 body.light .tbl td { border-bottom:1px solid rgba(0,0,0,0.06); }
 .tbl tr:hover td { background:rgba(168,85,247,0.04); }
 /* ── Progress Bar ── */
@@ -119,7 +119,7 @@ body.light .progress-bar { background:rgba(0,0,0,0.08); }
 .btn-danger { background:rgba(239,68,68,0.15); color:var(--red); border:1px solid rgba(239,68,68,0.3); }
 .btn-danger:hover { background:rgba(239,68,68,0.25); }
 .btn-sm { padding:5px 10px; font-size:12px; }
-.action-cell { display:flex; gap:6px; align-items:center; white-space:nowrap; }
+.action-cell { display:flex; gap:6px; align-items:center; justify-content:center; white-space:nowrap; }
 /* ── Inputs ── */
 input[type="text"], input[type="number"], input[type="date"], select, textarea {
   background:var(--bg); color:var(--text); border:1px solid var(--card-border);
@@ -536,7 +536,7 @@ body.light .tx-filter-select { background:#f9fafb; border-color:#d1d5db; }
                   <th class="sortable" onclick="sortTx('category')">Category</th>
                   <th class="sortable" onclick="sortTx('description')">Description</th>
                   <th class="sortable" style="width:100px" onclick="sortTx('paymentMethod')">Method</th>
-                  <th class="sortable text-right" style="width:100px" onclick="sortTx('amount')">Amount</th>
+                  <th class="sortable" style="width:100px" onclick="sortTx('amount')">Amount</th>
                   <th style="width:120px"></th>
                 </tr>
               </thead>
@@ -605,8 +605,8 @@ body.light .tx-filter-select { background:#f9fafb; border-color:#d1d5db; }
             <tr>
               <th style="width:120px">Type</th>
               <th style="width:180px">Account Name</th>
-              <th class="text-right" style="width:120px">Balance</th>
-              <th class="text-right" style="width:80px">Rate</th>
+              <th style="width:120px">Balance</th>
+              <th style="width:80px">Rate</th>
               <th>Notes</th>
               <th style="width:120px"></th>
             </tr>
@@ -1395,7 +1395,7 @@ function renderTxTable() {
       + '<td>'+escHtml(tx.category)+'</td>'
       + '<td>'+escHtml(tx.description)+'</td>'
       + '<td>'+escHtml(tx.paymentMethod)+'</td>'
-      + '<td class="text-right">'+fmt(tx.amount)+'</td>'
+      + '<td>'+fmt(tx.amount)+'</td>'
       + '<td><div class="action-cell"><button class="btn btn-secondary btn-sm" onclick="openTxModal(\''+tx.id+'\')">Edit</button>'
       + '<button class="btn btn-danger btn-sm" onclick="deleteTx(\''+tx.id+'\')">X</button></div></td>'
       + '</tr>';
@@ -1693,8 +1693,8 @@ function renderAccounts() {
     return '<tr>'
       + '<td>'+escHtml(a.type)+'</td>'
       + '<td>'+escHtml(a.name)+'</td>'
-      + '<td class="text-right">'+fmt(a.amount)+'</td>'
-      + '<td class="text-right">'+(a.interestRate ? a.interestRate+'%' : '-')+'</td>'
+      + '<td>'+fmt(a.amount)+'</td>'
+      + '<td>'+(a.interestRate ? a.interestRate+'%' : '-')+'</td>'
       + '<td>'+escHtml(a.notes||'')+'</td>'
       + '<td><div class="action-cell"><button class="btn btn-secondary btn-sm" onclick="openAcctModal(\''+a.id+'\')">Edit</button>'
       + '<button class="btn btn-danger btn-sm" onclick="deleteAcct(\''+a.id+'\')">X</button></div></td>'
