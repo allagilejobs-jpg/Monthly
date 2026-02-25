@@ -544,6 +544,13 @@ function buildMonthContext(monthKey) {
 function applyEdits(data, monthKey) {
   const edits = loadEdits(monthKey);
   data.forEach(t => {
+    // Re-resolve merchant/category from original description using latest cleanup logic
+    if (t.description && !t._manualCategory) {
+      var resolved = resolveMerchant(t.description);
+      t.merchant = resolved.merchant;
+      t.category = resolved.category;
+    }
+    // Then apply manual edits on top (these always win)
     if (edits[t.id]) {
       if (edits[t.id].category) { t.category = edits[t.id].category; t._manualCategory = true; }
       if (edits[t.id].merchant) t.merchant = edits[t.id].merchant;
