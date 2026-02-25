@@ -257,6 +257,37 @@ a.nav-link:hover { text-decoration:underline; }
 .preview-stat { display:flex; justify-content:space-between; padding:4px 0; font-size:13px; }
 .preview-stat span:last-child { font-weight:600; }
 @media(max-width:480px) { .format-grid { grid-template-columns:1fr; } }
+/* ── Bulk Upload Zone ── */
+.bulk-drop-zone {
+  border:2px dashed var(--card-border); border-radius:14px; padding:36px 24px;
+  text-align:center; cursor:pointer; transition:all .2s; background:var(--bg);
+}
+.bulk-drop-zone:hover, .bulk-drop-zone.drag-over {
+  border-color:var(--accent); background:var(--accent-dim);
+}
+body.light .bulk-drop-zone { background:#f9fafb; }
+body.light .bulk-drop-zone:hover, body.light .bulk-drop-zone.drag-over {
+  background:rgba(168,85,247,0.08);
+}
+.bulk-file-item {
+  display:flex; align-items:center; gap:12px; padding:10px 12px;
+  border:1px solid var(--card-border); border-radius:10px; margin-bottom:8px;
+  background:var(--bg); font-size:13px;
+}
+body.light .bulk-file-item { background:#f9fafb; }
+.bulk-file-icon { font-size:22px; flex-shrink:0; }
+.bulk-file-info { flex:1; min-width:0; }
+.bulk-file-name { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bulk-file-meta { font-size:11px; color:var(--text-muted); margin-top:2px; }
+.bulk-file-status { font-size:11px; font-weight:600; white-space:nowrap; }
+.bulk-file-status.processing { color:var(--amber); }
+.bulk-file-status.done { color:var(--green); }
+.bulk-file-status.error { color:var(--red); }
+.bulk-file-remove {
+  background:none; border:none; color:var(--text-muted); cursor:pointer;
+  font-size:16px; padding:4px; border-radius:4px; transition:all .15s;
+}
+.bulk-file-remove:hover { color:var(--red); background:rgba(239,68,68,0.1); }
 /* ── Insights Cards ── */
 .insight-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
 .insight-card {
@@ -379,6 +410,45 @@ body.light .tx-filter-select { background:#f9fafb; border-color:#d1d5db; }
           <option value="9">September</option><option value="10">October</option>
           <option value="11">November</option><option value="12">December</option>
         </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Upload Statements Section ── -->
+  <div class="card" id="setup-upload-card">
+    <div class="card-title">
+      <span>Upload Bank &amp; Credit Card Statements</span>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
+      Upload CSV, PDF, or Excel bank/credit card statements. Transactions are auto-categorized and sorted into the correct month.
+      You can upload multiple files at once.
+    </p>
+    <div class="bulk-drop-zone" id="bulk-drop-zone"
+         ondragover="event.preventDefault();this.classList.add('drag-over')"
+         ondragleave="this.classList.remove('drag-over')"
+         ondrop="handleBulkDrop(event)" onclick="document.getElementById('bulk-file-input').click()">
+      <div style="font-size:40px;margin-bottom:8px">&#128451;</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:4px">Drop files here or click to browse</div>
+      <div style="font-size:12px;color:var(--text-muted)">Supports CSV, PDF, and Excel files &middot; Multiple files allowed</div>
+      <div style="display:flex;gap:16px;justify-content:center;margin-top:12px">
+        <span style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px">&#128196; CSV</span>
+        <span style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px">&#128195; PDF</span>
+        <span style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px">&#128202; Excel</span>
+      </div>
+    </div>
+    <input type="file" id="bulk-file-input" style="display:none" accept=".csv,.txt,.pdf,.xlsx,.xls" multiple onchange="handleBulkFiles(this.files)">
+
+    <!-- File Queue -->
+    <div id="bulk-file-queue" class="hidden" style="margin-top:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:13px;font-weight:700">Files to Import</span>
+        <button class="btn btn-secondary btn-sm" onclick="clearBulkQueue()">Clear All</button>
+      </div>
+      <div id="bulk-file-list"></div>
+      <div id="bulk-summary" style="margin-top:12px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+        <button class="btn btn-secondary" onclick="clearBulkQueue()">Cancel</button>
+        <button class="btn btn-primary" id="bulk-import-btn" onclick="confirmBulkImport()">Import All Transactions</button>
       </div>
     </div>
   </div>
@@ -2716,7 +2786,7 @@ function parseStatementExcel(arrayBuffer) {
   return transactions;
 }
 
-// ── Upload Modal Logic ──
+// ── Upload Modal Logic (single file, from Monthly Tracker) ──
 function openUploadModal() {
   if (_isDemo && typeof showDemoUpgradePrompt === 'function') {
     showDemoUpgradePrompt('Sign up to upload bank statements.');
@@ -2738,13 +2808,13 @@ function goUploadStep(step) {
     if (panel) panel.classList.toggle('active', i === step);
   }
 }
-function selectUploadFormat(fmt) {
-  _uploadFormat = fmt;
+function selectUploadFormat(f) {
+  _uploadFormat = f;
   var hints = {csv:'Upload a .csv file from your bank', pdf:'Upload a bank statement PDF', xlsx:'Upload an Excel file with transaction rows'};
-  document.getElementById('upload-format-hint').textContent = hints[fmt] || '';
+  document.getElementById('upload-format-hint').textContent = hints[f] || '';
   var accepts = {csv:'.csv,.txt', pdf:'.pdf', xlsx:'.xlsx,.xls'};
-  document.getElementById('upload-file-input').accept = accepts[fmt] || '*';
-  document.getElementById('upload-drop-hint').textContent = accepts[fmt] || '';
+  document.getElementById('upload-file-input').accept = accepts[f] || '*';
+  document.getElementById('upload-drop-hint').textContent = accepts[f] || '';
   goUploadStep(1);
 }
 function handleUploadDrop(e) {
@@ -2755,26 +2825,27 @@ function handleUploadDrop(e) {
 }
 function handleUploadFile(file) {
   if (!file) return;
+  var ext = file.name.split('.').pop().toLowerCase();
+  var format = (ext === 'pdf') ? 'pdf' : (ext === 'csv' || ext === 'txt') ? 'csv' : 'xlsx';
   var reader = new FileReader();
   reader.onload = function(e) {
-    var result;
     try {
-      if (_uploadFormat === 'csv') {
-        result = parseStatementCSV(e.target.result);
+      if (format === 'csv') {
+        var result = parseStatementCSV(e.target.result);
         showUploadPreview(result, file.name);
-      } else if (_uploadFormat === 'pdf') {
+      } else if (format === 'pdf') {
         parseStatementPDF(e.target.result).then(function(txs) {
           showUploadPreview(txs, file.name);
         });
       } else {
-        result = parseStatementExcel(e.target.result);
+        var result = parseStatementExcel(e.target.result);
         showUploadPreview(result, file.name);
       }
     } catch(err) {
       alert('Failed to parse file: ' + err.message);
     }
   };
-  if (_uploadFormat === 'csv') reader.readAsText(file);
+  if (format === 'csv') reader.readAsText(file);
   else reader.readAsArrayBuffer(file);
 }
 
@@ -2786,16 +2857,12 @@ function showUploadPreview(transactions, fileName) {
     goUploadStep(2);
     return;
   }
-
   var mk = detectStatementMonthKey(transactions) || (ctx ? ctx.monthKey : null);
   var c = mk ? buildMonthContext(mk) : null;
   var total = transactions.reduce(function(s,t){return s+(t.amount||0);},0);
-
-  // Category breakdown
   var cats = {};
   transactions.forEach(function(t) { cats[t.category] = (cats[t.category]||0) + 1; });
   var catList = Object.entries(cats).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
-
   var html = '<div class="preview-stat"><span>File</span><span>'+escHtml(fileName)+'</span></div>';
   html += '<div class="preview-stat"><span>Month</span><span>'+(c ? c.monthName+' '+c.year : 'Unknown')+'</span></div>';
   html += '<div class="preview-stat"><span>Transactions</span><span>'+transactions.length+'</span></div>';
@@ -2804,16 +2871,12 @@ function showUploadPreview(transactions, fileName) {
   catList.forEach(function(c) {
     html += '<div class="preview-stat" style="font-size:12px"><span>'+escHtml(c[0])+'</span><span>'+c[1]+' txns</span></div>';
   });
-
-  // Existing data warning
   var existing = loadTransactions(mk);
   if (existing.length > 0) {
     html += '<div style="margin-top:12px;padding:8px;border-radius:8px;background:rgba(245,158,11,0.1);color:var(--amber);font-size:12px">'
       + 'This month already has '+existing.length+' transactions. New ones will be added (not replaced).</div>';
   }
-
   document.getElementById('upload-preview').innerHTML = html;
-  // Store detected month
   _pendingImport._monthKey = mk;
   goUploadStep(2);
 }
@@ -2822,23 +2885,254 @@ function confirmStatementImport() {
   if (_pendingImport.length === 0) { closeUploadModal(); return; }
   var mk = _pendingImport._monthKey || (ctx ? ctx.monthKey : null);
   if (!mk) { alert('Could not detect month. Please add a month first.'); return; }
-
-  // Ensure month exists
   var months = loadMonths();
-  if (months.indexOf(mk) < 0) {
-    months.push(mk);
-    saveMonths(months);
-  }
-
-  // Merge with existing
+  if (months.indexOf(mk) < 0) { months.push(mk); saveMonths(months); }
   var existing = loadTransactions(mk);
-  var merged = existing.concat(_pendingImport);
-  saveTransactions(mk, merged);
-
+  saveTransactions(mk, existing.concat(_pendingImport));
   closeUploadModal();
   switchMonth(mk);
   alert('Imported ' + _pendingImport.length + ' transactions successfully!');
   _pendingImport = [];
+}
+
+// ════════════════════════════════════════
+// BULK UPLOAD — Multi-File (Setup Tab)
+// ════════════════════════════════════════
+
+var _bulkQueue = []; // [{file, name, ext, status, transactions, monthKey, error}]
+
+function detectFileFormat(fileName) {
+  var ext = (fileName || '').split('.').pop().toLowerCase();
+  if (ext === 'pdf') return 'pdf';
+  if (ext === 'csv' || ext === 'txt') return 'csv';
+  if (ext === 'xlsx' || ext === 'xls') return 'xlsx';
+  return null;
+}
+
+function handleBulkDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (_isDemo && typeof showDemoUpgradePrompt === 'function') {
+    showDemoUpgradePrompt('Sign up to upload bank statements.');
+    return;
+  }
+  var files = Array.from(e.dataTransfer.files);
+  if (files.length > 0) addFilesToBulkQueue(files);
+}
+
+function handleBulkFiles(fileList) {
+  if (_isDemo && typeof showDemoUpgradePrompt === 'function') {
+    showDemoUpgradePrompt('Sign up to upload bank statements.');
+    return;
+  }
+  var files = Array.from(fileList);
+  if (files.length > 0) addFilesToBulkQueue(files);
+  // Reset input so same files can be re-selected
+  document.getElementById('bulk-file-input').value = '';
+}
+
+function addFilesToBulkQueue(files) {
+  files.forEach(function(file) {
+    var format = detectFileFormat(file.name);
+    if (!format) {
+      _bulkQueue.push({ file: file, name: file.name, format: null, status: 'error', transactions: [], monthKey: null, error: 'Unsupported format' });
+    } else {
+      _bulkQueue.push({ file: file, name: file.name, format: format, status: 'pending', transactions: [], monthKey: null, error: null });
+    }
+  });
+  renderBulkQueue();
+  processBulkQueue();
+}
+
+function renderBulkQueue() {
+  var queueEl = document.getElementById('bulk-file-queue');
+  var listEl = document.getElementById('bulk-file-list');
+  var summaryEl = document.getElementById('bulk-summary');
+
+  if (_bulkQueue.length === 0) {
+    queueEl.classList.add('hidden');
+    return;
+  }
+  queueEl.classList.remove('hidden');
+
+  var html = '';
+  _bulkQueue.forEach(function(item, i) {
+    var icons = { csv: '&#128196;', pdf: '&#128195;', xlsx: '&#128202;' };
+    var icon = icons[item.format] || '&#128196;';
+
+    var statusHtml = '';
+    if (item.status === 'pending') statusHtml = '<span class="bulk-file-status processing">Waiting...</span>';
+    else if (item.status === 'processing') statusHtml = '<span class="bulk-file-status processing">Processing...</span>';
+    else if (item.status === 'done') {
+      var mk = item.monthKey;
+      var monthLabel = mk ? buildMonthContext(mk).monthName + ' ' + buildMonthContext(mk).year : 'Unknown';
+      statusHtml = '<span class="bulk-file-status done">' + item.transactions.length + ' txns &middot; ' + monthLabel + '</span>';
+    }
+    else if (item.status === 'error') statusHtml = '<span class="bulk-file-status error">' + escHtml(item.error || 'Error') + '</span>';
+
+    html += '<div class="bulk-file-item">'
+      + '<div class="bulk-file-icon">' + icon + '</div>'
+      + '<div class="bulk-file-info">'
+      + '<div class="bulk-file-name">' + escHtml(item.name) + '</div>'
+      + '<div class="bulk-file-meta">' + (item.format ? item.format.toUpperCase() : 'Unknown') + ' &middot; ' + formatFileSize(item.file.size) + '</div>'
+      + '</div>'
+      + statusHtml
+      + '<button class="bulk-file-remove" onclick="removeBulkItem(' + i + ')" title="Remove">&times;</button>'
+      + '</div>';
+  });
+  listEl.innerHTML = html;
+
+  // Summary
+  var doneItems = _bulkQueue.filter(function(q) { return q.status === 'done'; });
+  var totalTx = doneItems.reduce(function(s, q) { return s + q.transactions.length; }, 0);
+  var totalAmt = doneItems.reduce(function(s, q) {
+    return s + q.transactions.reduce(function(s2, t) { return s2 + (t.amount || 0); }, 0);
+  }, 0);
+  var monthSet = {};
+  doneItems.forEach(function(q) { if (q.monthKey) monthSet[q.monthKey] = true; });
+  var monthCount = Object.keys(monthSet).length;
+  var errors = _bulkQueue.filter(function(q) { return q.status === 'error'; }).length;
+  var processing = _bulkQueue.some(function(q) { return q.status === 'pending' || q.status === 'processing'; });
+
+  if (doneItems.length > 0) {
+    summaryEl.innerHTML = '<div style="padding:12px;border-radius:10px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2)">'
+      + '<div style="display:flex;gap:24px;flex-wrap:wrap;font-size:13px">'
+      + '<div><span style="color:var(--text-muted)">Files ready:</span> <strong>' + doneItems.length + '</strong></div>'
+      + '<div><span style="color:var(--text-muted)">Transactions:</span> <strong>' + totalTx + '</strong></div>'
+      + '<div><span style="color:var(--text-muted)">Total amount:</span> <strong>' + fmt(totalAmt) + '</strong></div>'
+      + '<div><span style="color:var(--text-muted)">Months detected:</span> <strong>' + monthCount + '</strong></div>'
+      + '</div>'
+      + (errors > 0 ? '<div style="margin-top:8px;font-size:12px;color:var(--amber)">' + errors + ' file(s) had errors and will be skipped.</div>' : '')
+      + '</div>';
+  } else {
+    summaryEl.innerHTML = processing ? '<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:8px">Processing files...</div>' : '';
+  }
+
+  // Disable import button while processing
+  var btn = document.getElementById('bulk-import-btn');
+  if (btn) btn.disabled = processing || totalTx === 0;
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function removeBulkItem(idx) {
+  _bulkQueue.splice(idx, 1);
+  renderBulkQueue();
+}
+
+function clearBulkQueue() {
+  _bulkQueue = [];
+  renderBulkQueue();
+}
+
+function processBulkQueue() {
+  var pending = _bulkQueue.find(function(q) { return q.status === 'pending'; });
+  if (!pending) return;
+
+  pending.status = 'processing';
+  renderBulkQueue();
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      if (pending.format === 'csv') {
+        var txs = parseStatementCSV(e.target.result);
+        finishBulkItem(pending, txs);
+      } else if (pending.format === 'pdf') {
+        parseStatementPDF(e.target.result).then(function(txs) {
+          finishBulkItem(pending, txs);
+        }).catch(function(err) {
+          pending.status = 'error';
+          pending.error = 'PDF parse failed';
+          renderBulkQueue();
+          processBulkQueue();
+        });
+        return; // async — don't call processBulkQueue below
+      } else {
+        var txs = parseStatementExcel(e.target.result);
+        finishBulkItem(pending, txs);
+      }
+    } catch(err) {
+      pending.status = 'error';
+      pending.error = err.message || 'Parse failed';
+      renderBulkQueue();
+    }
+    processBulkQueue();
+  };
+  reader.onerror = function() {
+    pending.status = 'error';
+    pending.error = 'Failed to read file';
+    renderBulkQueue();
+    processBulkQueue();
+  };
+
+  if (pending.format === 'csv') reader.readAsText(pending.file);
+  else reader.readAsArrayBuffer(pending.file);
+}
+
+function finishBulkItem(item, transactions) {
+  if (!transactions || transactions.length === 0) {
+    item.status = 'error';
+    item.error = 'No transactions found';
+  } else {
+    item.status = 'done';
+    item.transactions = transactions;
+    item.monthKey = detectStatementMonthKey(transactions);
+  }
+  renderBulkQueue();
+}
+
+function confirmBulkImport() {
+  var doneItems = _bulkQueue.filter(function(q) { return q.status === 'done' && q.transactions.length > 0; });
+  if (doneItems.length === 0) return;
+
+  var totalImported = 0;
+  var monthsCreated = [];
+
+  doneItems.forEach(function(item) {
+    var mk = item.monthKey;
+    if (!mk) {
+      // Try to detect from first transaction
+      if (item.transactions[0] && item.transactions[0].date) {
+        var d = item.transactions[0].date;
+        mk = d.substring(0, 4) + '_' + d.substring(5, 7);
+      }
+    }
+    if (!mk) return; // skip if no month detected
+
+    // Ensure month exists
+    var months = loadMonths();
+    if (months.indexOf(mk) < 0) {
+      months.push(mk);
+      saveMonths(months);
+      monthsCreated.push(mk);
+    }
+
+    // Merge transactions
+    var existing = loadTransactions(mk);
+    saveTransactions(mk, existing.concat(item.transactions));
+    totalImported += item.transactions.length;
+  });
+
+  // Clear the queue
+  _bulkQueue = [];
+  renderBulkQueue();
+
+  // Switch to the latest month and refresh
+  var months = loadMonths().sort();
+  if (months.length > 0) {
+    switchMonth(months[months.length - 1]);
+  }
+  updateMonthNav();
+
+  alert('Successfully imported ' + totalImported + ' transactions from ' + doneItems.length + ' file(s)!');
+
+  // Switch to Monthly Tracker to show results
+  showView('tracker');
 }
 
 // ════════════════════════════════════════
