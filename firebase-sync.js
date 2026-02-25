@@ -6,7 +6,7 @@
 // Replace with your Firebase project config from console.firebase.google.com
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyCkuURRU-GC86vqKRXBz7X0-6rlAf6A2M0",
-  authDomain: "family-finance-778a5.web.app",
+  authDomain: "family-finance-778a5.firebaseapp.com",
   projectId: "family-finance-778a5",
   storageBucket: "family-finance-778a5.firebasestorage.app",
   messagingSenderId: "295516575227",
@@ -41,7 +41,7 @@ function shouldSync(key) {
 
 // ── Init Firebase ──
 let fb_app, fb_auth, fb_db, fb_user = null;
-let fb_googleProvider = null;
+// Google Sign-In uses GIS (Google Identity Services) directly
 let fb_initialized = false;
 
 function initFirebase() {
@@ -54,7 +54,7 @@ function initFirebase() {
     fb_app = firebase.initializeApp(FIREBASE_CONFIG);
     fb_auth = firebase.auth();
     fb_db = firebase.firestore();
-    fb_googleProvider = new firebase.auth.GoogleAuthProvider();
+    // Google Sign-In handled via GIS library (signInWithGoogle)
     fb_initialized = true;
     // Listen for auth state
     fb_auth.onAuthStateChanged(user => {
@@ -313,14 +313,39 @@ async function doForgotPassword() {
   }
 }
 
-function signInWithGoogle() {
-  if (!fb_auth || !fb_googleProvider) return;
-  fb_auth.signInWithPopup(fb_googleProvider)
+var _gisLoaded = false;
+var _gisClientId = '295516575227-nuon8278ld6l228b56hvj2grsqudtdij.apps.googleusercontent.com';
+
+function _onGoogleCredential(response) {
+  if (!fb_auth || !response.credential) return;
+  var credential = firebase.auth.GoogleAuthProvider.credential(response.credential);
+  fb_auth.signInWithCredential(credential)
     .then(function() { closeAuthModal(); })
-    .catch(function(e) {
-      if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') return;
-      showAuthError(e.message || 'Google sign-in failed.');
-    });
+    .catch(function(e) { showAuthError(e.message || 'Google sign-in failed.'); });
+}
+
+function _initGIS() {
+  google.accounts.id.initialize({
+    client_id: _gisClientId,
+    callback: _onGoogleCredential,
+    auto_select: false
+  });
+  _gisLoaded = true;
+}
+
+function signInWithGoogle() {
+  if (!fb_auth) return;
+  if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+    if (!_gisLoaded) _initGIS();
+    google.accounts.id.prompt();
+  } else {
+    // Load GIS script first
+    var s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = function() { _initGIS(); google.accounts.id.prompt(); };
+    s.onerror = function() { showAuthError('Failed to load Google Sign-In.'); };
+    document.head.appendChild(s);
+  }
 }
 
 function doSignOut() {
