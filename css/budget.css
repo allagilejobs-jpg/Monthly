@@ -198,22 +198,38 @@ body.light .modal { box-shadow:0 20px 60px rgba(0,0,0,0.15); }
   .setup-row { grid-template-columns:100px 1fr 80px; }
 }
 @media(max-width:480px) {
-  .kpi-grid { grid-template-columns:1fr 1fr; }
+  .kpi-grid { grid-template-columns:1fr 1fr; gap:8px; }
+  .kpi { padding:12px 8px; }
   .kpi-value { font-size:18px; }
-  .container { padding:12px; }
+  .kpi-label { font-size:10px; }
+  .container { padding:10px; }
   .chart-wrap { height:200px; }
   .setup-row { grid-template-columns:1fr 1fr; }
   .setup-row .group-label { display:none; }
   /* Mobile header fixes */
-  .header { padding:8px 12px; flex-wrap:wrap; gap:8px; }
-  .header-left { gap:8px; flex-wrap:wrap; }
+  .header { padding:8px 12px; flex-wrap:wrap; gap:6px; }
+  .header-left { gap:6px; flex-wrap:wrap; width:100%; justify-content:center; }
   .header-left a { font-size:11px; }
-  .logo { font-size:16px; }
-  .header-right { gap:4px; }
+  .logo { font-size:15px; width:100%; text-align:center; margin-bottom:4px; }
+  .header-right { position:absolute; top:8px; right:8px; gap:4px; }
   .btn-icon { font-size:16px; padding:4px 6px; }
   .dash-subtitle { padding:10px 12px 0; font-size:12px; }
-  .tabs { padding:8px 12px; gap:2px; }
-  .tab { padding:6px 4px; font-size:10px; }
+  /* Mobile tabs - scrollable */
+  .tabs { padding:8px 10px; gap:4px; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; }
+  .tab { padding:8px 10px; font-size:11px; flex-shrink:0; }
+  /* Mobile cards */
+  .card { padding:14px; margin-bottom:12px; border-radius:10px; }
+  .card-title { font-size:14px; flex-wrap:wrap; gap:8px; }
+  .card-title div { width:100%; display:flex; flex-wrap:wrap; gap:6px; }
+  /* Mobile buttons */
+  .btn { padding:8px 12px; font-size:11px; }
+  .btn-sm { padding:6px 10px; font-size:10px; }
+  /* Mobile tables */
+  .tbl { font-size:11px; }
+  .tbl th, .tbl td { padding:6px 4px; }
+  /* Mobile forms */
+  input, select { font-size:14px; padding:8px; }
+  .setup-grid { gap:12px; }
 }
 /* ── Misc ── */
 .badge {
