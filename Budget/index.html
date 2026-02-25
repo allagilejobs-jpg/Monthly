@@ -98,7 +98,7 @@ body {
 }
 .tbl th.sortable { cursor:pointer; }
 .tbl th.sortable:hover { color:var(--accent); }
-.tbl td { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.04); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tbl td { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.04); }
 body.light .tbl td { border-bottom:1px solid rgba(0,0,0,0.06); }
 .tbl tr:hover td { background:rgba(168,85,247,0.04); }
 /* ── Progress Bar ── */
@@ -120,7 +120,6 @@ body.light .progress-bar { background:rgba(0,0,0,0.08); }
 .btn-danger:hover { background:rgba(239,68,68,0.25); }
 .btn-sm { padding:5px 10px; font-size:12px; }
 .action-cell { display:flex; gap:6px; align-items:center; white-space:nowrap; }
-.tbl td:last-child { overflow:visible; }
 /* ── Inputs ── */
 input[type="text"], input[type="number"], input[type="date"], select, textarea {
   background:var(--bg); color:var(--text); border:1px solid var(--card-border);
@@ -530,23 +529,15 @@ body.light .tx-filter-select { background:#f9fafb; border-color:#d1d5db; }
             </select>
           </div>
           <div style="overflow-x:auto">
-            <table class="tbl" id="tx-table" style="table-layout:fixed">
-              <colgroup>
-                <col style="width:11%">
-                <col style="width:18%">
-                <col style="width:30%">
-                <col style="width:13%">
-                <col style="width:14%">
-                <col style="width:14%">
-              </colgroup>
+            <table class="tbl" id="tx-table">
               <thead>
                 <tr>
-                  <th class="sortable" onclick="sortTx('date')">Date</th>
+                  <th class="sortable" style="width:90px" onclick="sortTx('date')">Date</th>
                   <th class="sortable" onclick="sortTx('category')">Category</th>
                   <th class="sortable" onclick="sortTx('description')">Description</th>
-                  <th class="sortable" onclick="sortTx('paymentMethod')">Method</th>
-                  <th class="sortable text-right" onclick="sortTx('amount')">Amount</th>
-                  <th></th>
+                  <th class="sortable" style="width:100px" onclick="sortTx('paymentMethod')">Method</th>
+                  <th class="sortable text-right" style="width:100px" onclick="sortTx('amount')">Amount</th>
+                  <th style="width:120px"></th>
                 </tr>
               </thead>
               <tbody id="tx-body"></tbody>
@@ -609,20 +600,15 @@ body.light .tx-filter-select { background:#f9fafb; border-color:#d1d5db; }
         </div>
       </div>
       <div style="overflow-x:auto">
-        <table class="tbl" id="acct-table" style="table-layout:fixed">
-          <colgroup>
-            <col style="width:13%">
-            <col style="width:20%">
-            <col style="width:15%">
-            <col style="width:13%">
-            <col style="width:25%">
-            <col style="width:14%">
-          </colgroup>
+        <table class="tbl" id="acct-table">
           <thead>
             <tr>
-              <th>Type</th><th>Account Name</th>
-              <th class="text-right">Balance</th><th class="text-right">Rate</th>
-              <th>Notes</th><th></th>
+              <th style="width:120px">Type</th>
+              <th style="width:180px">Account Name</th>
+              <th class="text-right" style="width:120px">Balance</th>
+              <th class="text-right" style="width:80px">Rate</th>
+              <th>Notes</th>
+              <th style="width:120px"></th>
             </tr>
           </thead>
           <tbody id="acct-body"></tbody>
