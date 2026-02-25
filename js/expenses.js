@@ -886,7 +886,7 @@ function extractTransaction(headers, cols, bank) {
   return {
     id: uuid(), date: normalizeDate(dateStr), description: desc,
     merchant: resolved.merchant, category: resolved.category, amount: amount,
-    source: 'csv', bank, _origCategory: resolved.category, _manualCategory: false
+    source: 'csv', sourceType: '', bank, _origCategory: resolved.category, _manualCategory: false
   };
 }
 
@@ -1031,7 +1031,7 @@ function parsePDFLine(line) {
   return {
     id: uuid(), date: normalizeDate(dateStr), description: desc,
     merchant: resolved.merchant, category: resolved.category, amount: Math.abs(amount),
-    source: 'pdf', bank: 'Wells Fargo', _origCategory: resolved.category, _manualCategory: false
+    source: 'pdf', sourceType: '', bank: 'Wells Fargo', _origCategory: resolved.category, _manualCategory: false
   };
 }
 
@@ -1071,7 +1071,7 @@ function parseExcel(arrayBuffer) {
     transactions.push({
       id: uuid(), date: normalizeDate(dateStr), description: desc,
       merchant: resolved.merchant, category: resolved.category, amount: amount,
-      source: 'xlsx', bank: 'unknown', _origCategory: resolved.category, _manualCategory: false
+      source: 'xlsx', sourceType: '', bank: 'unknown', _origCategory: resolved.category, _manualCategory: false
     });
   });
   // Detect sign convention: if most amounts negative, flip all (charges→positive, credits→negative)
@@ -1361,6 +1361,16 @@ function showMultiMonthPreview() {
   html += '<span class="preview-stat"><strong>' + monthKeys.length + '</strong> month(s)</span>';
   html += '</div>';
 
+  // Source type input with info guide
+  var detectedBank = (parsedTransactions[0] && parsedTransactions[0].bank) || '';
+  var bankDefaults = {chase:'Chase Credit Card', bofa:'Bank of America', capital_one:'Capital One Credit Card', citi:'Citi Credit Card', wells_fargo:'Wells Fargo'};
+  var defaultSource = bankDefaults[detectedBank] || '';
+  html += '<div class="source-type-group">';
+  html += '<label style="font-size:13px;font-weight:600;white-space:nowrap">Transaction Source</label>';
+  html += '<input type="text" class="source-type-input" id="upload-source-type" placeholder="e.g. Chase Sapphire, BOA Checking" value="' + defaultSource + '">';
+  html += '<span class="source-info-icon">&#9432;<span class="source-info-tip">Name the bank account or card these transactions came from. This helps you identify the source later when viewing transactions.<br><br><strong>Examples:</strong> Chase Sapphire, Wells Fargo Checking, BOA Debit Card, Capital One Quicksilver</span></span>';
+  html += '</div>';
+
   // Month selection heading
   if (monthKeys.length > 1) {
     html += '<div style="margin-bottom:8px;font-size:12px;color:var(--text-muted)">Select which months to import:</div>';
@@ -1489,11 +1499,16 @@ function confirmMultiImport() {
   });
   if (selectedKeys.length === 0) return;
 
+  // Stamp source type on all transactions
+  var sourceTypeVal = (document.getElementById('upload-source-type') || {}).value || '';
+  sourceTypeVal = sourceTypeVal.trim();
+
   var months = loadMonths();
   var importedCount = 0;
 
   selectedKeys.forEach(function(mk) {
     var newTxns = parsedMonthBuckets[mk];
+    newTxns.forEach(function(t) { t.sourceType = sourceTypeVal; });
     if (!newTxns || newTxns.length === 0) return;
 
     var mergeRadio = document.querySelector('input[name="merge-' + mk + '"]:checked');
@@ -2228,6 +2243,7 @@ function renderTransactions() {
   html += '<th class="sortable' + (txSortCol === 'category' ? (txSortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '') + '" onclick="sortTxTable(\'category\')">Category</th>';
   html += '<th class="sortable text-right' + (txSortCol === 'amount' ? (txSortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '') + '" onclick="sortTxTable(\'amount\')">Amount</th>';
   html += '<th class="text-center">Source</th>';
+  html += '<th class="text-center">Import</th>';
   html += '<th></th>';
   html += '</tr></thead><tbody id="tx-tbody"></tbody></table></div>';
   html += '<div id="tx-count" style="font-size:12px;color:var(--text-muted);margin-top:-12px;margin-bottom:20px"></div>';
@@ -2270,7 +2286,8 @@ function renderTxRows() {
       '<td style="font-weight:600">' + t.merchant + editDot + '</td>' +
       '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>' +
       '<td class="text-right amt"' + (t.amount < 0 ? ' style="color:var(--green)"' : '') + '>' + fmt(t.amount) + '</td>' +
-      '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td>' +
+      '<td class="text-center" style="font-size:12px">' + (t.sourceType || '\u2014') + '</td>' +
+      '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + (t.source || '').toUpperCase() + '</span></td>' +
       '<td><span class="edit-icon" onclick="event.stopPropagation();openEditModal(\'' + t.id + '\')">&#9998;</span></td></tr>';
   }).join('');
   const countEl = document.getElementById('tx-count');
@@ -2567,13 +2584,14 @@ function showMerchantDetail(merchantName, source) {
 
   // All transactions
   html += '<div class="card"><div class="card-title">All Transactions (' + txs.length + ')</div>';
-  html += '<table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th class="text-right">Amount</th><th>Source</th></tr></thead><tbody>';
+  html += '<table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th class="text-right">Amount</th><th>Source</th><th>Import</th></tr></thead><tbody>';
   txs.forEach(t => {
     html += '<tr><td class="mono">' + t.date + '</td>';
     html += '<td style="font-size:12px;color:var(--text-muted);max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g, '&quot;') + '">' + (t.description || t.merchant) + '</td>';
     html += '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>';
     html += '<td class="text-right amt"' + (t.amount < 0 ? ' style="color:var(--green)"' : '') + '>' + fmt(t.amount) + '</td>';
-    html += '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td></tr>';
+    html += '<td class="text-center" style="font-size:12px">' + (t.sourceType || '\u2014') + '</td>';
+    html += '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + (t.source || '').toUpperCase() + '</span></td></tr>';
   });
   html += '</tbody></table></div>';
 
@@ -2647,14 +2665,15 @@ function showCategoryDetail(categoryName, source) {
 
   // All transactions
   html += '<div class="card"><div class="card-title">All Transactions (' + txs.length + ')</div>';
-  html += '<table><thead><tr><th>Date</th><th>Merchant</th><th>Description</th><th class="text-right">Amount</th><th>Source</th></tr></thead><tbody>';
+  html += '<table><thead><tr><th>Date</th><th>Merchant</th><th>Description</th><th class="text-right">Amount</th><th>Source</th><th>Import</th></tr></thead><tbody>';
   txs.forEach(t => {
     html += '<tr style="cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + t.merchant.replace(/'/g,"\\'") + '\',source:\'categories\'})">';
     html += '<td class="mono">' + t.date + '</td>';
     html += '<td style="font-weight:600">' + t.merchant + '</td>';
     html += '<td style="font-size:12px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g,'&quot;') + '">' + (t.description || t.merchant) + '</td>';
     html += '<td class="text-right amt"' + (t.amount < 0 ? ' style="color:var(--green)"' : '') + '>' + fmt(t.amount) + '</td>';
-    html += '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td></tr>';
+    html += '<td class="text-center" style="font-size:12px">' + (t.sourceType || '\u2014') + '</td>';
+    html += '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + (t.source || '').toUpperCase() + '</span></td></tr>';
   });
   html += '</tbody></table></div>';
 

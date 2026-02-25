@@ -276,6 +276,13 @@ a.nav-link:hover { text-decoration:underline; }
 .drop-zone-hint { font-size:12px; color:var(--text-muted); margin-top:4px; }
 .preview-stat { display:flex; justify-content:space-between; padding:4px 0; font-size:13px; }
 .preview-stat span:last-child { font-weight:600; }
+/* Source type input in upload review */
+.source-type-group { display:flex; align-items:center; gap:8px; margin-bottom:16px; }
+.source-type-input { flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--card-border); background:var(--card); color:var(--text); font-size:14px; }
+.source-type-input:focus { outline:none; border-color:var(--blue); }
+.source-info-icon { cursor:help; color:var(--text-muted); font-size:18px; position:relative; flex-shrink:0; }
+.source-info-icon:hover .source-info-tip { display:block; }
+.source-info-tip { display:none; position:absolute; bottom:calc(100% + 8px); right:0; width:280px; padding:10px 12px; background:var(--card); border:1px solid var(--card-border); border-radius:8px; font-size:12px; color:var(--text-muted); box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:10; line-height:1.4; }
 @media(max-width:480px) { .format-grid { grid-template-columns:1fr; } }
 /* ── Bulk Upload Zone ── */
 .bulk-drop-zone {

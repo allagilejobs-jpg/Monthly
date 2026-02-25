@@ -453,7 +453,7 @@ function renderTxTable() {
   });
 
   if (sorted.length === 0 && activeData.length > 0) {
-    body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px">No transactions match your filters</td></tr>';
+    body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:20px">No transactions match your filters</td></tr>';
     return;
   }
 
@@ -463,6 +463,8 @@ function renderTxTable() {
       + '<td>'+escHtml(tx.category)+'</td>'
       + '<td>'+escHtml(tx.description)+'</td>'
       + '<td>'+escHtml(tx.paymentMethod)+'</td>'
+      + '<td style="font-size:12px">'+escHtml(tx.sourceType || '\u2014')+'</td>'
+      + '<td style="font-size:11px;text-align:center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">'+(tx.source ? tx.source.toUpperCase() : '\u2014')+'</span></td>'
       + '<td'+(tx.amount < 0 ? ' style="color:var(--green)"' : '')+'>'+fmt(tx.amount)+'</td>'
       + '<td><div class="action-cell"><button class="btn btn-secondary btn-sm" onclick="openTxModal(\''+tx.id+'\')">Edit</button>'
       + '<button class="btn btn-danger btn-sm" onclick="deleteTx(\''+tx.id+'\')">X</button></div></td>'
@@ -1717,6 +1719,7 @@ function parseStatementCSV(text) {
   transactions.forEach(function(t) {
     if (t.amount < 0) t.category = categorizeCredit(t.description);
   });
+  transactions._detectedBank = bank;
   return transactions;
 }
 
@@ -1798,7 +1801,7 @@ function extractStatementTx(headers, cols, bank) {
     id: generateId(), date: normalizeStatementDate(dateStr),
     category: cat, description: merchant,
     paymentMethod: (bank === 'chase' || bank === 'capital_one' || bank === 'citi') ? 'Credit' : 'Debit',
-    amount: amount
+    amount: amount, source: 'csv', sourceType: ''
   };
 }
 
@@ -1911,7 +1914,8 @@ function parseStatementPDFLine(line) {
   return {
     id: generateId(), date: normalizeStatementDate(m[1]),
     category: categorizeTx(merchant, false), description: merchant,
-    paymentMethod: 'Credit', amount: Math.abs(amount)
+    paymentMethod: 'Credit', amount: Math.abs(amount),
+    source: 'pdf', sourceType: ''
   };
 }
 
@@ -1953,7 +1957,8 @@ function parseStatementExcel(arrayBuffer) {
     transactions.push({
       id: generateId(), date: normalizeStatementDate(dateStr),
       category: categorizeTx(merchant, false), description: merchant,
-      paymentMethod: 'Debit', amount: amount
+      paymentMethod: 'Debit', amount: amount,
+      source: 'xlsx', sourceType: ''
     });
   });
   // Detect sign convention: if most amounts negative, flip all
@@ -2045,7 +2050,17 @@ function showUploadPreview(transactions, fileName) {
   var cats = {};
   transactions.forEach(function(t) { cats[t.category] = (cats[t.category]||0) + 1; });
   var catList = Object.entries(cats).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
-  var html = '<div class="preview-stat"><span>File</span><span>'+escHtml(fileName)+'</span></div>';
+  // Source type input with info guide
+  var detectedBank = transactions._detectedBank || '';
+  var bankDefaults = {chase:'Chase Credit Card', bofa:'Bank of America', capital_one:'Capital One Credit Card', citi:'Citi Credit Card', wells_fargo:'Wells Fargo'};
+  var defaultSource = bankDefaults[detectedBank] || '';
+  if (!defaultSource && _uploadFormat === 'pdf') defaultSource = 'Wells Fargo';
+  var html = '<div class="source-type-group">';
+  html += '<label style="font-size:13px;font-weight:600;white-space:nowrap">Transaction Source</label>';
+  html += '<input type="text" class="source-type-input" id="upload-source-type" placeholder="e.g. Chase Sapphire, BOA Checking" value="'+escHtml(defaultSource)+'">';
+  html += '<span class="source-info-icon">&#9432;<span class="source-info-tip">Name the bank account or card these transactions came from. This helps you identify the source later when viewing transactions.<br><br><strong>Examples:</strong> Chase Sapphire, Wells Fargo Checking, BOA Debit Card, Capital One Quicksilver</span></span>';
+  html += '</div>';
+  html += '<div class="preview-stat"><span>File</span><span>'+escHtml(fileName)+'</span></div>';
   html += '<div class="preview-stat"><span>Month</span><span>'+(c ? c.monthName+' '+c.year : 'Unknown')+'</span></div>';
   html += '<div class="preview-stat"><span>Transactions</span><span>'+transactions.length+'</span></div>';
   html += '<div class="preview-stat"><span>Total</span><span>'+fmt(total)+'</span></div>';
@@ -2067,6 +2082,10 @@ function confirmStatementImport() {
   if (_pendingImport.length === 0) { closeUploadModal(); return; }
   var mk = _pendingImport._monthKey || (ctx ? ctx.monthKey : null);
   if (!mk) { showToast('Could not detect month. Please add a month first.', 'warning'); return; }
+  // Stamp source type on all transactions
+  var sourceTypeVal = (document.getElementById('upload-source-type') || {}).value || '';
+  sourceTypeVal = sourceTypeVal.trim();
+  _pendingImport.forEach(function(t) { t.sourceType = sourceTypeVal; });
   var months = loadMonths();
   if (months.indexOf(mk) < 0) { months.push(mk); saveMonths(months); }
   var existing = loadTransactions(mk);
