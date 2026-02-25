@@ -1,0 +1,2059 @@
+/* ============================================================
+   ALL EXPENSES DASHBOARD — V2
+   ============================================================ */
+
+// ── PDF.js worker ──
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+// ── Category colors ──
+const CATEGORY_LIST = [
+  "Housing","Utilities","Groceries","Dining & Restaurants","Transportation",
+  "Gas & Fuel","Shopping","Entertainment","Subscriptions","Health & Medical",
+  "Insurance","Personal Care","Education","Gifts & Donations","Travel",
+  "Fees & Charges","ATM & Cash","Transfers","Other"
+];
+const CATEGORY_COLORS = {};
+const CAT_PALETTE = [
+  "#3b82f6","#22c55e","#f59e0b","#f43f5e","#a855f7",
+  "#06b6d4","#14b8a6","#ec4899","#84cc16","#6366f1",
+  "#f97316","#0ea5e9","#d946ef","#10b981","#eab308",
+  "#ef4444","#8b5cf6","#64748b","#78716c"
+];
+CATEGORY_LIST.forEach((c,i) => CATEGORY_COLORS[c] = CAT_PALETTE[i % CAT_PALETTE.length]);
+
+// Dynamic category color assignment for user-created categories
+const catColorPool = [...CAT_PALETTE];
+let catColorIdx = CATEGORY_LIST.length;
+function getCatColor(cat) {
+  if (CATEGORY_COLORS[cat]) return CATEGORY_COLORS[cat];
+  CATEGORY_COLORS[cat] = catColorPool[catColorIdx % catColorPool.length];
+  catColorIdx++;
+  return CATEGORY_COLORS[cat];
+}
+
+// ── Auto-categorization keywords ──
+const CATEGORY_KEYWORDS = {
+  // Groceries
+  "walmart": "Groceries", "publix": "Groceries", "kroger": "Groceries",
+  "aldi": "Groceries", "trader joe": "Groceries", "whole foods": "Groceries",
+  "safeway": "Groceries", "costco": "Groceries", "sam's club": "Groceries",
+  "heb": "Groceries", "meijer": "Groceries", "food lion": "Groceries",
+  "piggly wiggly": "Groceries", "winn-dixie": "Groceries", "sprouts": "Groceries",
+  "instacart": "Groceries", "amazon fresh": "Groceries", "target": "Shopping",
+  "dollar tree": "Shopping", "dollar general": "Shopping",
+  // Dining
+  "mcdonald": "Dining & Restaurants", "burger king": "Dining & Restaurants",
+  "wendy": "Dining & Restaurants", "chick-fil-a": "Dining & Restaurants",
+  "chipotle": "Dining & Restaurants", "subway": "Dining & Restaurants",
+  "starbucks": "Dining & Restaurants", "dunkin": "Dining & Restaurants",
+  "domino": "Dining & Restaurants", "pizza hut": "Dining & Restaurants",
+  "papa john": "Dining & Restaurants", "taco bell": "Dining & Restaurants",
+  "popeyes": "Dining & Restaurants", "chili's": "Dining & Restaurants",
+  "olive garden": "Dining & Restaurants", "applebee": "Dining & Restaurants",
+  "panera": "Dining & Restaurants", "doordash": "Dining & Restaurants",
+  "uber eats": "Dining & Restaurants", "grubhub": "Dining & Restaurants",
+  "restaurant": "Dining & Restaurants", "cafe": "Dining & Restaurants",
+  "diner": "Dining & Restaurants", "grill": "Dining & Restaurants",
+  "bistro": "Dining & Restaurants", "sushi": "Dining & Restaurants",
+  "wingstop": "Dining & Restaurants",
+  // Gas
+  "shell": "Gas & Fuel", "chevron": "Gas & Fuel", "exxon": "Gas & Fuel",
+  "mobil": "Gas & Fuel", "bp ": "Gas & Fuel", "marathon": "Gas & Fuel",
+  "circle k": "Gas & Fuel", "speedway": "Gas & Fuel", "wawa": "Gas & Fuel",
+  "racetrac": "Gas & Fuel", "murphy": "Gas & Fuel", "sunoco": "Gas & Fuel",
+  "gas station": "Gas & Fuel", "fuel": "Gas & Fuel",
+  // Transportation
+  "uber ": "Transportation", "lyft": "Transportation", "taxi": "Transportation",
+  "parking": "Transportation", "toll": "Transportation", "transit": "Transportation",
+  "metro": "Transportation",
+  // Shopping
+  "amazon": "Shopping", "ebay": "Shopping", "etsy": "Shopping",
+  "best buy": "Shopping", "home depot": "Shopping", "lowe": "Shopping",
+  "ikea": "Shopping", "t.j. maxx": "Shopping", "tjmaxx": "Shopping",
+  "marshalls": "Shopping", "ross": "Shopping", "nordstrom": "Shopping",
+  "macy": "Shopping", "old navy": "Shopping", "gap ": "Shopping",
+  "nike": "Shopping", "adidas": "Shopping",
+  // Entertainment
+  "netflix": "Subscriptions", "hulu": "Subscriptions", "disney+": "Subscriptions",
+  "spotify": "Subscriptions", "apple music": "Subscriptions", "hbo": "Subscriptions",
+  "youtube premium": "Subscriptions", "amazon prime": "Subscriptions",
+  "paramount": "Subscriptions", "peacock": "Subscriptions",
+  "amc": "Entertainment", "cinema": "Entertainment", "movie": "Entertainment",
+  "theater": "Entertainment", "bowling": "Entertainment", "arcade": "Entertainment",
+  "dave & buster": "Entertainment", "topgolf": "Entertainment",
+  // Utilities
+  "electric": "Utilities", "power": "Utilities", "water": "Utilities",
+  "gas bill": "Utilities", "internet": "Utilities", "comcast": "Utilities",
+  "at&t": "Utilities", "verizon": "Utilities", "t-mobile": "Utilities",
+  "sprint": "Utilities", "spectrum": "Utilities", "xfinity": "Utilities",
+  // Housing
+  "rent": "Housing", "mortgage": "Housing", "property tax": "Housing",
+  "hoa": "Housing",
+  // Health
+  "cvs": "Health & Medical", "walgreens": "Health & Medical", "pharmacy": "Health & Medical",
+  "hospital": "Health & Medical", "clinic": "Health & Medical", "doctor": "Health & Medical",
+  "dental": "Health & Medical", "optom": "Health & Medical", "urgent care": "Health & Medical",
+  "lab corp": "Health & Medical", "quest diag": "Health & Medical",
+  // Insurance
+  "geico": "Insurance", "state farm": "Insurance", "allstate": "Insurance",
+  "progressive": "Insurance", "insurance": "Insurance",
+  // Personal Care
+  "salon": "Personal Care", "barber": "Personal Care", "spa": "Personal Care",
+  "nail": "Personal Care", "haircut": "Personal Care", "beauty": "Personal Care",
+  // Education
+  "tuition": "Education", "school": "Education", "university": "Education",
+  "college": "Education", "udemy": "Education", "coursera": "Education",
+  // Travel
+  "airline": "Travel", "delta": "Travel", "united": "Travel", "american air": "Travel",
+  "southwest": "Travel", "hotel": "Travel", "marriott": "Travel", "hilton": "Travel",
+  "airbnb": "Travel", "booking.com": "Travel", "expedia": "Travel",
+  // Fees
+  "fee": "Fees & Charges", "overdraft": "Fees & Charges", "late charge": "Fees & Charges",
+  "interest charge": "Fees & Charges", "annual fee": "Fees & Charges",
+  // ATM
+  "atm": "ATM & Cash", "cash withdrawal": "ATM & Cash",
+  // Transfers
+  "transfer": "Transfers", "zelle": "Transfers", "venmo": "Transfers",
+  "paypal": "Transfers", "cash app": "Transfers",
+  // Gifts
+  "donation": "Gifts & Donations", "charity": "Gifts & Donations",
+  "gofundme": "Gifts & Donations", "church": "Gifts & Donations"
+};
+
+// ── Merchant name cleaning ──
+function cleanMerchant(desc) {
+  if (!desc) return "Unknown";
+  let m = desc.trim();
+  // Remove trailing reference numbers, dates, card numbers
+  m = m.replace(/\s+\d{4,}$/g, '');
+  m = m.replace(/\s+\d{2}\/\d{2}(\/\d{2,4})?$/g, '');
+  m = m.replace(/\s+#\d+/g, '');
+  m = m.replace(/\s+(xx|x{2,})\d{4}/gi, '');
+  m = m.replace(/\s+\*+\d+/g, '');
+  // Remove city/state suffixes (common in bank descriptions)
+  m = m.replace(/\s+[A-Z]{2}\s*\d{5}(-\d{4})?$/g, '');
+  m = m.replace(/\s+(US|USA|CA|NY|FL|TX|IL|GA|OH|NC|PA)$/gi, '');
+  // Trim extra whitespace
+  m = m.replace(/\s+/g, ' ').trim();
+  // Title case
+  if (m === m.toUpperCase() && m.length > 3) {
+    m = m.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.substr(1).toLowerCase());
+  }
+  return m || "Unknown";
+}
+
+// ── Categorize from merchant name ──
+function categorize(merchant) {
+  const rules = loadCategoryRules();
+  const lower = merchant.toLowerCase();
+  // Check learned rules first
+  if (rules[lower]) return rules[lower];
+  // Check keywords
+  for (const [keyword, cat] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (lower.includes(keyword)) return cat;
+  }
+  return "Other";
+}
+
+// ── UUID generator ──
+function uuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+// ── Dollar formatting ──
+function fmt(v) {
+  return "$" + Math.abs(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// ── localStorage helpers ──
+const _isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
+function loadMonths() {
+  try { return JSON.parse((_isDemo ? demoGet("expenses_months") : localStorage.getItem("expenses_months")) || '[]'); }
+  catch { return []; }
+}
+function saveMonths(arr) {
+  if (_isDemo) demoSet("expenses_months", JSON.stringify(arr));
+  else localStorage.setItem("expenses_months", JSON.stringify(arr));
+}
+function loadData(key) {
+  try { return JSON.parse((_isDemo ? demoGet("expenses_data_" + key) : localStorage.getItem("expenses_data_" + key)) || '[]'); }
+  catch { return []; }
+}
+function saveData(key, data) {
+  if (_isDemo) demoSet("expenses_data_" + key, JSON.stringify(data));
+  else { localStorage.setItem("expenses_data_" + key, JSON.stringify(data)); if (typeof syncToCloud === 'function') syncToCloud(); }
+}
+function loadEdits(key) {
+  try { return JSON.parse((_isDemo ? demoGet("expenses_edits_" + key) : localStorage.getItem("expenses_edits_" + key)) || '{}'); }
+  catch { return {}; }
+}
+function saveEdits(key, edits) {
+  if (_isDemo) demoSet("expenses_edits_" + key, JSON.stringify(edits));
+  else { localStorage.setItem("expenses_edits_" + key, JSON.stringify(edits)); if (typeof syncToCloud === 'function') syncToCloud(); }
+}
+function loadCategoryRules() {
+  try { return JSON.parse((_isDemo ? demoGet("expenses_categoryRules") : localStorage.getItem("expenses_categoryRules")) || '{}'); }
+  catch { return {}; }
+}
+function saveCategoryRules(rules) {
+  if (_isDemo) demoSet("expenses_categoryRules", JSON.stringify(rules));
+  else { localStorage.setItem("expenses_categoryRules", JSON.stringify(rules)); if (typeof syncToCloud === 'function') syncToCloud(); }
+}
+
+// ── Global state ──
+let activeData = [];
+let ctx = {};
+let charts = {};
+let currentView = 'overview';
+let editingId = null;
+let filtersInitialized = false;
+let uploadFormat = null;
+let uploadStep = 0;
+let parsedTransactions = [];
+let parsedMonthKey = null;
+let sortCol = null;
+let sortDir = 'asc';
+
+// ── Month context ──
+function buildMonthContext(monthKey) {
+  const [yearStr, monthStr] = monthKey.split("_");
+  const year = parseInt(yearStr);
+  const month = parseInt(monthStr);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const monthNames = ["","January","February","March","April","May","June","July","August","September","October","November","December"];
+  const monthAbbrs = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const weeks = [];
+  for (let start = 1; start <= daysInMonth; start += 7) {
+    const end = Math.min(start + 6, daysInMonth);
+    weeks.push({ start, end, label: monthAbbrs[month] + " " + start + "-" + end });
+  }
+  return {
+    month, year, monthName: monthNames[month], monthAbbr: monthAbbrs[month],
+    daysInMonth, weeks, monthKey,
+    editsKey: "expenses_edits_" + monthKey,
+    storageKey: "expenses_data_" + monthKey
+  };
+}
+
+// ── Apply edits to data ──
+function applyEdits(data, monthKey) {
+  const edits = loadEdits(monthKey);
+  data.forEach(t => {
+    if (edits[t.id]) {
+      if (edits[t.id].category) { t.category = edits[t.id].category; t._manualCategory = true; }
+      if (edits[t.id].merchant) t.merchant = edits[t.id].merchant;
+    }
+  });
+  return data;
+}
+
+// ── Recompute derived values ──
+let totalExpenses = 0, txCount = 0, avgPerTx = 0;
+let catGroups = [], merchantGroups = [];
+
+function recomputeAll() {
+  totalExpenses = activeData.reduce((s, t) => s + t.amount, 0);
+  txCount = activeData.length;
+  avgPerTx = txCount ? totalExpenses / txCount : 0;
+
+  // Group by category
+  const catMap = {};
+  activeData.forEach(t => {
+    if (!catMap[t.category]) catMap[t.category] = { name: t.category, total: 0, count: 0 };
+    catMap[t.category].total += t.amount;
+    catMap[t.category].count++;
+  });
+  catGroups = Object.values(catMap).sort((a, b) => b.total - a.total);
+
+  // Group by merchant
+  const merchMap = {};
+  activeData.forEach(t => {
+    if (!merchMap[t.merchant]) merchMap[t.merchant] = { name: t.merchant, total: 0, count: 0 };
+    merchMap[t.merchant].total += t.amount;
+    merchMap[t.merchant].count++;
+  });
+  merchantGroups = Object.values(merchMap).sort((a, b) => b.total - a.total);
+}
+
+// ── Chart management ──
+function destroyAllCharts() {
+  Object.values(charts).forEach(c => { if (c && c.destroy) c.destroy(); });
+  charts = {};
+}
+
+// ── Switch month ──
+function switchMonth(monthKey) {
+  if (!monthKey) return;
+  if (_isDemo) demoSet("expenses_activeMonth", monthKey);
+  else localStorage.setItem("expenses_activeMonth", monthKey);
+  ctx = buildMonthContext(monthKey);
+  activeData = applyEdits(loadData(monthKey), monthKey);
+  filtersInitialized = false;
+  recomputeAll();
+  destroyAllCharts();
+  updateSubtitle();
+  renderAll();
+}
+
+function updateSubtitle() {
+  const sub = document.getElementById("dashboard-subtitle");
+  if (activeData.length === 0) {
+    sub.textContent = "Upload bank statements to track all your spending";
+  } else {
+    const merchants = new Set(activeData.map(t => t.merchant)).size;
+    const cats = new Set(activeData.map(t => t.category)).size;
+    sub.textContent = ctx.monthName + " " + ctx.year + " \u2022 " + fmt(totalExpenses) + " across " + txCount + " transactions \u2022 " + merchants + " merchants \u2022 " + cats + " categories";
+  }
+}
+
+// ── Render all views ──
+function renderAll() {
+  renderOverview();
+  renderCategories();
+  renderMerchants();
+  renderTrends();
+  renderTransactions();
+  renderCompare();
+  updateMonthNav();
+}
+
+// ── Show / hide views ──
+function showView(id, filterOpts) {
+  currentView = id;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => {
+    if (t.textContent.toLowerCase().replace(/\s+/g,'') === id ||
+        (id === 'overview' && t.textContent === 'Overview') ||
+        (id === 'categories' && t.textContent === 'By Category') ||
+        (id === 'merchants' && t.textContent === 'By Merchant') ||
+        (id === 'trends' && t.textContent === 'Trends') ||
+        (id === 'transactions' && t.textContent === 'All Transactions') ||
+        (id === 'compare' && t.textContent === 'Compare'))
+      t.classList.add('active');
+  });
+  if (id === 'transactions' && filterOpts) {
+    setTimeout(() => applyTransactionFilter(filterOpts), 50);
+  }
+  if (id === 'merchant-detail' && filterOpts && filterOpts.merchant) {
+    showMerchantDetail(filterOpts.merchant, filterOpts.source || 'merchants');
+  }
+  if (id === 'category-detail' && filterOpts && filterOpts.category) {
+    showCategoryDetail(filterOpts.category, filterOpts.source || 'categories');
+  }
+}
+
+// ── Month navigation ──
+function updateMonthNav() {
+  const months = loadMonths();
+  const sel = document.getElementById("month-select");
+  const active = (_isDemo ? demoGet("expenses_activeMonth") : localStorage.getItem("expenses_activeMonth")) || "";
+  sel.innerHTML = "";
+  if (months.length === 0) {
+    sel.innerHTML = '<option value="">No data loaded</option>';
+    document.getElementById("tab-compare").style.display = "none";
+    return;
+  }
+  months.sort().reverse().forEach(mk => {
+    const c = buildMonthContext(mk);
+    const opt = document.createElement("option");
+    opt.value = mk;
+    opt.textContent = c.monthName + " " + c.year;
+    if (mk === active) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  document.getElementById("tab-compare").style.display = months.length >= 2 ? "" : "none";
+}
+
+// ══════════════════════════════════════════════════════════
+// CSV PARSER
+// ══════════════════════════════════════════════════════════
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return [];
+  // Detect delimiter
+  const delim = lines[0].includes('\t') ? '\t' : ',';
+  // Smart CSV line parser (handles quoted fields)
+  function parseLine(line) {
+    const result = []; let current = ''; let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQuotes = !inQuotes; }
+      else if (ch === delim && !inQuotes) { result.push(current.trim()); current = ''; }
+      else { current += ch; }
+    }
+    result.push(current.trim());
+    return result;
+  }
+  const headers = parseLine(lines[0]).map(h => h.replace(/"/g,'').trim().toLowerCase());
+  // Detect bank format
+  const bank = detectBank(headers);
+  const transactions = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseLine(lines[i]);
+    if (cols.length < 3) continue;
+    const tx = extractTransaction(headers, cols, bank);
+    if (tx && tx.amount > 0) transactions.push(tx);
+  }
+  return transactions;
+}
+
+function detectBank(headers) {
+  const h = headers.join('|');
+  if (h.includes('posting date') && h.includes('description')) return 'chase';
+  if (h.includes('payee')) return 'bofa';
+  if (h.includes('transaction date') && h.includes('debit')) return 'capital_one';
+  if (headers.includes('debit') && headers.includes('credit')) return 'citi';
+  // Wells Fargo has minimal headers or none
+  if (headers.length <= 5 && h.includes('date') && h.includes('description')) return 'wells_fargo';
+  return 'generic';
+}
+
+function extractTransaction(headers, cols, bank) {
+  const get = name => {
+    const idx = headers.indexOf(name);
+    return idx >= 0 && idx < cols.length ? cols[idx] : '';
+  };
+  const getAny = (...names) => {
+    for (const n of names) { const v = get(n); if (v) return v; }
+    return '';
+  };
+  let dateStr, desc, amount;
+
+  switch (bank) {
+    case 'chase':
+      dateStr = getAny('posting date', 'transaction date', 'date');
+      desc = get('description');
+      amount = parseFloat(get('amount'));
+      if (isNaN(amount)) return null;
+      amount = -amount; // Chase: negative = expense
+      break;
+    case 'bofa':
+      dateStr = get('date');
+      desc = getAny('payee', 'description');
+      amount = parseFloat(get('amount'));
+      if (isNaN(amount)) return null;
+      amount = -amount;
+      break;
+    case 'capital_one':
+      dateStr = getAny('transaction date', 'date');
+      desc = get('description');
+      const debit = parseFloat(get('debit'));
+      const credit = parseFloat(get('credit'));
+      if (!isNaN(debit) && debit > 0) amount = debit;
+      else if (!isNaN(credit) && credit > 0) amount = -credit; // credit = refund
+      else return null;
+      break;
+    case 'citi':
+      dateStr = get('date');
+      desc = get('description');
+      const deb = parseFloat(get('debit'));
+      if (!isNaN(deb) && deb > 0) amount = deb;
+      else return null;
+      break;
+    case 'wells_fargo':
+      dateStr = get('date');
+      desc = get('description');
+      amount = parseFloat(get('amount'));
+      if (isNaN(amount)) return null;
+      amount = -amount;
+      break;
+    default: // generic
+      dateStr = ''; desc = ''; amount = NaN;
+      for (let i = 0; i < headers.length; i++) {
+        if (!dateStr && /date/i.test(headers[i])) dateStr = cols[i];
+        if (!desc && /desc|memo|payee|narration|particular/i.test(headers[i])) desc = cols[i];
+        if (isNaN(amount) && /amount|debit|value/i.test(headers[i])) {
+          const v = parseFloat(cols[i]);
+          if (!isNaN(v)) amount = Math.abs(v);
+        }
+      }
+      if (isNaN(amount)) return null;
+  }
+
+  if (!dateStr || amount <= 0) return null;
+  const merchant = cleanMerchant(desc);
+  const cat = categorize(merchant);
+  return {
+    id: uuid(), date: normalizeDate(dateStr), description: desc,
+    merchant, category: cat, amount: Math.abs(amount),
+    source: 'csv', bank, _origCategory: cat, _manualCategory: false
+  };
+}
+
+// ══════════════════════════════════════════════════════════
+// PDF PARSER
+// ══════════════════════════════════════════════════════════
+async function parsePDF(arrayBuffer) {
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const transactions = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    // Reconstruct lines from text items
+    const items = content.items.sort((a, b) => {
+      const dy = b.transform[5] - a.transform[5];
+      return Math.abs(dy) > 3 ? dy : a.transform[4] - b.transform[4];
+    });
+    let lines = []; let currentLine = ''; let lastY = null;
+    items.forEach(item => {
+      const y = Math.round(item.transform[5]);
+      if (lastY !== null && Math.abs(y - lastY) > 3) {
+        if (currentLine.trim()) lines.push(currentLine.trim());
+        currentLine = '';
+      }
+      currentLine += (currentLine ? ' ' : '') + item.str;
+      lastY = y;
+    });
+    if (currentLine.trim()) lines.push(currentLine.trim());
+
+    // Parse transaction lines
+    lines.forEach(line => {
+      const tx = parsePDFLine(line);
+      if (tx) transactions.push(tx);
+    });
+  }
+  return transactions;
+}
+
+function parsePDFLine(line) {
+  // Common patterns:
+  // MM/DD description amount
+  // MM/DD/YYYY description amount
+  // MM/DD description $amount
+  const patterns = [
+    /^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(.+?)\s+(-?\$?[\d,]+\.\d{2})\s*$/,
+    /^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(.+?)\s+\$?([\d,]+\.\d{2})\s*(?:CR|DR)?\s*$/i,
+    /^(\d{1,2}-\d{1,2}(?:-\d{2,4})?)\s+(.+?)\s+(-?\$?[\d,]+\.\d{2})\s*$/
+  ];
+  for (const pat of patterns) {
+    const m = line.match(pat);
+    if (m) {
+      const dateStr = m[1];
+      const desc = m[2].trim();
+      let amount = parseFloat(m[3].replace(/[$,]/g, ''));
+      // Skip credit/payment lines
+      if (/payment|thank you|credit|refund/i.test(desc)) return null;
+      // Skip very small amounts (likely fees listed differently)
+      if (isNaN(amount) || amount <= 0) return null;
+      const merchant = cleanMerchant(desc);
+      const cat = categorize(merchant);
+      return {
+        id: uuid(), date: normalizeDate(dateStr), description: desc,
+        merchant, category: cat, amount: Math.abs(amount),
+        source: 'pdf', bank: 'unknown', _origCategory: cat, _manualCategory: false
+      };
+    }
+  }
+  return null;
+}
+
+// ══════════════════════════════════════════════════════════
+// EXCEL PARSER
+// ══════════════════════════════════════════════════════════
+function parseExcel(arrayBuffer) {
+  const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+  // Find best sheet — prefer one with "transaction" in name, else first
+  let sheetName = wb.SheetNames[0];
+  for (const sn of wb.SheetNames) {
+    if (/transaction|activity|history/i.test(sn)) { sheetName = sn; break; }
+  }
+  const data = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: '' });
+  if (data.length === 0) return [];
+  // Map columns flexibly
+  const keys = Object.keys(data[0]);
+  const findCol = (...patterns) => keys.find(k => patterns.some(p => k.toLowerCase().includes(p))) || '';
+  const dateCol = findCol('date');
+  const descCol = findCol('description', 'desc', 'memo', 'payee', 'narration', 'particular');
+  const amountCol = findCol('amount', 'debit', 'value', 'total');
+  const transactions = [];
+  data.forEach(row => {
+    let dateStr = row[dateCol];
+    if (dateStr instanceof Date) dateStr = (dateStr.getMonth()+1) + '/' + dateStr.getDate() + '/' + dateStr.getFullYear();
+    else dateStr = String(dateStr);
+    const desc = String(row[descCol] || '');
+    let amount = parseFloat(String(row[amountCol]).replace(/[$,]/g, ''));
+    if (isNaN(amount) || amount === 0) return;
+    amount = Math.abs(amount);
+    const merchant = cleanMerchant(desc);
+    const cat = categorize(merchant);
+    transactions.push({
+      id: uuid(), date: normalizeDate(dateStr), description: desc,
+      merchant, category: cat, amount,
+      source: 'xlsx', bank: 'unknown', _origCategory: cat, _manualCategory: false
+    });
+  });
+  return transactions;
+}
+
+// ── Date normalization ──
+function normalizeDate(str) {
+  if (!str) return '';
+  str = String(str).trim();
+  // Try MM/DD/YYYY or MM-DD-YYYY
+  let m = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) {
+    let year = parseInt(m[3]);
+    if (year < 100) year += 2000;
+    return year + '-' + m[1].padStart(2,'0') + '-' + m[2].padStart(2,'0');
+  }
+  // Try YYYY-MM-DD
+  m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return m[1] + '-' + m[2].padStart(2,'0') + '-' + m[3].padStart(2,'0');
+  // Try MM/DD (assume current year)
+  m = str.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
+  if (m) return new Date().getFullYear() + '-' + m[1].padStart(2,'0') + '-' + m[2].padStart(2,'0');
+  return str;
+}
+
+// ── Detect month from transactions ──
+function detectMonthKey(transactions) {
+  const monthCounts = {};
+  transactions.forEach(t => {
+    if (t.date && t.date.length >= 7) {
+      const key = t.date.substring(0, 4) + '_' + t.date.substring(5, 7);
+      monthCounts[key] = (monthCounts[key] || 0) + 1;
+    }
+  });
+  let best = null, bestCount = 0;
+  for (const [k, c] of Object.entries(monthCounts)) {
+    if (c > bestCount) { best = k; bestCount = c; }
+  }
+  return best;
+}
+
+// ══════════════════════════════════════════════════════════
+// UPLOAD MODAL
+// ══════════════════════════════════════════════════════════
+function openUploadModal() {
+  if (_isDemo) { showDemoUpgradePrompt("Upload your own bank statements by creating a free account."); return; }
+  uploadFormat = null; uploadStep = 0; parsedTransactions = []; parsedMonthKey = null;
+  document.getElementById('file-input').value = '';
+  goUploadStep(0);
+  document.getElementById('upload-modal').classList.add('open');
+}
+function closeUploadModal() {
+  document.getElementById('upload-modal').classList.remove('open');
+}
+
+function selectFormat(fmt) {
+  uploadFormat = fmt;
+  const hints = {
+    csv: "Upload a CSV file downloaded from your bank. Most banks offer this under \"Download Transactions\" or \"Export\".",
+    pdf: "Upload a PDF bank statement. We'll extract transaction lines from the text content.",
+    xlsx: "Upload an Excel file containing your transaction data."
+  };
+  const accepts = { csv: ".csv,.txt", pdf: ".pdf", xlsx: ".xlsx,.xls" };
+  document.getElementById('upload-format-hint').textContent = hints[fmt];
+  document.getElementById('drop-zone-hint').textContent = accepts[fmt] + " files accepted";
+  document.getElementById('file-input').accept = accepts[fmt];
+  goUploadStep(1);
+}
+
+function goUploadStep(step) {
+  uploadStep = step;
+  document.querySelectorAll('.upload-step').forEach((el, i) => {
+    el.classList.toggle('active', i === step);
+  });
+  document.querySelectorAll('.step-dot').forEach((el, i) => {
+    el.classList.remove('active', 'done');
+    if (i === step) el.classList.add('active');
+    else if (i < step) el.classList.add('done');
+  });
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  e.target.closest('.drop-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFileSelect(file);
+}
+
+async function handleFileSelect(file) {
+  if (!file) return;
+  try {
+    if (uploadFormat === 'csv') {
+      const text = await file.text();
+      parsedTransactions = parseCSV(text);
+    } else if (uploadFormat === 'pdf') {
+      const buf = await file.arrayBuffer();
+      parsedTransactions = await parsePDF(buf);
+    } else if (uploadFormat === 'xlsx') {
+      const buf = await file.arrayBuffer();
+      parsedTransactions = parseExcel(buf);
+    }
+    if (parsedTransactions.length === 0) {
+      alert("No transactions found in this file. Please check the format and try again.");
+      return;
+    }
+    parsedMonthKey = detectMonthKey(parsedTransactions);
+    showUploadPreview(file.name);
+    goUploadStep(2);
+  } catch (err) {
+    alert("Error reading file: " + err.message);
+  }
+}
+
+function showUploadPreview(fileName) {
+  const preview = document.getElementById('upload-preview');
+  const mkCtx = parsedMonthKey ? buildMonthContext(parsedMonthKey) : null;
+  const total = parsedTransactions.reduce((s, t) => s + t.amount, 0);
+  const cats = {};
+  parsedTransactions.forEach(t => { cats[t.category] = (cats[t.category] || 0) + t.amount; });
+  const topCats = Object.entries(cats).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  let html = '<div style="margin-bottom:16px">';
+  html += '<span class="preview-stat">File: <strong>' + fileName + '</strong></span>';
+  html += '<span class="preview-stat">Month: <strong>' + (mkCtx ? mkCtx.monthName + ' ' + mkCtx.year : 'Unknown') + '</strong></span>';
+  html += '<span class="preview-stat">Transactions: <strong>' + parsedTransactions.length + '</strong></span>';
+  html += '<span class="preview-stat">Total: <strong>' + fmt(total) + '</strong></span>';
+  html += '</div>';
+
+  // Sample table
+  html += '<div class="preview-table"><table><thead><tr><th>Date</th><th>Merchant</th><th>Category</th><th>Amount</th></tr></thead><tbody>';
+  parsedTransactions.slice(0, 5).forEach(t => {
+    html += '<tr><td>' + t.date + '</td><td>' + t.merchant + '</td><td>' + t.category + '</td><td class="amt">' + fmt(t.amount) + '</td></tr>';
+  });
+  if (parsedTransactions.length > 5) {
+    html += '<tr><td colspan="4" style="color:var(--text-muted);text-align:center">... and ' + (parsedTransactions.length - 5) + ' more</td></tr>';
+  }
+  html += '</tbody></table></div>';
+
+  // Category breakdown
+  html += '<div style="margin-top:12px"><span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">Top Categories</span>';
+  topCats.forEach(([cat, amt]) => {
+    const pct = ((amt / total) * 100).toFixed(1);
+    html += '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:' + getCatColor(cat) + '">' + cat + '</span><span class="amt">' + fmt(amt) + ' (' + pct + '%)</span></div>';
+  });
+  html += '</div>';
+
+  // Duplicate month warning
+  const existing = loadMonths();
+  if (parsedMonthKey && existing.includes(parsedMonthKey)) {
+    html += '<div style="margin-top:12px;padding:10px 14px;border-radius:8px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);font-size:13px;color:var(--amber)">&#9888; Data for ' + (mkCtx ? mkCtx.monthName + ' ' + mkCtx.year : parsedMonthKey) + ' already exists. Importing will replace it.</div>';
+  }
+
+  preview.innerHTML = html;
+}
+
+function confirmImport() {
+  if (!parsedTransactions.length || !parsedMonthKey) return;
+  // Save data
+  saveData(parsedMonthKey, parsedTransactions);
+  // Update months registry
+  const months = loadMonths();
+  if (!months.includes(parsedMonthKey)) {
+    months.push(parsedMonthKey);
+    saveMonths(months);
+  }
+  closeUploadModal();
+  switchMonth(parsedMonthKey);
+}
+
+// ══════════════════════════════════════════════════════════
+// DATA MANAGER
+// ══════════════════════════════════════════════════════════
+function openDataManager() {
+  if (_isDemo) { showDemoUpgradePrompt("Create an account to manage your own expense data."); return; }
+  const months = loadMonths();
+  const mc = document.getElementById('manager-content');
+  if (months.length === 0) {
+    mc.innerHTML = '<p style="color:var(--text-muted);font-size:13px">No expense data loaded yet. Use "Upload Statement" to get started.</p>';
+  } else {
+    let html = '';
+    const active = localStorage.getItem("expenses_activeMonth") || "";
+    months.sort().reverse().forEach(mk => {
+      const c = buildMonthContext(mk);
+      const data = loadData(mk);
+      const size = (new Blob([JSON.stringify(data)]).size / 1024).toFixed(1);
+      const isActive = mk === active;
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--card-border)">';
+      html += '<div><span style="font-weight:700">' + c.monthName + ' ' + c.year + '</span>';
+      if (isActive) html += ' <span style="font-size:11px;color:var(--blue);background:rgba(59,130,246,0.12);padding:2px 8px;border-radius:4px;margin-left:8px">Active</span>';
+      html += '<br><span style="font-size:12px;color:var(--text-muted)">' + data.length + ' transactions \u2022 ' + size + ' KB</span></div>';
+      html += '<button class="modal-btn modal-btn-reset" onclick="deleteMonth(\'' + mk + '\')" style="padding:6px 12px;font-size:12px">Delete</button>';
+      html += '</div>';
+    });
+    // Storage usage
+    let totalSize = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('expenses_')) totalSize += localStorage.getItem(k).length;
+    }
+    html += '<div style="margin-top:16px;font-size:12px;color:var(--text-muted)">Total storage: ' + (totalSize / 1024).toFixed(1) + ' KB of ~5,000 KB</div>';
+    mc.innerHTML = html;
+  }
+  document.getElementById('manager-modal').classList.add('open');
+}
+function closeDataManager() { document.getElementById('manager-modal').classList.remove('open'); }
+
+function deleteMonth(mk) {
+  if (_isDemo) { showDemoUpgradePrompt("Create an account to manage your own expense data."); return; }
+  if (!confirm('Delete all data for this month? This cannot be undone.')) return;
+  localStorage.removeItem('expenses_data_' + mk);
+  localStorage.removeItem('expenses_edits_' + mk);
+  let months = loadMonths().filter(m => m !== mk);
+  saveMonths(months);
+  if (localStorage.getItem('expenses_activeMonth') === mk) {
+    if (months.length > 0) switchMonth(months.sort().reverse()[0]);
+    else { activeData = []; ctx = {}; recomputeAll(); destroyAllCharts(); updateSubtitle(); renderAll(); }
+  }
+  openDataManager(); // refresh
+  if (typeof syncToCloud === 'function') syncToCloud();
+}
+
+// ══════════════════════════════════════════════════════════
+// DOWNLOAD / LOAD DATA
+// ══════════════════════════════════════════════════════════
+function downloadAllData() {
+  if (_isDemo) { showDemoUpgradePrompt("Sign up to download your expense data."); return; }
+  const keys = {};
+  const months = localStorage.getItem("expenses_months");
+  if (months) keys["expenses_months"] = months;
+  const active = localStorage.getItem("expenses_activeMonth");
+  if (active) keys["expenses_activeMonth"] = active;
+  const rules = localStorage.getItem("expenses_categoryRules");
+  if (rules) keys["expenses_categoryRules"] = rules;
+  const allMonths = JSON.parse(months || '[]');
+  allMonths.forEach(mk => {
+    const d = localStorage.getItem("expenses_data_" + mk);
+    if (d) keys["expenses_data_" + mk] = d;
+    const e = localStorage.getItem("expenses_edits_" + mk);
+    if (e) keys["expenses_edits_" + mk] = e;
+  });
+  const blob = new Blob([JSON.stringify({ version: 1, type: "expenses", exported: new Date().toISOString(), keys }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "expenses_backup_" + new Date().toISOString().slice(0, 10) + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function loadDataFile(event) {
+  if (_isDemo) { showDemoUpgradePrompt("Sign up to load your own data."); return; }
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = "";
+  const reader = new FileReader();
+  reader.onload = function() {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data.keys || data.type !== "expenses") { alert("Invalid expenses backup file."); return; }
+      const hasExisting = loadMonths().length > 0;
+      if (hasExisting) {
+        if (!confirm("This will overwrite your existing expense data on this device. Continue?")) return;
+      }
+      Object.entries(data.keys).forEach(([k, v]) => localStorage.setItem(k, v));
+      alert("Data loaded successfully! The page will now reload.");
+      location.reload();
+    } catch(e) {
+      alert("Error reading file: " + e.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ══════════════════════════════════════════════════════════
+// EDIT MODAL
+// ══════════════════════════════════════════════════════════
+function openEditModal(id) {
+  const tx = activeData.find(t => t.id === id);
+  if (!tx) return;
+  editingId = id;
+  document.getElementById('edit-desc').textContent = tx.description + ' \u2022 ' + tx.date + ' \u2022 ' + fmt(tx.amount);
+  // Populate category dropdown
+  const sel = document.getElementById('edit-category');
+  const allCats = [...new Set([...CATEGORY_LIST, ...catGroups.map(g => g.name)])];
+  sel.innerHTML = allCats.map(c => '<option value="' + c + '"' + (c === tx.category ? ' selected' : '') + '>' + c + '</option>').join('');
+  sel.innerHTML += '<option value="__new__">+ New Category...</option>';
+  document.getElementById('edit-orig-cat').textContent = 'Original: ' + tx._origCategory;
+  document.getElementById('edit-merchant').value = tx.merchant;
+  document.getElementById('edit-orig-merchant').textContent = 'Raw: ' + tx.description;
+  document.getElementById('edit-apply-all').checked = false;
+  document.getElementById('edit-remember').checked = false;
+  document.getElementById('edit-modal').classList.add('open');
+}
+function closeEditModal() { document.getElementById('edit-modal').classList.remove('open'); editingId = null; }
+
+function saveEdit() {
+  if (!editingId || !ctx.monthKey) return;
+  let newCat = document.getElementById('edit-category').value;
+  if (newCat === '__new__') {
+    newCat = prompt('Enter new category name:');
+    if (!newCat) return;
+  }
+  const newMerchant = document.getElementById('edit-merchant').value.trim();
+  const applyAll = document.getElementById('edit-apply-all').checked;
+  const remember = document.getElementById('edit-remember').checked;
+
+  const tx = activeData.find(t => t.id === editingId);
+  if (!tx) return;
+  const edits = loadEdits(ctx.monthKey);
+
+  if (applyAll) {
+    // Apply to all transactions from this merchant
+    activeData.forEach(t => {
+      if (t.merchant === tx.merchant || t.merchant === newMerchant) {
+        t.category = newCat; t._manualCategory = true;
+        if (newMerchant && newMerchant !== t.merchant) t.merchant = newMerchant;
+        edits[t.id] = { category: newCat, merchant: newMerchant || t.merchant };
+      }
+    });
+  } else {
+    tx.category = newCat; tx._manualCategory = true;
+    if (newMerchant) tx.merchant = newMerchant;
+    edits[editingId] = { category: newCat, merchant: newMerchant || tx.merchant };
+  }
+  saveEdits(ctx.monthKey, edits);
+
+  if (remember) {
+    const rules = loadCategoryRules();
+    rules[tx.merchant.toLowerCase()] = newCat;
+    if (newMerchant) rules[newMerchant.toLowerCase()] = newCat;
+    saveCategoryRules(rules);
+  }
+
+  recomputeAll();
+  destroyAllCharts();
+  renderAll();
+  closeEditModal();
+}
+
+function resetEdit() {
+  if (!editingId || !ctx.monthKey) return;
+  const tx = activeData.find(t => t.id === editingId);
+  if (!tx) return;
+  tx.category = tx._origCategory;
+  tx._manualCategory = false;
+  const edits = loadEdits(ctx.monthKey);
+  delete edits[editingId];
+  saveEdits(ctx.monthKey, edits);
+  recomputeAll();
+  destroyAllCharts();
+  renderAll();
+  closeEditModal();
+}
+
+// ══════════════════════════════════════════════════════════
+// CHART HELPER
+// ══════════════════════════════════════════════════════════
+function makeChartClickable(chart, canvas, labels, filterKey) {
+  canvas.style.cursor = 'pointer';
+  canvas.onclick = e => {
+    const pts = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
+    if (pts.length) {
+      const label = labels[pts[0].index];
+      showView('transactions', { [filterKey]: label });
+    }
+  };
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER: OVERVIEW
+// ══════════════════════════════════════════════════════════
+function renderOverview() {
+  const el = document.getElementById('view-overview');
+  if (activeData.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128200;</div><div class="empty-state-title">No Expense Data Yet</div><div class="empty-state-text">Upload a bank statement (CSV, PDF, or Excel) to start tracking your expenses. You can download CSV files from most bank websites under "Transactions" or "Activity".</div><button class="empty-state-btn" onclick="openUploadModal()">Upload Your First Statement</button></div>';
+    return;
+  }
+
+  const topCat = catGroups.length ? catGroups[0] : { name: '-', total: 0 };
+  const topMerch = merchantGroups.length ? merchantGroups[0] : { name: '-', total: 0 };
+  const uniqueMerchants = merchantGroups.length;
+
+  let html = '<div class="kpi-grid">';
+  html += '<div class="kpi-card" onclick="showView(\'transactions\')"><div class="kpi-label">Total Expenses</div><div class="kpi-value amt">' + fmt(totalExpenses) + '</div><div class="kpi-sub">' + txCount + ' transactions</div></div>';
+  html += '<div class="kpi-card" onclick="showView(\'transactions\')"><div class="kpi-label">Avg / Transaction</div><div class="kpi-value">' + fmt(avgPerTx) + '</div><div class="kpi-sub">' + txCount + ' total</div></div>';
+  html += '<div class="kpi-card" onclick="showView(\'categories\')"><div class="kpi-label">Top Category</div><div class="kpi-value" style="font-size:18px;color:' + getCatColor(topCat.name) + '">' + topCat.name + '</div><div class="kpi-sub">' + fmt(topCat.total) + '</div></div>';
+  html += '<div class="kpi-card" onclick="showView(\'merchants\')"><div class="kpi-label">Top Merchant</div><div class="kpi-value" style="font-size:18px">' + topMerch.name + '</div><div class="kpi-sub">' + fmt(topMerch.total) + '</div></div>';
+  html += '<div class="kpi-card" onclick="showView(\'merchants\')"><div class="kpi-label">Unique Merchants</div><div class="kpi-value">' + uniqueMerchants + '</div><div class="kpi-sub">' + catGroups.length + ' categories</div></div>';
+  html += '</div>';
+
+  // Charts row
+  html += '<div class="grid-2">';
+  html += '<div class="card"><div class="card-title">Spending by Category</div><div class="chart-wrap"><canvas id="chart-cat-pie"></canvas></div></div>';
+  html += '<div class="card"><div class="card-title">Top 10 Merchants</div><div class="chart-wrap-tall"><canvas id="chart-merchant-bar"></canvas></div></div>';
+  html += '</div>';
+
+  // Daily chart
+  html += '<div class="card"><div class="card-title">Daily Spending</div><div class="chart-wrap"><canvas id="chart-daily-overview"></canvas></div></div>';
+
+  // Smart Insights
+  html += '<div class="card"><div class="card-title">Smart Insights</div><div class="grid-2" style="margin-top:8px">';
+
+  // 1. Spending concentration
+  if (catGroups.length >= 2) {
+    const top3Cats = catGroups.slice(0, 3);
+    const top3Total = top3Cats.reduce((s, g) => s + g.total, 0);
+    const top3Pct = ((top3Total / totalExpenses) * 100).toFixed(0);
+    html += '<div class="insight" onclick="showView(\'categories\')"><div class="insight-title">Spending Concentration</div><div class="insight-text">Top 3 categories account for <span class="insight-val">' + top3Pct + '%</span> of spending: ' + top3Cats.map(c => c.name).join(', ') + '</div></div>';
+  }
+
+  // 2. Top category share
+  if (catGroups.length) {
+    const topCatPct = ((catGroups[0].total / totalExpenses) * 100).toFixed(1);
+    html += '<div class="insight" onclick="showView(\'transactions\',{category:\'' + catGroups[0].name.replace(/'/g,"\\'") + '\'})"><div class="insight-title">Top Category</div><div class="insight-text"><span class="insight-val">' + catGroups[0].name + '</span> takes up ' + topCatPct + '% of total spending (' + fmt(catGroups[0].total) + ')</div></div>';
+  }
+
+  // 3. Biggest single expense
+  const biggest = activeData.reduce((a, b) => a.amount > b.amount ? a : b, activeData[0]);
+  html += '<div class="insight" onclick="showView(\'merchant-detail\',{merchant:\'' + biggest.merchant.replace(/'/g,"\\'") + '\',source:\'overview\'})"><div class="insight-title">Biggest Single Expense</div><div class="insight-text"><span class="insight-val">' + fmt(biggest.amount) + '</span> at ' + biggest.merchant + ' on ' + biggest.date + '</div></div>';
+
+  // 4. Most frequent merchant
+  const mostFreqMerch = merchantGroups.reduce((a, b) => a.count > b.count ? a : b, merchantGroups[0]);
+  html += '<div class="insight" onclick="showView(\'merchant-detail\',{merchant:\'' + mostFreqMerch.name.replace(/'/g,"\\'") + '\',source:\'overview\'})"><div class="insight-title">Most Frequent Merchant</div><div class="insight-text"><span class="insight-val">' + mostFreqMerch.name + '</span> \u2014 ' + mostFreqMerch.count + ' transactions totaling ' + fmt(mostFreqMerch.total) + '</div></div>';
+
+  // 5. Biggest shopping day
+  if (ctx.daysInMonth) {
+    const dailyTotals = {};
+    activeData.forEach(t => { dailyTotals[t.date] = (dailyTotals[t.date] || 0) + t.amount; });
+    const entries = Object.entries(dailyTotals);
+    if (entries.length) {
+      const topDay = entries.sort((a, b) => b[1] - a[1])[0];
+      const topDayTxCount = activeData.filter(t => t.date === topDay[0]).length;
+      html += '<div class="insight" onclick="showView(\'transactions\',{date:\'' + topDay[0] + '\'})"><div class="insight-title">Highest Spending Day</div><div class="insight-text"><span class="insight-val">' + topDay[0] + '</span> \u2014 ' + fmt(topDay[1]) + ' across ' + topDayTxCount + ' transactions</div></div>';
+    }
+  }
+
+  // 6. Day-of-week pattern
+  const dowNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const dowTotals = new Array(7).fill(0);
+  activeData.forEach(t => { const d = new Date(t.date + 'T00:00:00'); if (!isNaN(d)) dowTotals[d.getDay()] += t.amount; });
+  const topDowIdx = dowTotals.indexOf(Math.max(...dowTotals));
+  html += '<div class="insight" onclick="showView(\'trends\')"><div class="insight-title">Spending Pattern</div><div class="insight-text">Most spending happens on <span class="insight-val">' + dowNames[topDowIdx] + 's</span> (' + fmt(dowTotals[topDowIdx]) + ' total this month)</div></div>';
+
+  // 7. Average transaction size
+  const medianAmounts = [...activeData].sort((a, b) => a.amount - b.amount);
+  const median = medianAmounts.length % 2 === 0
+    ? (medianAmounts[medianAmounts.length / 2 - 1].amount + medianAmounts[medianAmounts.length / 2].amount) / 2
+    : medianAmounts[Math.floor(medianAmounts.length / 2)].amount;
+  html += '<div class="insight" onclick="showView(\'transactions\')"><div class="insight-title">Transaction Size</div><div class="insight-text">Median: <span class="insight-val">' + fmt(median) + '</span> \u2022 Average: ' + fmt(avgPerTx) + ' across ' + txCount + ' transactions</div></div>';
+
+  // 8. Merchant loyalty (top merchant share)
+  if (merchantGroups.length) {
+    const topMerchPct = ((merchantGroups[0].total / totalExpenses) * 100).toFixed(1);
+    html += '<div class="insight" onclick="showView(\'merchant-detail\',{merchant:\'' + merchantGroups[0].name.replace(/'/g,"\\'") + '\',source:\'overview\'})"><div class="insight-title">Top Merchant Share</div><div class="insight-text"><span class="insight-val">' + merchantGroups[0].name + '</span> accounts for ' + topMerchPct + '% of total spending (' + merchantGroups[0].count + ' transactions)</div></div>';
+  }
+
+  // 9. Small vs large transactions
+  const smallTx = activeData.filter(t => t.amount < 20);
+  const largeTx = activeData.filter(t => t.amount >= 100);
+  html += '<div class="insight" onclick="showView(\'transactions\')"><div class="insight-title">Transaction Breakdown</div><div class="insight-text"><span class="insight-val">' + smallTx.length + '</span> small (under $20) vs <span class="insight-val">' + largeTx.length + '</span> large ($100+) transactions</div></div>';
+
+  html += '</div></div>';
+
+  // Spending Streaks — separate card
+  if (ctx.daysInMonth) {
+    const streakDays = new Set();
+    activeData.forEach(t => { const day = parseInt(t.date.substring(8, 10)); if (day >= 1 && day <= ctx.daysInMonth) streakDays.add(day); });
+    let mxS = 0, cS = 0, mxN = 0, cN = 0, sStart = 0, bestSStart = 0, nStart = 0, bestNStart = 0;
+    for (let d = 1; d <= ctx.daysInMonth; d++) {
+      if (streakDays.has(d)) {
+        cS++; if (cS === 1) sStart = d;
+        if (cS > mxS) { mxS = cS; bestSStart = sStart; }
+        if (cN > mxN) { mxN = cN; bestNStart = nStart; }
+        cN = 0;
+      } else {
+        cN++; if (cN === 1) nStart = d;
+        if (cN > mxN) { mxN = cN; bestNStart = nStart; }
+        if (cS > mxS) { mxS = cS; bestSStart = sStart; }
+        cS = 0;
+      }
+    }
+    html += '<div class="card" style="cursor:pointer" onclick="showView(\'trends\')"><div class="card-title">Spending Streaks</div>';
+    html += '<div class="grid-3" style="margin-top:8px">';
+    html += '<div class="insight" style="cursor:pointer"><div class="insight-title">Longest Spend Streak</div><div class="insight-text"><span class="insight-val">' + mxS + ' day' + (mxS !== 1 ? 's' : '') + '</span> in a row' + (mxS > 0 ? ' (' + ctx.monthAbbr + ' ' + bestSStart + '\u2013' + (bestSStart + mxS - 1) + ')' : '') + '</div></div>';
+    html += '<div class="insight" style="cursor:pointer"><div class="insight-title">Longest No-Spend Streak</div><div class="insight-text"><span class="insight-val">' + mxN + ' day' + (mxN !== 1 ? 's' : '') + '</span> without spending' + (mxN > 0 ? ' (' + ctx.monthAbbr + ' ' + bestNStart + '\u2013' + (bestNStart + mxN - 1) + ')' : '') + '</div></div>';
+    html += '<div class="insight" style="cursor:pointer"><div class="insight-title">Active Spending Days</div><div class="insight-text"><span class="insight-val">' + streakDays.size + '/' + ctx.daysInMonth + '</span> days with expenses (' + ((streakDays.size / ctx.daysInMonth) * 100).toFixed(0) + '% of the month)</div></div>';
+    html += '</div></div>';
+  }
+
+  // Recurring & Subscriptions
+  const recurring = detectRecurring();
+  if (recurring.length > 0) {
+    html += '<div class="card"><div class="card-title">Recurring & Subscriptions</div>';
+    recurring.forEach(r => {
+      const confColor = r.confidence === 'high' ? 'var(--green)' : r.confidence === 'medium' ? 'var(--amber)' : 'var(--text-muted)';
+      const confBg = r.confidence === 'high' ? 'rgba(34,197,94,0.12)' : r.confidence === 'medium' ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.05)';
+      const catColor = getCatColor(r.category);
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;gap:10px" onclick="showView(\'merchant-detail\',{merchant:\'' + r.merchant.replace(/'/g,"\\'") + '\',source:\'overview\'})">';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div style="font-weight:600;font-size:14px;margin-bottom:3px">' + r.merchant + '</div>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
+      html += '<span class="tag" style="background:' + catColor + '22;color:' + catColor + '">' + r.category + '</span>';
+      html += '<span style="font-size:11px;color:var(--text-muted)">' + r.frequency + '</span>';
+      html += '<span class="tag" style="background:' + confBg + ';color:' + confColor + '">' + r.confidence + '</span>';
+      html += '</div></div>';
+      html += '<div style="font-size:16px;font-weight:700;color:var(--amber);white-space:nowrap">' + fmt(r.avgAmount) + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Anomaly Detection
+  try {
+  const anomalies = detectAnomalies();
+  if (anomalies.length > 0) {
+    html += '<div class="card"><div class="card-title" style="color:var(--rose)">Unusual Transactions</div>';
+    html += '<div style="font-size:12px;color:var(--text-muted);margin:-8px 0 14px">Transactions with amounts significantly above their average</div>';
+    anomalies.forEach(a => {
+      let description = '';
+      let suggestions = '';
+      const suggStart = '<div style="margin-top:10px;padding:10px 14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:8px"><div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Suggestions</div><div style="font-size:12px;color:var(--text-muted);line-height:1.7">';
+      const suggEnd = '</div></div>';
+      if (a.type === 'merchant') {
+        const overpay = a.amount - a.avg;
+        const txCount = activeData.filter(t => t.merchant === a.merchant).length;
+        description = 'A charge of <span style="color:var(--amber);font-weight:600">' + fmt(a.amount) + '</span> at <span style="font-weight:600">' + a.merchant + '</span> is <span style="color:var(--rose);font-weight:600">' + fmt(overpay) + ' more</span> than your usual average of ' + fmt(a.avg) + ' across ' + txCount + ' transactions. This is ' + a.ratio + 'x your typical spend at this merchant.';
+        suggestions = suggStart;
+        suggestions += '\u2022 Verify this charge is legitimate and not a billing error or duplicate<br>';
+        suggestions += '\u2022 Check if this was a one-time purchase (annual renewal, bulk buy) vs. a recurring increase<br>';
+        suggestions += '\u2022 If this merchant is a subscription, confirm you weren\'t upgraded to a higher tier<br>';
+        suggestions += '\u2022 Click to view full transaction history for this merchant';
+        suggestions += suggEnd;
+      } else {
+        const catMatch = catGroups.find(c => c.name === (a.transaction ? a.transaction.category : ''));
+        const pctOfCat = catMatch ? ((a.amount / catMatch.total) * 100).toFixed(0) : '?';
+        const catName = a.transaction ? a.transaction.category : 'this category';
+        description = 'A single transaction of <span style="color:var(--amber);font-weight:600">' + fmt(a.amount) + '</span> at <span style="font-weight:600">' + a.merchant + '</span> makes up <span style="color:var(--rose);font-weight:600">' + pctOfCat + '%</span> of all ' + catName + ' spending. This is ' + a.ratio + 'x the category average of ' + fmt(a.avg) + ', heavily skewing your ' + catName + ' budget.';
+        suggestions = suggStart;
+        suggestions += '\u2022 Consider if this belongs in a different category \u2014 click to edit if miscategorized<br>';
+        suggestions += '\u2022 If this is an annual or infrequent expense, note it won\'t repeat monthly<br>';
+        suggestions += '\u2022 Review whether this category needs a higher budget allocation<br>';
+        suggestions += '\u2022 Click to view all transactions at this merchant';
+        suggestions += suggEnd;
+      }
+      html += '<div class="insight" style="border-color:rgba(244,63,94,0.2);background:rgba(244,63,94,0.04);cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + a.merchant.replace(/'/g,"\\'") + '\',source:\'overview\'})">';
+      html += '<div class="insight-title" style="color:var(--rose)">' + a.merchant + '</div>';
+      html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">' + a.ratio + 'x above average \u2022 ' + fmt(a.amount) + '</div>';
+      html += '<div class="insight-text" style="margin-bottom:6px">' + description + '</div>';
+      html += suggestions;
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  } catch(e) { console.error('Anomaly detection error:', e); }
+
+  el.innerHTML = html;
+
+  // Category pie
+  const catPieLabels = catGroups.slice(0, 10).map(g => g.name);
+  const catPieData = catGroups.slice(0, 10).map(g => g.total);
+  const catPieColors = catPieLabels.map(c => getCatColor(c));
+  const catPieCanvas = document.getElementById('chart-cat-pie');
+  charts.catPie = new Chart(catPieCanvas, {
+    type: 'doughnut',
+    data: { labels: catPieLabels, datasets: [{ data: catPieData, backgroundColor: catPieColors, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#e4e4e7', font: { size: 11 }, padding: 8 } } } }
+  });
+  makeChartClickable(charts.catPie, catPieCanvas, catPieLabels, 'category');
+
+  // Top merchants bar
+  const top10 = merchantGroups.slice(0, 10);
+  const merchCanvas = document.getElementById('chart-merchant-bar');
+  charts.merchBar = new Chart(merchCanvas, {
+    type: 'bar',
+    data: {
+      labels: top10.map(m => m.name),
+      datasets: [{ data: top10.map(m => m.total), backgroundColor: 'rgba(59,130,246,0.6)', borderRadius: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v.toLocaleString() } },
+        y: { grid: { display: false }, ticks: { color: '#e4e4e7', font: { size: 11 } } }
+      }
+    }
+  });
+  makeChartClickable(charts.merchBar, merchCanvas, top10.map(m => m.name), 'merchant');
+
+  // Daily spending
+  if (ctx.daysInMonth) {
+    const dailyData = new Array(ctx.daysInMonth).fill(0);
+    activeData.forEach(t => {
+      const day = parseInt(t.date.substring(8, 10));
+      if (day >= 1 && day <= ctx.daysInMonth) dailyData[day - 1] += t.amount;
+    });
+    const dailyLabels = Array.from({ length: ctx.daysInMonth }, (_, i) => ctx.monthAbbr + ' ' + (i + 1));
+    charts.dailyOverview = new Chart(document.getElementById('chart-daily-overview'), {
+      type: 'bar',
+      data: { labels: dailyLabels, datasets: [{ data: dailyData, backgroundColor: 'rgba(59,130,246,0.5)', borderRadius: 3 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 10 }, maxRotation: 45 } },
+          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } }
+        }
+      }
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER: BY CATEGORY
+// ══════════════════════════════════════════════════════════
+function renderCategories() {
+  const el = document.getElementById('view-categories');
+  if (activeData.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128194;</div><div class="empty-state-title">No Data</div><div class="empty-state-text">Upload a statement to see category breakdowns.</div></div>'; return; }
+
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">';
+  catGroups.forEach(g => {
+    const pct = ((g.total / totalExpenses) * 100).toFixed(1);
+    const avg = (g.total / g.count).toFixed(2);
+    html += '<div class="cat-card" onclick="showView(\'category-detail\',{category:\'' + g.name.replace(/'/g,"\\'") + '\',source:\'categories\'})">';
+    html += '<div class="cat-card-name" style="color:' + getCatColor(g.name) + '">' + g.name + '</div>';
+    html += '<div class="cat-card-amount">' + fmt(g.total) + '</div>';
+    html += '<div class="cat-card-meta">' + g.count + ' transactions \u2022 ' + pct + '% of total \u2022 avg ' + fmt(parseFloat(avg)) + '</div>';
+    html += '<div class="cat-card-bar"><div class="cat-card-fill" style="width:' + pct + '%;background:' + getCatColor(g.name) + '"></div></div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER: BY MERCHANT
+// ══════════════════════════════════════════════════════════
+function renderMerchants() {
+  const el = document.getElementById('view-merchants');
+  if (activeData.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#127978;</div><div class="empty-state-title">No Data</div><div class="empty-state-text">Upload a statement to see merchant breakdowns.</div></div>'; return; }
+
+  let html = '<div class="filter-bar"><input type="text" placeholder="Search merchants..." id="merchant-search" oninput="filterMerchantTable()"></div>';
+  html += '<div class="card"><table id="merchant-table"><thead><tr>';
+  html += '<th onclick="sortMerchantTable(\'name\')">Merchant</th>';
+  html += '<th onclick="sortMerchantTable(\'total\')" class="text-right">Total</th>';
+  html += '<th onclick="sortMerchantTable(\'count\')" class="text-right">Transactions</th>';
+  html += '<th onclick="sortMerchantTable(\'avg\')" class="text-right">Avg</th>';
+  html += '</tr></thead><tbody id="merchant-tbody"></tbody></table></div>';
+  el.innerHTML = html;
+  renderMerchantRows(merchantGroups);
+}
+
+function renderMerchantRows(data) {
+  const tbody = document.getElementById('merchant-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = data.map(m => {
+    const avg = m.total / m.count;
+    return '<tr style="cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + m.name.replace(/'/g,"\\'") + '\',source:\'merchants\'})">' +
+      '<td style="font-weight:600">' + m.name + '</td>' +
+      '<td class="text-right amt">' + fmt(m.total) + '</td>' +
+      '<td class="text-right">' + m.count + '</td>' +
+      '<td class="text-right mono">' + fmt(avg) + '</td></tr>';
+  }).join('');
+}
+
+let merchantSortCol = 'total', merchantSortDir = 'desc';
+function sortMerchantTable(col) {
+  if (merchantSortCol === col) merchantSortDir = merchantSortDir === 'asc' ? 'desc' : 'asc';
+  else { merchantSortCol = col; merchantSortDir = col === 'name' ? 'asc' : 'desc'; }
+  const sorted = [...merchantGroups].sort((a, b) => {
+    let va, vb;
+    if (col === 'name') { va = a.name.toLowerCase(); vb = b.name.toLowerCase(); }
+    else if (col === 'total') { va = a.total; vb = b.total; }
+    else if (col === 'count') { va = a.count; vb = b.count; }
+    else { va = a.total / a.count; vb = b.total / b.count; }
+    return merchantSortDir === 'asc' ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+  });
+  renderMerchantRows(sorted);
+}
+
+function filterMerchantTable() {
+  const q = (document.getElementById('merchant-search')?.value || '').toLowerCase();
+  const filtered = merchantGroups.filter(m => m.name.toLowerCase().includes(q));
+  renderMerchantRows(filtered);
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER: TRENDS
+// ══════════════════════════════════════════════════════════
+function renderTrends() {
+  const el = document.getElementById('view-trends');
+  if (activeData.length === 0 || !ctx.daysInMonth) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128200;</div><div class="empty-state-title">No Data</div><div class="empty-state-text">Upload a statement to see spending trends.</div></div>';
+    return;
+  }
+
+  let html = '<div class="grid-2">';
+  html += '<div class="card"><div class="card-title">Daily Spending</div><div class="chart-wrap"><canvas id="chart-daily"></canvas></div></div>';
+  html += '<div class="card"><div class="card-title">Cumulative Spending</div><div class="chart-wrap"><canvas id="chart-cumulative"></canvas></div></div>';
+  html += '</div>';
+  html += '<div class="grid-2">';
+  html += '<div class="card"><div class="card-title">Weekly Category Breakdown</div><div class="chart-wrap-tall"><canvas id="chart-weekly-cat"></canvas></div></div>';
+  html += '<div class="card"><div class="card-title">Spending by Day of Week</div><div class="chart-wrap"><canvas id="chart-dow"></canvas></div></div>';
+  html += '</div>';
+  el.innerHTML = html;
+
+  const dailyData = new Array(ctx.daysInMonth).fill(0);
+  activeData.forEach(t => {
+    const day = parseInt(t.date.substring(8, 10));
+    if (day >= 1 && day <= ctx.daysInMonth) dailyData[day - 1] += t.amount;
+  });
+  const labels = Array.from({ length: ctx.daysInMonth }, (_, i) => ctx.monthAbbr + ' ' + (i + 1));
+
+  // Daily
+  charts.daily = new Chart(document.getElementById('chart-daily'), {
+    type: 'line',
+    data: { labels, datasets: [{ data: dailyData, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 10 }, maxTicksLimit: 10 } },
+               y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } }
+  });
+
+  // Cumulative
+  const cumData = []; let cum = 0;
+  dailyData.forEach(d => { cum += d; cumData.push(cum); });
+  charts.cumulative = new Chart(document.getElementById('chart-cumulative'), {
+    type: 'line',
+    data: { labels, datasets: [{ data: cumData, borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,0.1)', fill: true, tension: 0.3, pointRadius: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 10 }, maxTicksLimit: 10 } },
+               y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v.toLocaleString() } } } }
+  });
+
+  // Weekly category breakdown
+  const topCats = catGroups.slice(0, 6).map(g => g.name);
+  const weeklyDatasets = topCats.map(cat => {
+    const data = ctx.weeks.map(w => {
+      let total = 0;
+      activeData.forEach(t => {
+        if (t.category === cat) {
+          const day = parseInt(t.date.substring(8, 10));
+          if (day >= w.start && day <= w.end) total += t.amount;
+        }
+      });
+      return total;
+    });
+    return { label: cat, data, backgroundColor: getCatColor(cat), borderRadius: 3 };
+  });
+  charts.weeklyCat = new Chart(document.getElementById('chart-weekly-cat'), {
+    type: 'bar',
+    data: { labels: ctx.weeks.map(w => w.label), datasets: weeklyDatasets },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#e4e4e7', font: { size: 10 } } } },
+      scales: { x: { stacked: true, grid: { display: false }, ticks: { color: '#71717a' } },
+               y: { stacked: true, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } }
+  });
+
+  // Day of week
+  const dowLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dowData = new Array(7).fill(0);
+  const dowCount = new Array(7).fill(0);
+  activeData.forEach(t => {
+    const d = new Date(t.date + 'T00:00:00');
+    if (!isNaN(d)) { dowData[d.getDay()] += t.amount; dowCount[d.getDay()]++; }
+  });
+  charts.dow = new Chart(document.getElementById('chart-dow'), {
+    type: 'bar',
+    data: { labels: dowLabels, datasets: [{ data: dowData, backgroundColor: dowLabels.map((_, i) => i === 0 || i === 6 ? 'rgba(244,63,94,0.5)' : 'rgba(59,130,246,0.5)'), borderRadius: 6 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false },
+      tooltip: { callbacks: { afterLabel: (ctx) => dowCount[ctx.dataIndex] + ' transactions' } } },
+      scales: { x: { grid: { display: false }, ticks: { color: '#e4e4e7' } },
+               y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } }
+  });
+
+  // ── Spending Streaks ──
+  const daysWithSpend = new Set();
+  activeData.forEach(t => { const day = parseInt(t.date.substring(8, 10)); if (day >= 1 && day <= ctx.daysInMonth) daysWithSpend.add(day); });
+  let maxSpend = 0, curSpend = 0, maxNoSpend = 0, curNoSpend = 0;
+  for (let d = 1; d <= ctx.daysInMonth; d++) {
+    if (daysWithSpend.has(d)) { curSpend++; curNoSpend = 0; } else { curNoSpend++; curSpend = 0; }
+    if (curSpend > maxSpend) maxSpend = curSpend;
+    if (curNoSpend > maxNoSpend) maxNoSpend = curNoSpend;
+  }
+  const streakEl = document.getElementById('view-trends');
+  let streakHtml = '<div class="grid-2" style="margin-top:20px">';
+  streakHtml += '<div class="card"><div class="card-title">Spending Streaks</div>';
+  streakHtml += '<div class="kpi-grid" style="margin-top:12px">';
+  streakHtml += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Longest Spend Streak</div><div class="kpi-value" style="color:var(--rose)">' + maxSpend + ' days</div><div class="kpi-sub">Consecutive days with expenses</div></div>';
+  streakHtml += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Longest No-Spend Streak</div><div class="kpi-value" style="color:var(--green)">' + maxNoSpend + ' days</div><div class="kpi-sub">Consecutive days with no expenses</div></div>';
+  streakHtml += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Active Spending Days</div><div class="kpi-value">' + daysWithSpend.size + '/' + ctx.daysInMonth + '</div><div class="kpi-sub">' + ((daysWithSpend.size / ctx.daysInMonth) * 100).toFixed(0) + '% of the month</div></div>';
+  streakHtml += '</div></div>';
+
+  // Calendar heatmap
+  streakHtml += '<div class="card"><div class="card-title">Spending Calendar</div>';
+  const maxDaily = Math.max(...dailyData);
+  const firstDow = new Date(ctx.year, ctx.month - 1, 1).getDay();
+  streakHtml += '<div class="heatmap-grid" style="margin-top:12px">';
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => { streakHtml += '<div class="heatmap-label">' + d + '</div>'; });
+  for (let i = 0; i < firstDow; i++) streakHtml += '<div></div>';
+  for (let d = 1; d <= ctx.daysInMonth; d++) {
+    const val = dailyData[d - 1];
+    const intensity = maxDaily > 0 ? val / maxDaily : 0;
+    let bg, color;
+    if (val === 0) { bg = 'rgba(255,255,255,0.03)'; color = 'var(--text-muted)'; }
+    else if (intensity < 0.25) { bg = 'rgba(59,130,246,0.15)'; color = '#93c5fd'; }
+    else if (intensity < 0.5) { bg = 'rgba(59,130,246,0.3)'; color = '#60a5fa'; }
+    else if (intensity < 0.75) { bg = 'rgba(59,130,246,0.5)'; color = '#3b82f6'; }
+    else { bg = 'rgba(59,130,246,0.7)'; color = '#fff'; }
+    var dateKey = ctx.year + '-' + String(ctx.month).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    var clickAttr = val > 0 ? ' style="background:' + bg + ';color:' + color + ';cursor:pointer;transition:transform 0.15s" onclick="showView(\'transactions\',{date:\'' + dateKey + '\'})" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'scale(1)\'"' : ' style="background:' + bg + ';color:' + color + '"';
+    streakHtml += '<div class="heatmap-cell"' + clickAttr + ' title="' + ctx.monthAbbr + ' ' + d + ': ' + fmt(val) + '">' + d + '</div>';
+  }
+  streakHtml += '</div>';
+  streakHtml += '<div style="display:flex;align-items:center;gap:8px;margin-top:12px;justify-content:center">';
+  streakHtml += '<span style="font-size:11px;color:var(--text-muted)">Less</span>';
+  ['rgba(255,255,255,0.03)','rgba(59,130,246,0.15)','rgba(59,130,246,0.3)','rgba(59,130,246,0.5)','rgba(59,130,246,0.7)'].forEach(c => {
+    streakHtml += '<div style="width:16px;height:16px;border-radius:4px;background:' + c + '"></div>';
+  });
+  streakHtml += '<span style="font-size:11px;color:var(--text-muted)">More</span>';
+  streakHtml += '</div></div>';
+  streakHtml += '</div>';
+  streakEl.insertAdjacentHTML('beforeend', streakHtml);
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER: ALL TRANSACTIONS
+// ══════════════════════════════════════════════════════════
+let txFilterCat = 'All', txFilterMerchant = '', txFilterDate = 'All';
+let txSortCol = 'date', txSortDir = 'asc';
+
+function renderTransactions() {
+  const el = document.getElementById('view-transactions');
+  if (activeData.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128203;</div><div class="empty-state-title">No Transactions</div><div class="empty-state-text">Upload a statement to see your transactions.</div></div>';
+    return;
+  }
+
+  // Build filter bar
+  let html = '<div class="filter-bar">';
+  html += '<select id="tx-filter-date"><option value="All">All Dates</option>';
+  const dates = [...new Set(activeData.map(t => t.date))].sort();
+  dates.forEach(d => { html += '<option value="' + d + '">' + d + '</option>'; });
+  html += '</select>';
+  html += '<select id="tx-filter-cat"><option value="All">All Categories</option>';
+  catGroups.forEach(g => { html += '<option value="' + g.name + '">' + g.name + '</option>'; });
+  html += '</select>';
+  html += '<input type="text" placeholder="Search merchant..." id="tx-filter-merchant">';
+  html += '<button class="btn-clear" onclick="clearTxFilters()">Clear</button>';
+  html += '</div>';
+
+  html += '<div class="card" style="overflow-x:auto"><table id="tx-table"><thead><tr>';
+  html += '<th onclick="sortTxTable(\'date\')">Date</th>';
+  html += '<th onclick="sortTxTable(\'merchant\')">Merchant</th>';
+  html += '<th onclick="sortTxTable(\'category\')">Category</th>';
+  html += '<th onclick="sortTxTable(\'amount\')" class="text-right">Amount</th>';
+  html += '<th class="text-center">Source</th>';
+  html += '<th></th>';
+  html += '</tr></thead><tbody id="tx-tbody"></tbody></table></div>';
+  html += '<div id="tx-count" style="font-size:12px;color:var(--text-muted);margin-top:-12px;margin-bottom:20px"></div>';
+
+  el.innerHTML = html;
+
+  if (!filtersInitialized) {
+    document.getElementById('tx-filter-date').addEventListener('change', () => { txFilterDate = document.getElementById('tx-filter-date').value; renderTxRows(); });
+    document.getElementById('tx-filter-cat').addEventListener('change', () => { txFilterCat = document.getElementById('tx-filter-cat').value; renderTxRows(); });
+    document.getElementById('tx-filter-merchant').addEventListener('input', () => { txFilterMerchant = document.getElementById('tx-filter-merchant').value; renderTxRows(); });
+    filtersInitialized = true;
+  }
+  renderTxRows();
+}
+
+function renderTxRows() {
+  let filtered = [...activeData];
+  if (txFilterDate !== 'All') filtered = filtered.filter(t => t.date === txFilterDate);
+  if (txFilterCat !== 'All') filtered = filtered.filter(t => t.category === txFilterCat);
+  if (txFilterMerchant) {
+    const q = txFilterMerchant.toLowerCase();
+    filtered = filtered.filter(t => t.merchant.toLowerCase().includes(q) || t.description.toLowerCase().includes(q));
+  }
+  // Sort
+  filtered.sort((a, b) => {
+    let va, vb;
+    if (txSortCol === 'date') { va = a.date; vb = b.date; }
+    else if (txSortCol === 'merchant') { va = a.merchant.toLowerCase(); vb = b.merchant.toLowerCase(); }
+    else if (txSortCol === 'category') { va = a.category; vb = b.category; }
+    else { va = a.amount; vb = b.amount; }
+    return txSortDir === 'asc' ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+  });
+  const tbody = document.getElementById('tx-tbody');
+  if (!tbody) return;
+  const edits = loadEdits(ctx.monthKey || '');
+  tbody.innerHTML = filtered.map(t => {
+    const edited = edits[t.id];
+    const editDot = edited ? '<span class="edit-dot" title="Edited"></span>' : '';
+    return '<tr><td class="mono">' + t.date + '</td>' +
+      '<td style="font-weight:600">' + t.merchant + editDot + '</td>' +
+      '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>' +
+      '<td class="text-right amt">' + fmt(t.amount) + '</td>' +
+      '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td>' +
+      '<td><span class="edit-icon" onclick="event.stopPropagation();openEditModal(\'' + t.id + '\')">&#9998;</span></td></tr>';
+  }).join('');
+  const countEl = document.getElementById('tx-count');
+  if (countEl) countEl.textContent = 'Showing ' + filtered.length + ' of ' + activeData.length + ' transactions' + (filtered.length !== activeData.length ? ' \u2022 Total: ' + fmt(filtered.reduce((s, t) => s + t.amount, 0)) : '');
+}
+
+function sortTxTable(col) {
+  if (txSortCol === col) txSortDir = txSortDir === 'asc' ? 'desc' : 'asc';
+  else { txSortCol = col; txSortDir = col === 'amount' ? 'desc' : 'asc'; }
+  renderTxRows();
+}
+
+function clearTxFilters() {
+  txFilterDate = 'All'; txFilterCat = 'All'; txFilterMerchant = '';
+  const fd = document.getElementById('tx-filter-date'); if (fd) fd.value = 'All';
+  const fc = document.getElementById('tx-filter-cat'); if (fc) fc.value = 'All';
+  const fm = document.getElementById('tx-filter-merchant'); if (fm) fm.value = '';
+  renderTxRows();
+}
+
+function applyTransactionFilter(opts) {
+  if (opts.category) {
+    txFilterCat = opts.category;
+    const fc = document.getElementById('tx-filter-cat');
+    if (fc) fc.value = opts.category;
+  }
+  if (opts.merchant) {
+    txFilterMerchant = opts.merchant;
+    const fm = document.getElementById('tx-filter-merchant');
+    if (fm) fm.value = opts.merchant;
+  }
+  if (opts.date) {
+    txFilterDate = opts.date;
+    const fd = document.getElementById('tx-filter-date');
+    if (fd) fd.value = opts.date;
+  }
+  renderTxRows();
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER: COMPARE
+// ══════════════════════════════════════════════════════════
+function renderCompare() {
+  const el = document.getElementById('view-compare');
+  const months = loadMonths().sort();
+  if (months.length < 2) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128202;</div><div class="empty-state-title">Need More Data</div><div class="empty-state-text">Upload at least 2 months of statements to compare spending over time.</div><button class="empty-state-btn" onclick="openUploadModal()">Upload Another Month</button></div>';
+    return;
+  }
+
+  // Load all months' data
+  const allMonths = months.map(mk => {
+    const data = applyEdits(loadData(mk), mk);
+    const c = buildMonthContext(mk);
+    const total = data.reduce((s, t) => s + t.amount, 0);
+    const cats = {};
+    data.forEach(t => { cats[t.category] = (cats[t.category] || 0) + t.amount; });
+    return { key: mk, ctx: c, data, total, count: data.length, cats };
+  });
+
+  // Delta between last two months
+  const curr = allMonths[allMonths.length - 1];
+  const prev = allMonths[allMonths.length - 2];
+  const spendChange = curr.total - prev.total;
+  const spendPct = prev.total ? ((spendChange / prev.total) * 100).toFixed(1) : 0;
+  const countChange = curr.count - prev.count;
+  const avgCurr = curr.count ? curr.total / curr.count : 0;
+  const avgPrev = prev.count ? prev.total / prev.count : 0;
+  const avgChange = avgCurr - avgPrev;
+
+  let html = '<div class="delta-grid">';
+  html += '<div class="delta-card"><div class="kpi-label">Total Spend</div><div class="delta-value amt">' + fmt(curr.total) + '</div><div class="delta-change ' + (spendChange > 0 ? 'delta-up' : 'delta-down') + '">' + (spendChange > 0 ? '+' : '') + fmt(spendChange) + ' (' + (spendChange > 0 ? '+' : '') + spendPct + '%)</div></div>';
+  html += '<div class="delta-card"><div class="kpi-label">Transactions</div><div class="delta-value">' + curr.count + '</div><div class="delta-change ' + (countChange > 0 ? 'delta-up' : 'delta-down') + '">' + (countChange > 0 ? '+' : '') + countChange + ' vs ' + prev.ctx.monthAbbr + '</div></div>';
+  html += '<div class="delta-card"><div class="kpi-label">Avg / Transaction</div><div class="delta-value">' + fmt(avgCurr) + '</div><div class="delta-change ' + (avgChange > 0 ? 'delta-up' : 'delta-down') + '">' + (avgChange > 0 ? '+' : '') + fmt(avgChange) + '</div></div>';
+  html += '</div>';
+
+  html += '<div class="grid-2">';
+  html += '<div class="card"><div class="card-title">Monthly Totals</div><div class="chart-wrap"><canvas id="chart-compare-totals"></canvas></div></div>';
+  html += '<div class="card"><div class="card-title">Category Comparison</div><div class="chart-wrap-tall"><canvas id="chart-compare-cats"></canvas></div></div>';
+  html += '</div>';
+
+  // Top movers
+  const allCatNames = [...new Set(allMonths.flatMap(m => Object.keys(m.cats)))];
+  const movers = allCatNames.map(cat => {
+    const currAmt = curr.cats[cat] || 0;
+    const prevAmt = prev.cats[cat] || 0;
+    return { name: cat, change: currAmt - prevAmt, curr: currAmt, prev: prevAmt };
+  }).filter(m => m.change !== 0).sort((a, b) => Math.abs(b.change) - Math.abs(a.change)).slice(0, 6);
+
+  if (movers.length) {
+    html += '<div class="card"><div class="card-title">Top Movers vs ' + prev.ctx.monthName + '</div>';
+    movers.forEach(m => {
+      const dir = m.change > 0 ? 'delta-up' : 'delta-down';
+      html += '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03)">';
+      html += '<span style="font-weight:600;color:' + getCatColor(m.name) + '">' + m.name + '</span>';
+      html += '<span class="' + dir + '" style="font-weight:700">' + (m.change > 0 ? '+' : '') + fmt(m.change) + '</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+
+  // Monthly totals line chart
+  charts.compareTotals = new Chart(document.getElementById('chart-compare-totals'), {
+    type: 'line',
+    data: {
+      labels: allMonths.map(m => m.ctx.monthAbbr + ' ' + m.ctx.year),
+      datasets: [{ label: 'Total', data: allMonths.map(m => m.total), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 5, pointBackgroundColor: '#3b82f6' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { x: { grid: { display: false }, ticks: { color: '#e4e4e7' } },
+               y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v.toLocaleString() } } } }
+  });
+
+  // Category grouped bar
+  const compareCats = allCatNames.sort().slice(0, 10);
+  const datasets = allMonths.slice(-3).map((m, i) => ({
+    label: m.ctx.monthAbbr + ' ' + m.ctx.year,
+    data: compareCats.map(cat => m.cats[cat] || 0),
+    backgroundColor: ['rgba(59,130,246,0.6)', 'rgba(168,85,247,0.6)', 'rgba(34,197,94,0.6)'][i % 3],
+    borderRadius: 3
+  }));
+  charts.compareCats = new Chart(document.getElementById('chart-compare-cats'), {
+    type: 'bar',
+    data: { labels: compareCats, datasets },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#e4e4e7', font: { size: 11 } } } },
+      scales: { x: { grid: { display: false }, ticks: { color: '#e4e4e7', font: { size: 10 }, maxRotation: 45 } },
+               y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } }
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// GLOBAL SEARCH
+// ══════════════════════════════════════════════════════════
+let searchTimeout = null;
+function onGlobalSearch(query) {
+  clearTimeout(searchTimeout);
+  const wrap = document.getElementById('global-search-results');
+  if (!query || query.length < 2 || activeData.length === 0) { wrap.style.display = 'none'; return; }
+  searchTimeout = setTimeout(() => {
+    const q = query.toLowerCase();
+    let html = '';
+
+    // Search merchants
+    const matchedMerchants = merchantGroups.filter(m => m.name.toLowerCase().includes(q)).slice(0, 5);
+    if (matchedMerchants.length) {
+      html += '<div class="search-group-header">Merchants</div>';
+      matchedMerchants.forEach(m => {
+        const highlighted = m.name.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi'), '<mark>$1</mark>');
+        html += '<div class="search-result" onclick="closeSearch();showView(\'merchant-detail\',{merchant:\'' + m.name.replace(/'/g,"\\'") + '\',source:\'search\'})">';
+        html += '<div><div class="search-result-name">' + highlighted + '</div>';
+        html += '<div class="search-result-meta">' + m.count + ' transactions</div></div>';
+        html += '<div class="search-result-amount">' + fmt(m.total) + '</div></div>';
+      });
+    }
+
+    // Search categories
+    const matchedCats = catGroups.filter(c => c.name.toLowerCase().includes(q)).slice(0, 5);
+    if (matchedCats.length) {
+      html += '<div class="search-group-header">Categories</div>';
+      matchedCats.forEach(c => {
+        const highlighted = c.name.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi'), '<mark>$1</mark>');
+        html += '<div class="search-result" onclick="closeSearch();showView(\'transactions\',{category:\'' + c.name.replace(/'/g,"\\'") + '\'})">';
+        html += '<div><div class="search-result-name">' + highlighted + '</div>';
+        html += '<div class="search-result-meta">' + c.count + ' transactions</div></div>';
+        html += '<div class="search-result-amount">' + fmt(c.total) + '</div></div>';
+      });
+    }
+
+    // Search individual transactions by description
+    const matchedTx = activeData.filter(t => t.description.toLowerCase().includes(q) || t.merchant.toLowerCase().includes(q)).slice(0, 5);
+    if (matchedTx.length && !matchedMerchants.length) {
+      html += '<div class="search-group-header">Transactions</div>';
+      matchedTx.forEach(t => {
+        const name = t.merchant || t.description;
+        const highlighted = name.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi'), '<mark>$1</mark>');
+        html += '<div class="search-result" onclick="closeSearch();showView(\'transactions\',{merchant:\'' + t.merchant.replace(/'/g,"\\'") + '\'})">';
+        html += '<div><div class="search-result-name">' + highlighted + '</div>';
+        html += '<div class="search-result-meta">' + t.date + ' \u2022 ' + t.category + '</div></div>';
+        html += '<div class="search-result-amount">' + fmt(t.amount) + '</div></div>';
+      });
+    }
+
+    if (!html) html = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">No results for "' + query + '"</div>';
+    wrap.innerHTML = html;
+    wrap.style.display = 'block';
+  }, 200);
+}
+
+function closeSearch() {
+  document.getElementById('global-search-results').style.display = 'none';
+  document.getElementById('global-search').value = '';
+}
+
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('global-search-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('global-search-results').style.display = 'none';
+  }
+});
+
+// ══════════════════════════════════════════════════════════
+// THEME TOGGLE
+// ══════════════════════════════════════════════════════════
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  if (_isDemo) sessionStorage.setItem('demo_expenses_theme', isLight ? 'light' : 'dark');
+  else localStorage.setItem('expenses_theme', isLight ? 'light' : 'dark');
+  document.getElementById('theme-toggle').innerHTML = isLight ? '&#9728;' : '&#127769;';
+}
+
+// ══════════════════════════════════════════════════════════
+// MERCHANT DETAIL VIEW
+// ══════════════════════════════════════════════════════════
+function showMerchantDetail(merchantName, source) {
+  source = source || 'merchants';
+  const container = document.getElementById('merchant-detail-content');
+  const backBtn = document.getElementById('merchant-detail-back');
+
+  // Hide all views and show merchant detail
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-merchant-detail').classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+  // Back button
+  const backMap = { merchants: 'merchants', overview: 'overview', search: 'overview', transactions: 'transactions' };
+  const backView = backMap[source] || 'merchants';
+  backBtn.onclick = () => showView(backView);
+
+  // Get transactions for this merchant
+  const txs = activeData.filter(t => t.merchant === merchantName).sort((a, b) => a.date < b.date ? -1 : 1);
+  if (txs.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-state-title">No transactions found</div></div>'; return; }
+
+  const total = txs.reduce((s, t) => s + t.amount, 0);
+  const avg = total / txs.length;
+  const minTx = txs.reduce((a, b) => a.amount < b.amount ? a : b);
+  const maxTx = txs.reduce((a, b) => a.amount > b.amount ? a : b);
+  const categories = [...new Set(txs.map(t => t.category))];
+  const dateRange = txs[0].date + ' \u2014 ' + txs[txs.length - 1].date;
+
+  let html = '';
+
+  // Header card
+  html += '<div class="card" style="border-left:4px solid var(--blue)">';
+  html += '<div style="font-size:22px;font-weight:700;margin-bottom:4px">' + merchantName + '</div>';
+  html += '<div style="font-size:13px;color:var(--text-muted)">' + categories.join(', ') + ' \u2022 ' + dateRange + '</div>';
+  html += '</div>';
+
+  // KPI cards
+  html += '<div class="kpi-grid">';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Total Spent</div><div class="kpi-value amt">' + fmt(total) + '</div><div class="kpi-sub">' + txs.length + ' transactions</div></div>';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Average</div><div class="kpi-value">' + fmt(avg) + '</div><div class="kpi-sub">per transaction</div></div>';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Range</div><div class="kpi-value">' + fmt(minTx.amount) + ' \u2014 ' + fmt(maxTx.amount) + '</div><div class="kpi-sub">min \u2014 max</div></div>';
+  html += '</div>';
+
+  // Price tracker (if multiple transactions)
+  if (txs.length > 1) {
+    html += '<div class="card"><div class="card-title">Amount Tracker</div>';
+    html += '<table><thead><tr><th>Date</th><th>Category</th><th class="text-right">Amount</th><th class="text-right">Change</th></tr></thead><tbody>';
+    txs.forEach((t, i) => {
+      let changeHtml = '<span style="color:var(--text-muted)">\u2014</span>';
+      if (i > 0) {
+        const diff = t.amount - txs[i - 1].amount;
+        const pct = txs[i - 1].amount ? ((diff / txs[i - 1].amount) * 100).toFixed(1) : 0;
+        if (diff > 0) changeHtml = '<span style="color:var(--rose)">\u25B2 +' + fmt(diff) + ' (+' + pct + '%)</span>';
+        else if (diff < 0) changeHtml = '<span style="color:var(--green)">\u25BC ' + fmt(diff) + ' (' + pct + '%)</span>';
+        else changeHtml = '<span style="color:var(--text-muted)">\u2014 no change</span>';
+      }
+      html += '<tr><td class="mono">' + t.date + '</td>';
+      html += '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>';
+      html += '<td class="text-right amt">' + fmt(t.amount) + '</td>';
+      html += '<td class="text-right" style="font-size:12px">' + changeHtml + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  // All transactions
+  html += '<div class="card"><div class="card-title">All Transactions (' + txs.length + ')</div>';
+  html += '<table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th class="text-right">Amount</th><th>Source</th></tr></thead><tbody>';
+  txs.forEach(t => {
+    html += '<tr><td class="mono">' + t.date + '</td>';
+    html += '<td style="font-size:12px;color:var(--text-muted);max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g, '&quot;') + '">' + (t.description || t.merchant) + '</td>';
+    html += '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>';
+    html += '<td class="text-right amt">' + fmt(t.amount) + '</td>';
+    html += '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  container.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════
+// CATEGORY DETAIL VIEW
+// ══════════════════════════════════════════════════════════
+function showCategoryDetail(categoryName, source) {
+  source = source || 'categories';
+  const container = document.getElementById('category-detail-content');
+  const backBtn = document.getElementById('category-detail-back');
+
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-category-detail').classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+  const backMap = { categories: 'categories', overview: 'overview' };
+  backBtn.onclick = () => showView(backMap[source] || 'categories');
+
+  const txs = activeData.filter(t => t.category === categoryName).sort((a, b) => a.date < b.date ? -1 : 1);
+  if (txs.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-state-title">No transactions found</div></div>'; return; }
+
+  const total = txs.reduce((s, t) => s + t.amount, 0);
+  const avg = total / txs.length;
+  const pctOfTotal = ((total / totalExpenses) * 100).toFixed(1);
+  const merchants = {};
+  txs.forEach(t => {
+    if (!merchants[t.merchant]) merchants[t.merchant] = { name: t.merchant, total: 0, count: 0 };
+    merchants[t.merchant].total += t.amount;
+    merchants[t.merchant].count++;
+  });
+  const merchList = Object.values(merchants).sort((a, b) => b.total - a.total);
+  const dateRange = txs[0].date + ' \u2014 ' + txs[txs.length - 1].date;
+  const catColor = getCatColor(categoryName);
+
+  let html = '';
+
+  // Header
+  html += '<div class="card" style="border-left:4px solid ' + catColor + '">';
+  html += '<div style="font-size:22px;font-weight:700;margin-bottom:4px;color:' + catColor + '">' + categoryName + '</div>';
+  html += '<div style="font-size:13px;color:var(--text-muted)">' + merchList.length + ' merchants \u2022 ' + dateRange + '</div>';
+  html += '</div>';
+
+  // KPIs
+  html += '<div class="kpi-grid">';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Total Spent</div><div class="kpi-value amt">' + fmt(total) + '</div><div class="kpi-sub">' + pctOfTotal + '% of all expenses</div></div>';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Transactions</div><div class="kpi-value">' + txs.length + '</div><div class="kpi-sub">avg ' + fmt(avg) + ' each</div></div>';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Top Merchant</div><div class="kpi-value" style="font-size:18px">' + merchList[0].name + '</div><div class="kpi-sub">' + fmt(merchList[0].total) + ' (' + merchList[0].count + ' transactions)</div></div>';
+  html += '</div>';
+
+  // Top merchants in this category
+  html += '<div class="card"><div class="card-title">Merchants in ' + categoryName + '</div>';
+  html += '<table><thead><tr><th>Merchant</th><th class="text-right">Total</th><th class="text-right">Count</th><th class="text-right">Avg</th><th class="text-right">Share</th></tr></thead><tbody>';
+  merchList.forEach(m => {
+    const mPct = ((m.total / total) * 100).toFixed(1);
+    html += '<tr style="cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + m.name.replace(/'/g,"\\'") + '\',source:\'categories\'})">';
+    html += '<td style="font-weight:600">' + m.name + '</td>';
+    html += '<td class="text-right amt">' + fmt(m.total) + '</td>';
+    html += '<td class="text-right">' + m.count + '</td>';
+    html += '<td class="text-right mono">' + fmt(m.total / m.count) + '</td>';
+    html += '<td class="text-right">' + mPct + '%</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // Spending trend within month
+  if (ctx.daysInMonth) {
+    html += '<div class="card"><div class="card-title">Daily Spending in ' + categoryName + '</div><div class="chart-wrap"><canvas id="chart-cat-detail-daily"></canvas></div></div>';
+  }
+
+  // All transactions
+  html += '<div class="card"><div class="card-title">All Transactions (' + txs.length + ')</div>';
+  html += '<table><thead><tr><th>Date</th><th>Merchant</th><th>Description</th><th class="text-right">Amount</th><th>Source</th></tr></thead><tbody>';
+  txs.forEach(t => {
+    html += '<tr style="cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + t.merchant.replace(/'/g,"\\'") + '\',source:\'categories\'})">';
+    html += '<td class="mono">' + t.date + '</td>';
+    html += '<td style="font-weight:600">' + t.merchant + '</td>';
+    html += '<td style="font-size:12px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g,'&quot;') + '">' + (t.description || t.merchant) + '</td>';
+    html += '<td class="text-right amt">' + fmt(t.amount) + '</td>';
+    html += '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  container.innerHTML = html;
+
+  // Render daily chart
+  if (ctx.daysInMonth) {
+    const dailyData = new Array(ctx.daysInMonth).fill(0);
+    txs.forEach(t => { const day = parseInt(t.date.substring(8, 10)); if (day >= 1 && day <= ctx.daysInMonth) dailyData[day - 1] += t.amount; });
+    const labels = Array.from({ length: ctx.daysInMonth }, (_, i) => ctx.monthAbbr + ' ' + (i + 1));
+    new Chart(document.getElementById('chart-cat-detail-daily'), {
+      type: 'bar',
+      data: { labels, datasets: [{ data: dailyData, backgroundColor: catColor + '80', borderRadius: 3 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: { x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 10 }, maxRotation: 45 } },
+                 y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } }
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// ANOMALY DETECTION
+// ══════════════════════════════════════════════════════════
+function detectAnomalies() {
+  if (activeData.length < 5) return [];
+  const anomalies = [];
+
+  // Per-merchant anomalies: transactions significantly above average for that merchant
+  merchantGroups.forEach(mg => {
+    if (mg.count < 2) return;
+    const txs = activeData.filter(t => t.merchant === mg.name);
+    const avg = mg.total / mg.count;
+    const stdDev = Math.sqrt(txs.reduce((s, t) => s + Math.pow(t.amount - avg, 2), 0) / txs.length);
+    if (stdDev === 0) return;
+    txs.forEach(t => {
+      const zScore = (t.amount - avg) / stdDev;
+      if (zScore >= 1.8 && t.amount > avg * 1.5) {
+        anomalies.push({
+          type: 'merchant',
+          transaction: t,
+          merchant: t.merchant,
+          amount: t.amount,
+          avg: avg,
+          ratio: (t.amount / avg).toFixed(1),
+          message: fmt(t.amount) + ' at ' + t.merchant + ' is ' + (t.amount / avg).toFixed(1) + 'x your usual (' + fmt(avg) + ' avg)'
+        });
+      }
+    });
+  });
+
+  // Per-category anomalies: single transaction that's a large chunk of category total
+  catGroups.forEach(cg => {
+    if (cg.count < 3) return;
+    const txs = activeData.filter(t => t.category === cg.name);
+    const avg = cg.total / cg.count;
+    txs.forEach(t => {
+      const pctOfCat = t.amount / cg.total;
+      if (pctOfCat > 0.4 && t.amount > avg * 2) {
+        const exists = anomalies.find(a => a.transaction.id === t.id);
+        if (!exists) {
+          anomalies.push({
+            type: 'category',
+            transaction: t,
+            merchant: t.merchant,
+            amount: t.amount,
+            avg: avg,
+            ratio: (t.amount / avg).toFixed(1),
+            message: fmt(t.amount) + ' at ' + t.merchant + ' is ' + ((pctOfCat * 100).toFixed(0)) + '% of all ' + cg.name + ' spending'
+          });
+        }
+      }
+    });
+  });
+
+  return anomalies.sort((a, b) => parseFloat(b.ratio) - parseFloat(a.ratio)).slice(0, 5);
+}
+
+// ══════════════════════════════════════════════════════════
+// RECURRING EXPENSE DETECTION
+// ══════════════════════════════════════════════════════════
+const RECURRING_KEYWORDS = [
+  "netflix","spotify","hulu","disney","hbo","paramount","peacock","apple music","youtube premium",
+  "amazon prime","insurance","geico","state farm","allstate","progressive",
+  "gym","planet fitness","la fitness","ymca","membership","subscription",
+  "utility","electric","power","water","sewer","gas bill","internet","comcast","xfinity",
+  "at&t","verizon","t-mobile","sprint","wireless","phone","mobile",
+  "mortgage","rent","lease","hoa","property",
+  "adobe","microsoft","google storage","icloud","dropbox","chatgpt","openai"
+];
+
+function detectRecurring() {
+  const results = [];
+  const seen = new Set();
+  const months = loadMonths().sort();
+
+  // Cross-month detection (high confidence)
+  if (months.length >= 2) {
+    const allMonthData = {};
+    months.forEach(mk => {
+      const data = applyEdits(loadData(mk), mk);
+      allMonthData[mk] = {};
+      data.forEach(t => {
+        if (!allMonthData[mk][t.merchant]) allMonthData[mk][t.merchant] = [];
+        allMonthData[mk][t.merchant].push(t.amount);
+      });
+    });
+
+    // Find merchants appearing in 2+ months
+    const allMerchants = new Set();
+    months.forEach(mk => Object.keys(allMonthData[mk]).forEach(m => allMerchants.add(m)));
+
+    allMerchants.forEach(merchant => {
+      const monthsPresent = months.filter(mk => allMonthData[mk][merchant] && allMonthData[mk][merchant].length > 0);
+      if (monthsPresent.length < 2) return;
+
+      const allAmounts = monthsPresent.flatMap(mk => allMonthData[mk][merchant]);
+      const avg = allAmounts.reduce((s, a) => s + a, 0) / allAmounts.length;
+      const maxDev = Math.max(...allAmounts.map(a => Math.abs(a - avg)));
+      const isStable = avg > 0 && (maxDev / avg) <= 0.15;
+      const isKnown = RECURRING_KEYWORDS.some(kw => merchant.toLowerCase().includes(kw));
+
+      if (isStable || isKnown) {
+        const cat = activeData.find(t => t.merchant === merchant)?.category || 'Other';
+        results.push({
+          merchant,
+          avgAmount: avg,
+          frequency: monthsPresent.length + '/' + months.length + ' months',
+          months: monthsPresent.length,
+          confidence: isStable ? 'high' : 'medium',
+          category: cat
+        });
+        seen.add(merchant);
+      }
+    });
+  }
+
+  // Single-month detection (current month)
+  merchantGroups.forEach(mg => {
+    if (seen.has(mg.name)) return;
+    const txs = activeData.filter(t => t.merchant === mg.name);
+    if (txs.length < 2) {
+      // Single transaction — check known keywords
+      if (txs.length === 1) {
+        const isKnown = RECURRING_KEYWORDS.some(kw => mg.name.toLowerCase().includes(kw));
+        if (isKnown) {
+          results.push({
+            merchant: mg.name,
+            avgAmount: txs[0].amount,
+            frequency: 'Likely recurring',
+            months: 1,
+            confidence: 'medium',
+            category: txs[0].category
+          });
+        }
+      }
+      return;
+    }
+
+    const avg = mg.total / mg.count;
+    const maxDev = Math.max(...txs.map(t => Math.abs(t.amount - avg)));
+    const isStable = avg > 0 && (maxDev / avg) <= 0.10;
+    const isKnown = RECURRING_KEYWORDS.some(kw => mg.name.toLowerCase().includes(kw));
+
+    if (isStable || isKnown) {
+      results.push({
+        merchant: mg.name,
+        avgAmount: avg,
+        frequency: mg.count + 'x this month',
+        months: 1,
+        confidence: isStable && isKnown ? 'high' : 'medium',
+        category: txs[0].category
+      });
+    }
+  });
+
+  return results.sort((a, b) => b.avgAmount - a.avgAmount);
+}
+
+// ══════════════════════════════════════════════════════════
+// INITIALIZATION
+// ══════════════════════════════════════════════════════════
+(function init() {
+  // Restore theme
+  const savedTheme = _isDemo ? sessionStorage.getItem('demo_expenses_theme') : localStorage.getItem('expenses_theme');
+  if (savedTheme === 'light') {
+    document.body.classList.add('light');
+    document.getElementById('theme-toggle').innerHTML = '&#9728;';
+  }
+
+  const months = loadMonths();
+  if (months.length > 0) {
+    const active = _isDemo ? demoGet("expenses_activeMonth") : localStorage.getItem("expenses_activeMonth");
+    const mk = (active && months.includes(active)) ? active : months.sort().reverse()[0];
+    switchMonth(mk);
+  } else {
+    updateMonthNav();
+    renderAll();
+  }
+
+  // Demo mode: inject banner and update links
+  if (_isDemo) {
+    injectDemoBanner('blue');
+    demofyLinks();
+  }
+})();
+
