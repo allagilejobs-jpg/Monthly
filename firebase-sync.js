@@ -313,39 +313,19 @@ async function doForgotPassword() {
   }
 }
 
-var _gisLoaded = false;
-var _gisClientId = '295516575227-nuon8278ld6l228b56hvj2grsqudtdij.apps.googleusercontent.com';
-
-function _onGoogleCredential(response) {
-  if (!fb_auth || !response.credential) return;
-  var credential = firebase.auth.GoogleAuthProvider.credential(response.credential);
-  fb_auth.signInWithCredential(credential)
-    .then(function() { closeAuthModal(); })
-    .catch(function(e) { showAuthError(e.message || 'Google sign-in failed.'); });
-}
-
-function _initGIS() {
-  google.accounts.id.initialize({
-    client_id: _gisClientId,
-    callback: _onGoogleCredential,
-    auto_select: false
-  });
-  _gisLoaded = true;
-}
-
 function signInWithGoogle() {
   if (!fb_auth) return;
-  if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
-    if (!_gisLoaded) _initGIS();
-    google.accounts.id.prompt();
-  } else {
-    // Load GIS script first
-    var s = document.createElement('script');
-    s.src = 'https://accounts.google.com/gsi/client';
-    s.onload = function() { _initGIS(); google.accounts.id.prompt(); };
-    s.onerror = function() { showAuthError('Failed to load Google Sign-In.'); };
-    document.head.appendChild(s);
-  }
+  var provider = new firebase.auth.GoogleAuthProvider();
+  provider.addScope('email');
+  provider.addScope('profile');
+  provider.setCustomParameters({ prompt: 'select_account' });
+  fb_auth.signInWithPopup(provider)
+    .then(function() { closeAuthModal(); })
+    .catch(function(e) {
+      if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') return;
+      console.error('Google sign-in error:', e.code, e.message);
+      showAuthError(e.message || 'Google sign-in failed.');
+    });
 }
 
 function doSignOut() {
