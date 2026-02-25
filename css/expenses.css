@@ -374,6 +374,13 @@
     font-size: 12px; color: var(--text-muted); cursor: pointer; margin-top: 4px;
   }
   .month-bucket-radio input { accent-color: var(--blue); }
+  .month-bucket-select {
+    display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1; min-width: 0;
+  }
+  .month-bucket-select input { accent-color: var(--blue); flex-shrink: 0; width: 16px; height: 16px; cursor: pointer; }
+  .month-bucket-card.month-bucket-deselected {
+    opacity: 0.35; border-style: dashed;
+  }
 
   /* Light theme adjustments */
   body.light .upload-file-item { background: rgba(0,0,0,0.02); }

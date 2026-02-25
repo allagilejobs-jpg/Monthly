@@ -1253,6 +1253,11 @@ function showMultiMonthPreview() {
   html += '<span class="preview-stat"><strong>' + monthKeys.length + '</strong> month(s)</span>';
   html += '</div>';
 
+  // Month selection heading
+  if (monthKeys.length > 1) {
+    html += '<div style="margin-bottom:8px;font-size:12px;color:var(--text-muted)">Select which months to import:</div>';
+  }
+
   // Month cards
   html += '<div class="month-bucket-grid">';
   monthKeys.forEach(function(mk) {
@@ -1263,9 +1268,9 @@ function showMultiMonthPreview() {
     var dateRange = dates.length ? dates[0] + ' to ' + dates[dates.length - 1] : '';
     var hasExisting = existingMonths.indexOf(mk) !== -1;
 
-    html += '<div class="month-bucket-card">';
+    html += '<div class="month-bucket-card" id="bucket-card-' + mk + '">';
     html += '<div class="month-bucket-header">';
-    html += '<span class="month-bucket-name">' + mkCtx.monthName + ' ' + mkCtx.year + '</span>';
+    html += '<label class="month-bucket-select"><input type="checkbox" id="select-' + mk + '" checked onchange="toggleMonthSelect(\'' + mk + '\')"> <span class="month-bucket-name">' + mkCtx.monthName + ' ' + mkCtx.year + '</span></label>';
     html += '<span class="month-bucket-count">' + txns.length + ' txns</span>';
     html += '</div>';
     html += '<div class="month-bucket-total">' + fmt(total) + '</div>';
@@ -1273,7 +1278,7 @@ function showMultiMonthPreview() {
 
     if (hasExisting) {
       var existingCount = loadData(mk).length;
-      html += '<div class="month-bucket-conflict">';
+      html += '<div class="month-bucket-conflict" id="conflict-' + mk + '">';
       html += '<div class="month-bucket-conflict-label">&#9888; ' + existingCount + ' existing transactions</div>';
       html += '<label class="month-bucket-radio"><input type="radio" name="merge-' + mk + '" value="replace" checked> Replace existing</label>';
       html += '<label class="month-bucket-radio"><input type="radio" name="merge-' + mk + '" value="merge"> Merge (add new)</label>';
@@ -1310,20 +1315,70 @@ function showMultiMonthPreview() {
   html += '</div>';
 
   preview.innerHTML = html;
+  updateImportButton();
+}
+
+// Toggle month selection and update card visual state
+function toggleMonthSelect(mk) {
+  var cb = document.getElementById('select-' + mk);
+  var card = document.getElementById('bucket-card-' + mk);
+  var conflict = document.getElementById('conflict-' + mk);
+  if (!cb || !card) return;
+  if (cb.checked) {
+    card.classList.remove('month-bucket-deselected');
+    if (conflict) conflict.style.display = '';
+  } else {
+    card.classList.add('month-bucket-deselected');
+    if (conflict) conflict.style.display = 'none';
+  }
+  updateImportButton();
+}
+
+// Update import button text and enabled state based on selection
+function updateImportButton() {
+  var btn = document.querySelector('#upload-step-2 .modal-btn-save');
+  if (!btn) return;
+  var monthKeys = Object.keys(parsedMonthBuckets);
+  var total = monthKeys.length;
+  var selected = monthKeys.filter(function(mk) {
+    var cb = document.getElementById('select-' + mk);
+    return cb && cb.checked;
+  }).length;
+  if (selected === 0) {
+    btn.textContent = 'No months selected';
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+    btn.style.cursor = 'not-allowed';
+  } else if (selected === total) {
+    btn.textContent = 'Import All (' + total + ' month' + (total !== 1 ? 's' : '') + ')';
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.style.cursor = '';
+  } else {
+    btn.textContent = 'Import ' + selected + ' of ' + total + ' months';
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.style.cursor = '';
+  }
 }
 
 // ── Deduplication key for merge ──
 function txKey(t) { return t.date + '|' + t.merchant + '|' + t.amount.toFixed(2); }
 
-// ── Import all month buckets ──
+// ── Import selected month buckets ──
 function confirmMultiImport() {
-  var monthKeys = Object.keys(parsedMonthBuckets);
-  if (monthKeys.length === 0) return;
+  var allKeys = Object.keys(parsedMonthBuckets);
+  // Only import months the user has checked
+  var selectedKeys = allKeys.filter(function(mk) {
+    var cb = document.getElementById('select-' + mk);
+    return cb && cb.checked;
+  });
+  if (selectedKeys.length === 0) return;
 
   var months = loadMonths();
   var importedCount = 0;
 
-  monthKeys.forEach(function(mk) {
+  selectedKeys.forEach(function(mk) {
     var newTxns = parsedMonthBuckets[mk];
     if (!newTxns || newTxns.length === 0) return;
 
@@ -1351,10 +1406,10 @@ function confirmMultiImport() {
   closeUploadModal();
 
   // Switch to most recent imported month
-  var sorted = monthKeys.sort();
+  var sorted = selectedKeys.sort();
   switchMonth(sorted[sorted.length - 1]);
 
-  showToast('Imported ' + importedCount + ' transactions across ' + monthKeys.length + ' month(s)', 'success');
+  showToast('Imported ' + importedCount + ' transactions across ' + selectedKeys.length + ' month(s)', 'success');
 }
 
 // ══════════════════════════════════════════════════════════
