@@ -61,8 +61,19 @@ function initFirebase() {
       if (user) {
         removeAuthGate();
         syncFromCloud().then(() => {
-          // If page has a render function, re-render after sync
-          if (typeof recomputeAll === 'function') { recomputeAll(); renderAll(); }
+          // Reload active data from freshly synced localStorage
+          if (typeof switchMonth === 'function') {
+            var months = typeof loadMonths === 'function' ? loadMonths() : [];
+            if (months.length > 0) {
+              var active = localStorage.getItem('expenses_activeMonth') || localStorage.getItem('grocery_activeMonth') || '';
+              var mk = (active && months.indexOf(active) !== -1) ? active : months.sort().reverse()[0];
+              switchMonth(mk);
+            } else if (typeof renderAll === 'function') {
+              renderAll();
+            }
+          } else if (typeof recomputeAll === 'function') {
+            recomputeAll(); renderAll();
+          }
         });
       } else {
         // Skip for demo mode users
@@ -532,15 +543,21 @@ async function syncFromCloud() {
     const gMeta = await userRef.collection('config').doc('grocery_meta').get();
     if (gMeta.exists) {
       const d = gMeta.data();
-      if (d.months) localStorage.setItem('grocery_months', d.months);
+      // Merge cloud months with local months (never lose local data)
+      const cloudGroceryMonths = JSON.parse(d.months || '[]');
+      const localGroceryMonths = JSON.parse(localStorage.getItem('grocery_months') || '[]');
+      const mergedGroceryMonths = [...new Set([...localGroceryMonths, ...cloudGroceryMonths])];
+      localStorage.setItem('grocery_months', JSON.stringify(mergedGroceryMonths));
       if (d.activeMonth) localStorage.setItem('grocery_activeMonth', d.activeMonth);
 
       // Grocery data per month
-      const gMonths = JSON.parse(d.months || '[]');
-      for (const mk of gMonths) {
+      for (const mk of cloudGroceryMonths) {
+        const localData = localStorage.getItem('data_' + mk);
         const dataDoc = await userRef.collection('grocery_data').doc(mk).get();
         if (dataDoc.exists && dataDoc.data().json) {
-          localStorage.setItem('data_' + mk, dataDoc.data().json);
+          if (!localData || localData === '[]') {
+            localStorage.setItem('data_' + mk, dataDoc.data().json);
+          }
         }
         const editsDoc = await userRef.collection('grocery_edits').doc(mk).get();
         if (editsDoc.exists && editsDoc.data().json) {
@@ -553,16 +570,23 @@ async function syncFromCloud() {
     const eMeta = await userRef.collection('config').doc('expenses_meta').get();
     if (eMeta.exists) {
       const d = eMeta.data();
-      if (d.months) localStorage.setItem('expenses_months', d.months);
+      // Merge cloud months with local months (never lose local data)
+      const cloudExpMonths = JSON.parse(d.months || '[]');
+      const localExpMonths = JSON.parse(localStorage.getItem('expenses_months') || '[]');
+      const mergedExpMonths = [...new Set([...localExpMonths, ...cloudExpMonths])];
+      localStorage.setItem('expenses_months', JSON.stringify(mergedExpMonths));
       if (d.activeMonth) localStorage.setItem('expenses_activeMonth', d.activeMonth);
       if (d.categoryRules) localStorage.setItem('expenses_categoryRules', d.categoryRules);
 
-      // Expenses data per month
-      const eMonths = JSON.parse(d.months || '[]');
-      for (const mk of eMonths) {
+      // Expenses data per month — only pull cloud data if local is empty for that month
+      for (const mk of cloudExpMonths) {
+        const localData = localStorage.getItem('expenses_data_' + mk);
         const dataDoc = await userRef.collection('expenses_data').doc(mk).get();
         if (dataDoc.exists && dataDoc.data().json) {
-          localStorage.setItem('expenses_data_' + mk, dataDoc.data().json);
+          // Cloud has data: use it if local is empty, otherwise keep local (it may be newer)
+          if (!localData || localData === '[]') {
+            localStorage.setItem('expenses_data_' + mk, dataDoc.data().json);
+          }
         }
         const editsDoc = await userRef.collection('expenses_edits').doc(mk).get();
         if (editsDoc.exists && editsDoc.data().json) {
@@ -576,15 +600,21 @@ async function syncFromCloud() {
     if (bMeta.exists) {
       const d = bMeta.data();
       if (d.setup) localStorage.setItem('budget_setup', d.setup);
-      if (d.months) localStorage.setItem('budget_months', d.months);
+      // Merge cloud months with local months
+      const cloudBudgetMonths = JSON.parse(d.months || '[]');
+      const localBudgetMonths = JSON.parse(localStorage.getItem('budget_months') || '[]');
+      const mergedBudgetMonths = [...new Set([...localBudgetMonths, ...cloudBudgetMonths])];
+      localStorage.setItem('budget_months', JSON.stringify(mergedBudgetMonths));
       if (d.activeMonth) localStorage.setItem('budget_activeMonth', d.activeMonth);
 
       // Budget data + income + accounts per month
-      const bMonths = JSON.parse(d.months || '[]');
-      for (const mk of bMonths) {
+      for (const mk of cloudBudgetMonths) {
+        const localData = localStorage.getItem('budget_data_' + mk);
         const dataDoc = await userRef.collection('budget_data').doc(mk).get();
         if (dataDoc.exists && dataDoc.data().json) {
-          localStorage.setItem('budget_data_' + mk, dataDoc.data().json);
+          if (!localData || localData === '[]') {
+            localStorage.setItem('budget_data_' + mk, dataDoc.data().json);
+          }
         }
         const incomeDoc = await userRef.collection('budget_income').doc(mk).get();
         if (incomeDoc.exists && incomeDoc.data().json) {
