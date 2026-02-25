@@ -676,6 +676,8 @@ function updateMonthNav() {
 // CSV PARSER
 // ══════════════════════════════════════════════════════════
 function parseCSV(text) {
+  // Strip BOM
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) return [];
   // Detect delimiter
@@ -692,11 +694,28 @@ function parseCSV(text) {
     result.push(current.trim());
     return result;
   }
-  const headers = parseLine(lines[0]).map(h => h.replace(/"/g,'').trim().toLowerCase());
-  // Detect bank format
+
+  // Check if first row looks like headers or data
+  const firstCols = parseLine(lines[0]).map(h => h.replace(/"/g,'').trim().toLowerCase());
+  var isHeaderless = false;
+  // If first column of first row looks like a date, it's headerless
+  if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/.test(firstCols[0])) {
+    isHeaderless = true;
+  }
+
+  var headers, dataStart;
+  if (isHeaderless) {
+    // Auto-detect column layout: find date col, desc col, amount col
+    headers = _inferHeaderlessLayout(firstCols);
+    dataStart = 0; // first row is data
+  } else {
+    headers = firstCols;
+    dataStart = 1; // skip header row
+  }
+
   const bank = detectBank(headers);
   const transactions = [];
-  for (let i = 1; i < lines.length; i++) {
+  for (let i = dataStart; i < lines.length; i++) {
     const cols = parseLine(lines[i]);
     if (cols.length < 3) continue;
     const tx = extractTransaction(headers, cols, bank);
@@ -705,14 +724,42 @@ function parseCSV(text) {
   return transactions;
 }
 
+// Infer synthetic headers for headerless CSVs by inspecting first data row
+function _inferHeaderlessLayout(cols) {
+  var headers = cols.map(function() { return ''; });
+  var dateFound = false, descFound = false, amountFound = false;
+  for (var i = 0; i < cols.length; i++) {
+    var v = cols[i].replace(/"/g, '').trim();
+    if (!dateFound && /^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/.test(v)) {
+      headers[i] = 'date'; dateFound = true;
+    } else if (!amountFound && /^-?\$?[\d,]+\.?\d*$/.test(v.replace(/[$,]/g, ''))) {
+      // Could be amount — but only flag if it looks numeric
+      if (!descFound) continue; // probably need desc before amount
+      headers[i] = 'amount'; amountFound = true;
+    } else if (!descFound && v.length > 2 && /[a-zA-Z]/.test(v)) {
+      headers[i] = 'description'; descFound = true;
+    }
+  }
+  // Second pass for amount if we didn't get it
+  if (!amountFound) {
+    for (var j = 0; j < cols.length; j++) {
+      if (headers[j]) continue;
+      var val = cols[j].replace(/"/g, '').replace(/[$,\s]/g, '');
+      if (/^-?\d+\.?\d*$/.test(val) && parseFloat(val) !== 0) {
+        headers[j] = 'amount'; break;
+      }
+    }
+  }
+  return headers;
+}
+
 function detectBank(headers) {
   const h = headers.join('|');
-  if (h.includes('posting date') && h.includes('description')) return 'chase';
-  if (h.includes('payee')) return 'bofa';
-  if (h.includes('transaction date') && h.includes('debit')) return 'capital_one';
-  if (headers.includes('debit') && headers.includes('credit')) return 'citi';
-  // Wells Fargo has minimal headers or none
-  if (headers.length <= 5 && h.includes('date') && h.includes('description')) return 'wells_fargo';
+  if (h.includes('posting date') && h.includes('description') && h.includes('amount')) return 'chase';
+  if (h.includes('payee') && h.includes('amount')) return 'bofa';
+  if (h.includes('transaction date') && (h.includes('debit') || h.includes('credit'))) return 'capital_one';
+  if (headers.includes('debit') && headers.includes('credit') && h.includes('description')) return 'citi';
+  if (headers.length <= 5 && h.includes('date') && h.includes('description') && h.includes('amount')) return 'wells_fargo';
   return 'generic';
 }
 
@@ -725,54 +772,82 @@ function extractTransaction(headers, cols, bank) {
     for (const n of names) { const v = get(n); if (v) return v; }
     return '';
   };
+  // Get a numeric value, stripping $ and commas
+  const getNum = name => parseFloat((get(name) || '').replace(/[$,]/g, ''));
+  const getAnyNum = (...names) => {
+    for (const n of names) { const v = getNum(n); if (!isNaN(v)) return v; }
+    return NaN;
+  };
   let dateStr, desc, amount;
 
   switch (bank) {
     case 'chase':
       dateStr = getAny('posting date', 'transaction date', 'date');
       desc = get('description');
-      amount = parseFloat(get('amount'));
+      amount = getNum('amount');
       if (isNaN(amount)) return null;
       amount = -amount; // Chase: negative = expense
       break;
     case 'bofa':
       dateStr = get('date');
       desc = getAny('payee', 'description');
-      amount = parseFloat(get('amount'));
+      amount = getNum('amount');
       if (isNaN(amount)) return null;
       amount = -amount;
       break;
     case 'capital_one':
       dateStr = getAny('transaction date', 'date');
       desc = get('description');
-      const debit = parseFloat(get('debit'));
-      const credit = parseFloat(get('credit'));
+      var debit = getNum('debit');
+      var credit = getNum('credit');
       if (!isNaN(debit) && debit > 0) amount = debit;
-      else if (!isNaN(credit) && credit > 0) amount = -credit; // credit = refund
+      else if (!isNaN(credit) && credit > 0) amount = -credit;
       else return null;
       break;
     case 'citi':
       dateStr = get('date');
       desc = get('description');
-      const deb = parseFloat(get('debit'));
+      var deb = getNum('debit');
       if (!isNaN(deb) && deb > 0) amount = deb;
       else return null;
       break;
     case 'wells_fargo':
       dateStr = get('date');
       desc = get('description');
-      amount = parseFloat(get('amount'));
+      amount = getNum('amount');
       if (isNaN(amount)) return null;
       amount = -amount;
       break;
-    default: // generic
+    default: // generic — try to find date, description, and amount from any header names
       dateStr = ''; desc = ''; amount = NaN;
+      var _debit = NaN, _credit = NaN;
       for (let i = 0; i < headers.length; i++) {
-        if (!dateStr && /date/i.test(headers[i])) dateStr = cols[i];
-        if (!desc && /desc|memo|payee|narration|particular/i.test(headers[i])) desc = cols[i];
-        if (isNaN(amount) && /amount|debit|value/i.test(headers[i])) {
-          const v = parseFloat(cols[i]);
+        var hdr = headers[i];
+        if (!dateStr && /date|posted|trans.*dt/i.test(hdr)) dateStr = cols[i];
+        if (!desc && /desc|memo|payee|narration|particular|merchant|name|detail|reference/i.test(hdr)) desc = cols[i];
+        if (isNaN(amount) && /^amount$|^total$|^charge$|^sale/i.test(hdr)) {
+          var v = parseFloat((cols[i] || '').replace(/[$,]/g, ''));
           if (!isNaN(v)) amount = Math.abs(v);
+        }
+        if (isNaN(_debit) && /debit|withdrawal|expense|charge/i.test(hdr)) {
+          var d = parseFloat((cols[i] || '').replace(/[$,]/g, ''));
+          if (!isNaN(d) && d !== 0) _debit = Math.abs(d);
+        }
+        if (isNaN(_credit) && /credit|deposit|payment/i.test(hdr)) {
+          var c = parseFloat((cols[i] || '').replace(/[$,]/g, ''));
+          if (!isNaN(c) && c !== 0) _credit = Math.abs(c);
+        }
+      }
+      // Prefer amount column, fall back to debit, skip credits (payments/refunds)
+      if (isNaN(amount) && !isNaN(_debit)) amount = _debit;
+      if (isNaN(amount) && !isNaN(_credit)) return null; // credit-only row = payment
+      if (isNaN(amount)) {
+        // Last resort: scan for any numeric column that isn't the date
+        for (let i = 0; i < cols.length; i++) {
+          if (headers[i] && /date/i.test(headers[i])) continue;
+          if (headers[i] && /desc|memo|payee|merchant|name/i.test(headers[i])) continue;
+          var num = parseFloat((cols[i] || '').replace(/[$,]/g, ''));
+          if (!isNaN(num) && num !== 0) { amount = Math.abs(num); break; }
         }
       }
       if (isNaN(amount)) return null;
@@ -1087,6 +1162,12 @@ async function processUploadedFiles() {
       if (uf.format === 'csv') {
         var text = new TextDecoder().decode(uf.data);
         txns = parseCSV(text);
+        // If no transactions, show diagnostic info
+        if (txns.length === 0 && text.trim()) {
+          var firstLine = text.split(/\r?\n/)[0] || '';
+          if (firstLine.length > 120) firstLine = firstLine.substring(0, 120) + '...';
+          addLog('  Headers: ' + firstLine, 'info');
+        }
       } else if (uf.format === 'pdf') {
         txns = await parsePDF(uf.data);
       } else if (uf.format === 'xlsx') {
