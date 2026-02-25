@@ -1621,12 +1621,24 @@ function cleanMerchant(desc) {
   return m || "Unknown";
 }
 
-function categorizeTx(merchant) {
+function categorizeTx(merchant, isCredit) {
+  if (isCredit) return categorizeCredit(merchant);
   var lower = merchant.toLowerCase();
   for (var keyword in CATEGORY_KEYWORDS) {
     if (lower.indexOf(keyword) >= 0) return CATEGORY_KEYWORDS[keyword];
   }
   return "Other";
+}
+
+// Categorize credit/refund transactions as Income or Refund
+function categorizeCredit(desc) {
+  var lower = (desc || '').toLowerCase();
+  // Income: rewards, cash back, deposits, payroll, interest, dividends
+  if (/reward|rebate|cash\s*back|cashback|direct\s*dep|payroll|salary|interest|dividend|bonus|commission|reimbursement/.test(lower)) {
+    return "Income";
+  }
+  // Everything else is a refund/return from a merchant
+  return "Refund";
 }
 
 function normalizeStatementDate(str) {
@@ -1701,6 +1713,10 @@ function parseStatementCSV(text) {
   if (negCount > transactions.length / 2) {
     transactions.forEach(function(t) { t.amount = -t.amount; });
   }
+  // Re-categorize credits (negative amounts) as Income or Refund after sign flip
+  transactions.forEach(function(t) {
+    if (t.amount < 0) t.category = categorizeCredit(t.description);
+  });
   return transactions;
 }
 
@@ -1777,7 +1793,7 @@ function extractStatementTx(headers, cols, bank) {
   }
   if (!dateStr || amount === 0) return null;
   var merchant = cleanMerchant(desc);
-  var cat = categorizeTx(merchant);
+  var cat = categorizeTx(merchant, amount < 0);
   return {
     id: generateId(), date: normalizeStatementDate(dateStr),
     category: cat, description: merchant,
@@ -1862,6 +1878,7 @@ async function parseStatementPDF(arrayBuffer) {
           if (distToCredit < distToCharge) {
             tx.amount = -Math.abs(tx.amount);
             tx.isCredit = true;
+            tx.category = categorizeCredit(tx.description);
           }
         }
       }
@@ -1893,7 +1910,7 @@ function parseStatementPDFLine(line) {
   var merchant = cleanMerchant(desc);
   return {
     id: generateId(), date: normalizeStatementDate(m[1]),
-    category: categorizeTx(merchant), description: merchant,
+    category: categorizeTx(merchant, false), description: merchant,
     paymentMethod: 'Credit', amount: Math.abs(amount)
   };
 }
@@ -1935,7 +1952,7 @@ function parseStatementExcel(arrayBuffer) {
     var merchant = cleanMerchant(desc);
     transactions.push({
       id: generateId(), date: normalizeStatementDate(dateStr),
-      category: categorizeTx(merchant), description: merchant,
+      category: categorizeTx(merchant, false), description: merchant,
       paymentMethod: 'Debit', amount: amount
     });
   });
@@ -1944,6 +1961,10 @@ function parseStatementExcel(arrayBuffer) {
   if (negC > transactions.length / 2) {
     transactions.forEach(function(t) { t.amount = -t.amount; });
   }
+  // Re-categorize credits (negative amounts) as Income or Refund after sign flip
+  transactions.forEach(function(t) {
+    if (t.amount < 0) t.category = categorizeCredit(t.description);
+  });
   return transactions;
 }
 

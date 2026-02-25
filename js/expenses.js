@@ -745,6 +745,10 @@ function parseCSV(text) {
   if (negCount > transactions.length / 2) {
     transactions.forEach(function(t) { t.amount = -t.amount; });
   }
+  // Re-categorize credits (negative amounts) as Refund after sign flip
+  transactions.forEach(function(t) {
+    if (t.amount < 0) { t.category = 'Refund'; t._origCategory = 'Refund'; }
+  });
   return transactions;
 }
 
@@ -970,6 +974,7 @@ async function parsePDF(arrayBuffer) {
           if (distToCredit < distToCharge) {
             tx.amount = -Math.abs(tx.amount);
             tx.isCredit = true;
+            tx.category = 'Refund';
           }
         }
       }
@@ -1074,6 +1079,10 @@ function parseExcel(arrayBuffer) {
   if (negCount > transactions.length / 2) {
     transactions.forEach(function(t) { t.amount = -t.amount; });
   }
+  // Re-categorize credits (negative amounts) as Refund after sign flip
+  transactions.forEach(function(t) {
+    if (t.amount < 0) { t.category = 'Refund'; t._origCategory = 'Refund'; }
+  });
   return transactions;
 }
 
