@@ -703,11 +703,19 @@ function handleMultiFiles(fileList) {
   if (newFiles.length > remaining) {
     showToast('Only adding ' + remaining + ' more (20 max). ' + (newFiles.length - remaining) + ' skipped.', 'warning');
   }
+  // Read file data into memory immediately so File references don't go stale
   toAdd.forEach(function(file) {
     var format = detectFileFormat(file.name);
-    uploadFiles.push({ file: file, name: file.name, size: file.size, format: format });
+    var reader = new FileReader();
+    reader.onload = function() {
+      uploadFiles.push({ name: file.name, size: file.size, format: format, data: reader.result });
+      renderUploadFileList();
+    };
+    reader.onerror = function() {
+      showToast('Failed to read ' + file.name, 'error');
+    };
+    reader.readAsArrayBuffer(file);
   });
-  renderUploadFileList();
 }
 
 // ── Render file list with icons and remove buttons ──
@@ -779,14 +787,12 @@ async function processUploadedFiles() {
     try {
       var txns = [];
       if (uf.format === 'csv') {
-        var text = await uf.file.text();
+        var text = new TextDecoder().decode(uf.data);
         txns = parseCSV(text);
       } else if (uf.format === 'pdf') {
-        var buf = await uf.file.arrayBuffer();
-        txns = await parsePDF(buf);
+        txns = await parsePDF(uf.data);
       } else if (uf.format === 'xlsx') {
-        var buf2 = await uf.file.arrayBuffer();
-        txns = parseExcel(buf2);
+        txns = parseExcel(uf.data);
       } else {
         addLog(uf.name + ': Unsupported format, skipped', 'error');
         processLog.push({ name: uf.name, count: 0, error: 'Unsupported format' });
