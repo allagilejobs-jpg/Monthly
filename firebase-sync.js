@@ -6,7 +6,7 @@
 // Replace with your Firebase project config from console.firebase.google.com
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyCkuURRU-GC86vqKRXBz7X0-6rlAf6A2M0",
-  authDomain: "family-finance-778a5.firebaseapp.com",
+  authDomain: "family-finance-778a5.web.app",
   projectId: "family-finance-778a5",
   storageBucket: "family-finance-778a5.firebasestorage.app",
   messagingSenderId: "295516575227",
