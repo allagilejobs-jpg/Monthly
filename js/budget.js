@@ -185,6 +185,7 @@ function showView(id) {
   document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
   var view = document.getElementById('view-' + id);
   if (view) view.classList.add('active');
+  fadeInView('view-' + id);
   var tabs = document.querySelectorAll('.tab');
   var tabMap = {setup:0, tracker:1, accounts:2, annual:3, trends:4, networth:5};
   if (tabs[tabMap[id]]) tabs[tabMap[id]].classList.add('active');
@@ -410,6 +411,7 @@ function renderTracker() {
     + '<div class="kpi"><div class="kpi-label">Remaining</div><div class="kpi-value" style="color:'+(remaining>=0?'var(--green)':'var(--red)')+'">'+fmt(remaining)+'</div></div>'
     + '<div class="kpi"><div class="kpi-label">% Used</div><div class="kpi-value" style="color:'+pctColor+'">'+fmtPct(pctUsed)+'</div>'
     + '<div class="progress-bar mt-12"><div class="progress-fill" style="width:'+Math.min(pctUsed,100)+'%;background:'+pctColor+'"></div></div></div>';
+  animateKPICards('#tracker-kpis');
 
   // Transactions table
   renderTxTable();
@@ -466,6 +468,14 @@ function renderTxTable() {
       + '<button class="btn btn-danger btn-sm" onclick="deleteTx(\''+tx.id+'\')">X</button></div></td>'
       + '</tr>';
   }).join('');
+
+  // Update sort indicators
+  var ths = document.querySelectorAll('#tx-table thead th.sortable');
+  ths.forEach(function(th) {
+    th.classList.remove('sort-asc', 'sort-desc');
+  });
+  var activeCol = document.querySelector('#tx-table thead th[onclick*="' + txSortCol + '"]');
+  if (activeCol) activeCol.classList.add(txSortDir === 1 ? 'sort-asc' : 'sort-desc');
 }
 
 function sortTx(col) {
@@ -535,6 +545,7 @@ function renderBVA(setup) {
     + '<td class="text-right" style="color:'+(totalDiff>=0?'var(--green)':'var(--red)')+'">'+fmt(totalDiff)+'</td><td></td></tr>';
   html += '</tbody></table>';
   bvaDiv.innerHTML = html;
+  animateProgressBars('#bva-content');
 }
 
 function renderCatPie() {
@@ -561,13 +572,13 @@ function renderCatPie() {
   charts.catPie = new Chart(canvas, {
     type: 'doughnut',
     data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 0 }] },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { position: 'right', labels: { color: 'var(--text-muted)', font: {size:11}, padding: 8, usePointStyle: true } },
         tooltip: { callbacks: { label: function(c) { return c.label + ': ' + fmt(c.raw); } } }
       }
-    }
+    })
   });
 }
 
@@ -683,7 +694,7 @@ function saveTx() {
   var amount = parseFloat(document.getElementById('tx-amount').value) || 0;
 
   if (!date || !category || amount <= 0) {
-    alert('Please fill in date, category, and a positive amount.');
+    showToast('Please fill in date, category, and a positive amount.', 'warning');
     return;
   }
 
@@ -738,6 +749,7 @@ function renderAccounts() {
     '<div class="kpi"><div class="kpi-label">Total Net Worth</div><div class="kpi-value" style="color:var(--accent)">'+fmt(totalNW)+'</div></div>'
     + '<div class="kpi"><div class="kpi-label">Investments</div><div class="kpi-value" style="color:var(--green)">'+fmt(totalInv)+'</div></div>'
     + '<div class="kpi"><div class="kpi-label">Total Debt</div><div class="kpi-value" style="color:var(--red)">'+fmt(Math.abs(totalDebt))+'</div></div>';
+  animateKPICards('#acct-kpis');
 
   // Table
   var body = document.getElementById('acct-body');
@@ -805,7 +817,7 @@ function saveAcct() {
   var rate = parseFloat(document.getElementById('acct-rate').value) || 0;
   var notes = document.getElementById('acct-notes').value.trim();
 
-  if (!name) { alert('Please enter an account name.'); return; }
+  if (!name) { showToast('Please enter an account name.', 'warning'); return; }
 
   if (editingAcctId) {
     var idx = activeAccounts.findIndex(function(x){return x.id === editingAcctId;});
@@ -829,9 +841,9 @@ function deleteAcct(id) {
 function copyAccountsFromPrev() {
   var months = loadMonths().sort();
   var idx = months.indexOf(ctx.monthKey);
-  if (idx <= 0) { alert('No previous month to copy from.'); return; }
+  if (idx <= 0) { showToast('No previous month to copy from.', 'warning'); return; }
   var prev = loadAccounts(months[idx - 1]);
-  if (prev.length === 0) { alert('Previous month has no accounts.'); return; }
+  if (prev.length === 0) { showToast('Previous month has no accounts.', 'warning'); return; }
   if (activeAccounts.length > 0 && !confirm('This will replace current accounts with previous month\'s. Continue?')) return;
 
   activeAccounts = prev.map(function(a) {
@@ -862,7 +874,7 @@ function openAddMonthModal() {
   }
 
   if (sel.options.length === 0) {
-    alert('All 12 months for ' + yr + ' already exist.');
+    showToast('All 12 months for ' + yr + ' already exist.', 'info');
     return;
   }
 
@@ -1093,7 +1105,7 @@ function renderAnnualCharts(monthSlots, incArr, expArr) {
         { label: 'Expenses', data: expArr, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.3, pointRadius: 3 }
       ]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       scales: {
         y: { grid: {color:'rgba(255,255,255,0.04)'}, ticks: {callback:function(v){return '$'+v;}} },
@@ -1103,7 +1115,7 @@ function renderAnnualCharts(monthSlots, incArr, expArr) {
         legend: { labels: { usePointStyle: true, padding: 12 } },
         tooltip: { callbacks: { label: function(c){return c.dataset.label+': '+fmt(c.raw);} } }
       }
-    }
+    })
   });
 
   // Expense breakdown stacked bar
@@ -1129,7 +1141,7 @@ function renderAnnualCharts(monthSlots, incArr, expArr) {
   charts.annualBreak = new Chart(document.getElementById('chart-annual-breakdown'), {
     type: 'bar',
     data: { labels: labels, datasets: datasets },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       scales: {
         x: { stacked: true, grid: {display:false} },
@@ -1139,7 +1151,7 @@ function renderAnnualCharts(monthSlots, incArr, expArr) {
         legend: { labels: { usePointStyle: true, padding: 12 } },
         tooltip: { callbacks: { label: function(c){return c.dataset.label+': '+fmt(c.raw);} } }
       }
-    }
+    })
   });
 }
 
@@ -1180,6 +1192,7 @@ function renderNetWorth() {
     + '<div class="kpi"><div class="kpi-label">Investment Value</div><div class="kpi-value" style="color:var(--green)">'+fmt(current.investment)+'</div></div>'
     + '<div class="kpi"><div class="kpi-label">Investment Growth</div><div class="kpi-value '+(invChange>=0?'delta-up':'delta-down')+'">'+(invChange>=0?'+':'')+fmt(invChange)+'</div>'
     + (prev ? '<div class="kpi-sub">vs '+prev.ctx.monthAbbr+'</div>' : '')+'</div>';
+  animateKPICards('#nw-kpis');
 
   // Charts
   renderNWCharts(nwData, current);
@@ -1200,11 +1213,11 @@ function renderNWCharts(nwData, current) {
       labels: labels,
       datasets: [{ label:'Net Worth', data:nwValues, borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,0.1)', fill:true, tension:0.3, pointRadius:4 }]
     },
-    options: {
+    options: withChartAnimation({
       responsive:true, maintainAspectRatio:false,
       scales: { y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{callback:function(v){return '$'+v;}}}, x:{grid:{display:false}} },
       plugins: { legend:{display:false}, tooltip:{callbacks:{label:function(c){return 'Net Worth: '+fmt(c.raw);}}} }
-    }
+    })
   });
 
   charts.invTrend = new Chart(document.getElementById('chart-inv-trend'), {
@@ -1213,11 +1226,11 @@ function renderNWCharts(nwData, current) {
       labels: labels,
       datasets: [{ label:'Investments', data:invValues, borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,0.1)', fill:true, tension:0.3, pointRadius:4 }]
     },
-    options: {
+    options: withChartAnimation({
       responsive:true, maintainAspectRatio:false,
       scales: { y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{callback:function(v){return '$'+v;}}}, x:{grid:{display:false}} },
       plugins: { legend:{display:false}, tooltip:{callbacks:{label:function(c){return 'Investments: '+fmt(c.raw);}}} }
-    }
+    })
   });
 
   // Account type breakdown
@@ -1235,13 +1248,13 @@ function renderNWCharts(nwData, current) {
   charts.acctPie = new Chart(document.getElementById('chart-acct-pie'), {
     type: 'doughnut',
     data: { labels:typeLabels, datasets:[{data:typeValues, backgroundColor:typeColors, borderWidth:0}] },
-    options: {
+    options: withChartAnimation({
       responsive:true, maintainAspectRatio:false,
       plugins: {
         legend:{position:'right',labels:{usePointStyle:true,padding:8,font:{size:11}}},
         tooltip:{callbacks:{label:function(c){return c.label+': '+fmt(c.raw);}}}
       }
-    }
+    })
   });
 
   // Type table
@@ -1275,7 +1288,7 @@ function importSetupFromExcel() {
         var wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
         parseExcelImport(wb);
       } catch(err) {
-        alert('Failed to parse Excel file: ' + err.message);
+        showToast('Failed to parse Excel file: ' + err.message, 'error');
       }
     };
     reader.readAsArrayBuffer(file);
@@ -1446,7 +1459,7 @@ function parseExcelImport(wb) {
     }
   }
 
-  alert('Excel imported successfully!');
+  showToast('Excel imported successfully!', 'success');
   renderSetup();
   var months = loadMonths();
   if (months.length > 0) {
@@ -1861,7 +1874,7 @@ function openUploadModal() {
     showDemoUpgradePrompt('Sign up to upload bank statements.');
     return;
   }
-  if (!ctx) { alert('Please add a month first.'); return; }
+  if (!ctx) { showToast('Please add a month first.', 'warning'); return; }
   _pendingImport = [];
   goUploadStep(0);
   document.getElementById('upload-modal').classList.add('open');
@@ -1911,7 +1924,7 @@ function handleUploadFile(file) {
         showUploadPreview(result, file.name);
       }
     } catch(err) {
-      alert('Failed to parse file: ' + err.message);
+      showToast('Failed to parse file: ' + err.message, 'error');
     }
   };
   if (format === 'csv') reader.readAsText(file);
@@ -1953,14 +1966,14 @@ function showUploadPreview(transactions, fileName) {
 function confirmStatementImport() {
   if (_pendingImport.length === 0) { closeUploadModal(); return; }
   var mk = _pendingImport._monthKey || (ctx ? ctx.monthKey : null);
-  if (!mk) { alert('Could not detect month. Please add a month first.'); return; }
+  if (!mk) { showToast('Could not detect month. Please add a month first.', 'warning'); return; }
   var months = loadMonths();
   if (months.indexOf(mk) < 0) { months.push(mk); saveMonths(months); }
   var existing = loadTransactions(mk);
   saveTransactions(mk, existing.concat(_pendingImport));
   closeUploadModal();
   switchMonth(mk);
-  alert('Imported ' + _pendingImport.length + ' transactions successfully!');
+  showToast('Imported ' + _pendingImport.length + ' transactions successfully!', 'success');
   _pendingImport = [];
 }
 
@@ -2216,7 +2229,7 @@ function confirmBulkImport() {
   // Close modal
   closeBulkUploadModal();
 
-  alert('Successfully imported ' + totalImported + ' transactions from ' + doneItems.length + ' file(s)!');
+  showToast('Imported ' + totalImported + ' transactions from ' + doneItems.length + ' file(s)!', 'success');
 
   // Switch to Monthly Tracker to show results
   showView('tracker');
@@ -2423,7 +2436,7 @@ function renderDailySpendChart() {
         { label: 'Avg (' + fmt(avg) + ')', data: data.map(function() { return avg; }), type: 'line', borderColor: 'rgba(239,68,68,0.6)', borderDash: [5, 3], borderWidth: 2, pointRadius: 0, fill: false }
       ]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       scales: {
         y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: function(v) { return '$' + v; } } },
@@ -2433,7 +2446,7 @@ function renderDailySpendChart() {
         legend: { labels: { usePointStyle: true, padding: 12 } },
         tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': ' + fmt(c.raw); } } }
       }
-    }
+    })
   });
 }
 
@@ -2475,7 +2488,7 @@ function renderCumulativeChart() {
         { label: 'Budget Pace', data: paceData, borderColor: '#64748b', borderDash: [6, 3], borderWidth: 2, pointRadius: 0, fill: false }
       ]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       scales: {
         y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: function(v) { return '$' + v; } } },
@@ -2485,7 +2498,7 @@ function renderCumulativeChart() {
         legend: { labels: { usePointStyle: true, padding: 12 } },
         tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': ' + fmt(c.raw); } } }
       }
-    }
+    })
   });
 }
 
@@ -2523,7 +2536,7 @@ function renderCatTrendsChart() {
   charts.catTrends = new Chart(canvas, {
     type: 'bar',
     data: { labels: labels, datasets: datasets },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       scales: {
         x: { grid: { display: false } },
@@ -2533,7 +2546,7 @@ function renderCatTrendsChart() {
         legend: { labels: { usePointStyle: true, padding: 12 } },
         tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': ' + fmt(c.raw); } } }
       }
-    }
+    })
   });
 }
 
@@ -2568,7 +2581,7 @@ function renderTopCatsChart() {
       labels: labels,
       datasets: [{ data: data, backgroundColor: colors, borderRadius: 4, barPercentage: 0.7 }]
     },
-    options: {
+    options: withChartAnimation({
       indexAxis: 'y',
       responsive: true, maintainAspectRatio: false,
       scales: {
@@ -2579,7 +2592,7 @@ function renderTopCatsChart() {
         legend: { display: false },
         tooltip: { callbacks: { label: function(c) { return fmt(c.raw); } } }
       }
-    }
+    })
   });
 }
 
@@ -2612,7 +2625,7 @@ function renderDowChart() {
       labels: DOW_LABELS,
       datasets: [{ label: 'Avg per Day', data: data, backgroundColor: colors, borderRadius: 4, barPercentage: 0.7 }]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       scales: {
         y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: function(v) { return '$' + v; } } },
@@ -2622,7 +2635,7 @@ function renderDowChart() {
         legend: { display: false },
         tooltip: { callbacks: { label: function(c) { return 'Avg: ' + fmt(c.raw); } } }
       }
-    }
+    })
   });
 }
 

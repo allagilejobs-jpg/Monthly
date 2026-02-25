@@ -1,0 +1,182 @@
+/* ═══════════════════════════════════════════════════════════
+   SHARED UI — Toast, Spinner, Animations, Tables, Polish
+   Mobile-first: base styles = phone, scale up with min-width
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Toast Notification System ── */
+.toast-container {
+  position: fixed; bottom: 12px; left: 12px; right: 12px; z-index: 99999;
+  display: flex; flex-direction: column-reverse; gap: 8px;
+  pointer-events: none; align-items: center;
+}
+.toast {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; border-radius: 10px;
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  width: 100%; max-width: 420px;
+  animation: toastInMobile 0.3s ease-out forwards;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.toast.removing { animation: toastOutMobile 0.2s ease-in forwards; }
+.toast-success { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; }
+.toast-error   { background: rgba(244,63,94,0.15); border: 1px solid rgba(244,63,94,0.3); color: #f43f5e; }
+.toast-info    { background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); color: #3b82f6; }
+.toast-warning { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; }
+.toast-icon { font-size: 16px; flex-shrink: 0; }
+.toast-msg { flex: 1; min-width: 0; line-height: 1.4; }
+.toast-close {
+  margin-left: auto; background: none; border: none; color: inherit;
+  cursor: pointer; font-size: 18px; opacity: 0.5; padding: 4px 4px;
+  min-width: 28px; min-height: 28px; display: flex; align-items: center; justify-content: center;
+}
+.toast-close:hover { opacity: 1; }
+body.light .toast { box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+
+/* Mobile: slide from bottom */
+@keyframes toastInMobile {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+@keyframes toastOutMobile {
+  from { transform: translateY(0); opacity: 1; }
+  to   { transform: translateY(100%); opacity: 0; }
+}
+
+/* Desktop: reposition to bottom-right, slide from right */
+@media (min-width: 481px) {
+  .toast-container {
+    left: auto; right: 24px; bottom: 24px; align-items: flex-end;
+  }
+  .toast {
+    width: auto; min-width: 280px; max-width: 420px;
+    animation-name: toastInDesktop;
+  }
+  .toast.removing { animation-name: toastOutDesktop; }
+  @keyframes toastInDesktop {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes toastOutDesktop {
+    from { transform: translateX(0); opacity: 1; }
+    to   { transform: translateX(100%); opacity: 0; }
+  }
+}
+
+/* ── Loading Spinner ── */
+.spinner-overlay {
+  position: absolute; inset: 0; display: flex;
+  align-items: center; justify-content: center;
+  background: rgba(15,17,23,0.5); border-radius: 12px; z-index: 10;
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+}
+body.light .spinner-overlay { background: rgba(245,245,247,0.6); }
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: var(--accent, #22c55e);
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+body.light .spinner { border-color: rgba(0,0,0,0.1); border-top-color: var(--accent, #22c55e); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (min-width: 481px) {
+  .spinner { width: 36px; height: 36px; }
+}
+
+/* ── Sort Direction Indicators ── */
+th.sortable { cursor: pointer; user-select: none; }
+th.sort-asc::after  { content: ' \25B2'; font-size: 8px; opacity: 0.8; }
+th.sort-desc::after { content: ' \25BC'; font-size: 8px; opacity: 0.8; }
+th.sortable:not(.sort-asc):not(.sort-desc)::after {
+  content: ' \25B4'; font-size: 7px; opacity: 0.25;
+}
+@media (min-width: 481px) {
+  th.sort-asc::after, th.sort-desc::after { font-size: 9px; }
+  th.sortable:not(.sort-asc):not(.sort-desc)::after { font-size: 8px; }
+}
+
+/* ── Button Hover — desktop only ── */
+@media (hover: hover) {
+  .btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+  .btn:active { transform: translateY(0); filter: brightness(0.95); }
+}
+
+/* ── Modal Transitions ── */
+.modal-overlay {
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+.modal-overlay .modal-content,
+.modal-overlay .modal {
+  transform: translateY(16px) scale(0.98);
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  opacity: 0;
+}
+.modal-overlay.open .modal-content,
+.modal-overlay.open .modal {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+/* ── View/Tab Fade ── */
+.view { transition: opacity 0.2s ease-in-out; }
+
+/* ── Table Zebra Striping ── */
+.tbl tbody tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+body.light .tbl tbody tr:nth-child(even) td { background: rgba(0,0,0,0.02); }
+
+/* ── Progress Bar Animation ── */
+.progress-fill {
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* ── KPI Entrance Animation ── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Empty State Enhancements ── */
+.empty-state { text-align: center; padding: 48px 16px; }
+.empty-state-icon {
+  font-size: 48px; margin-bottom: 12px;
+  animation: emptyBounce 2.5s ease-in-out infinite;
+}
+.empty-state-title {
+  font-size: 18px; font-weight: 700; margin-bottom: 8px;
+}
+.empty-state-text {
+  font-size: 13px; color: var(--text-muted, #71717a);
+  margin-bottom: 20px; max-width: 400px; margin-left: auto; margin-right: auto;
+  line-height: 1.6;
+}
+.empty-state-hint {
+  font-size: 11px; color: var(--text-muted, #71717a);
+  margin-top: 12px; opacity: 0.6;
+}
+@keyframes emptyBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@media (min-width: 481px) {
+  .empty-state { padding: 60px 20px; }
+  .empty-state-icon { font-size: 64px; margin-bottom: 16px; }
+  .empty-state-title { font-size: 20px; }
+  .empty-state-text { font-size: 14px; max-width: 500px; }
+  .empty-state-hint { font-size: 12px; }
+}
+
+/* ── Card Hover — desktop only ── */
+@media (hover: hover) {
+  .card:hover { border-color: rgba(255,255,255,0.1); }
+  body.light .card:hover { border-color: rgba(0,0,0,0.15); }
+  .kpi, .insight-card, .trip-card, .delta-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .kpi:hover, .insight-card:hover, .trip-card:hover, .delta-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+}

@@ -325,6 +325,7 @@ function showView(id, filterOpts) {
   currentView = id;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + id).classList.add('active');
+  fadeInView('view-' + id);
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => {
     if (t.textContent.toLowerCase().replace(/\s+/g,'') === id ||
@@ -687,14 +688,14 @@ async function handleFileSelect(file) {
       parsedTransactions = parseExcel(buf);
     }
     if (parsedTransactions.length === 0) {
-      alert("No transactions found in this file. Please check the format and try again.");
+      showToast("No transactions found. Check the format and try again.", "error");
       return;
     }
     parsedMonthKey = detectMonthKey(parsedTransactions);
     showUploadPreview(file.name);
     goUploadStep(2);
   } catch (err) {
-    alert("Error reading file: " + err.message);
+    showToast("Error reading file: " + err.message, "error");
   }
 }
 
@@ -842,16 +843,15 @@ function loadDataFile(event) {
   reader.onload = function() {
     try {
       const data = JSON.parse(reader.result);
-      if (!data.keys || data.type !== "expenses") { alert("Invalid expenses backup file."); return; }
+      if (!data.keys || data.type !== "expenses") { showToast("Invalid expenses backup file.", "error"); return; }
       const hasExisting = loadMonths().length > 0;
       if (hasExisting) {
         if (!confirm("This will overwrite your existing expense data on this device. Continue?")) return;
       }
       Object.entries(data.keys).forEach(([k, v]) => localStorage.setItem(k, v));
-      alert("Data loaded successfully! The page will now reload.");
-      location.reload();
+      showToast("Data loaded successfully! Reloading...", "success"); setTimeout(function(){ location.reload(); }, 1500);
     } catch(e) {
-      alert("Error reading file: " + e.message);
+      showToast("Error reading file: " + e.message, "error");
     }
   };
   reader.readAsText(file);
@@ -1140,6 +1140,7 @@ function renderOverview() {
   } catch(e) { console.error('Anomaly detection error:', e); }
 
   el.innerHTML = html;
+  animateKPICards('.kpi-grid');
 
   // Category pie
   const catPieLabels = catGroups.slice(0, 10).map(g => g.name);
@@ -1149,7 +1150,7 @@ function renderOverview() {
   charts.catPie = new Chart(catPieCanvas, {
     type: 'doughnut',
     data: { labels: catPieLabels, datasets: [{ data: catPieData, backgroundColor: catPieColors, borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#e4e4e7', font: { size: 11 }, padding: 8 } } } }
+    options: withChartAnimation({ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#e4e4e7', font: { size: 11 }, padding: 8 } } } })
   });
   makeChartClickable(charts.catPie, catPieCanvas, catPieLabels, 'category');
 
@@ -1162,14 +1163,14 @@ function renderOverview() {
       labels: top10.map(m => m.name),
       datasets: [{ data: top10.map(m => m.total), backgroundColor: 'rgba(59,130,246,0.6)', borderRadius: 4 }]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false, indexAxis: 'y',
       plugins: { legend: { display: false } },
       scales: {
         x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v.toLocaleString() } },
         y: { grid: { display: false }, ticks: { color: '#e4e4e7', font: { size: 11 } } }
       }
-    }
+    })
   });
   makeChartClickable(charts.merchBar, merchCanvas, top10.map(m => m.name), 'merchant');
 
@@ -1184,14 +1185,14 @@ function renderOverview() {
     charts.dailyOverview = new Chart(document.getElementById('chart-daily-overview'), {
       type: 'bar',
       data: { labels: dailyLabels, datasets: [{ data: dailyData, backgroundColor: 'rgba(59,130,246,0.5)', borderRadius: 3 }] },
-      options: {
+      options: withChartAnimation({
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
           x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 10 }, maxRotation: 45 } },
           y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } }
         }
-      }
+      })
     });
   }
 }
@@ -1227,10 +1228,10 @@ function renderMerchants() {
 
   let html = '<div class="filter-bar"><input type="text" placeholder="Search merchants..." id="merchant-search" oninput="filterMerchantTable()"></div>';
   html += '<div class="card"><table id="merchant-table"><thead><tr>';
-  html += '<th onclick="sortMerchantTable(\'name\')">Merchant</th>';
-  html += '<th onclick="sortMerchantTable(\'total\')" class="text-right">Total</th>';
-  html += '<th onclick="sortMerchantTable(\'count\')" class="text-right">Transactions</th>';
-  html += '<th onclick="sortMerchantTable(\'avg\')" class="text-right">Avg</th>';
+  html += '<th class="sortable' + (merchantSortCol === 'name' ? (merchantSortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '') + '" onclick="sortMerchantTable(\'name\')">Merchant</th>';
+  html += '<th class="sortable text-right' + (merchantSortCol === 'total' ? (merchantSortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '') + '" onclick="sortMerchantTable(\'total\')">Total</th>';
+  html += '<th class="sortable text-right' + (merchantSortCol === 'count' ? (merchantSortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '') + '" onclick="sortMerchantTable(\'count\')">Transactions</th>';
+  html += '<th class="sortable text-right' + (merchantSortCol === 'avg' ? (merchantSortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '') + '" onclick="sortMerchantTable(\'avg\')">Avg</th>';
   html += '</tr></thead><tbody id="merchant-tbody"></tbody></table></div>';
   el.innerHTML = html;
   renderMerchantRows(merchantGroups);
@@ -1253,6 +1254,7 @@ let merchantSortCol = 'total', merchantSortDir = 'desc';
 function sortMerchantTable(col) {
   if (merchantSortCol === col) merchantSortDir = merchantSortDir === 'asc' ? 'desc' : 'asc';
   else { merchantSortCol = col; merchantSortDir = col === 'name' ? 'asc' : 'desc'; }
+  updateMerchantSortHeaders();
   const sorted = [...merchantGroups].sort((a, b) => {
     let va, vb;
     if (col === 'name') { va = a.name.toLowerCase(); vb = b.name.toLowerCase(); }
@@ -1262,6 +1264,21 @@ function sortMerchantTable(col) {
     return merchantSortDir === 'asc' ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
   });
   renderMerchantRows(sorted);
+}
+
+function updateMerchantSortHeaders() {
+  var table = document.getElementById('merchant-table');
+  if (!table) return;
+  table.querySelectorAll('thead th.sortable').forEach(function(th) {
+    th.classList.remove('sort-asc', 'sort-desc');
+  });
+  var cols = ['name', 'total', 'count', 'avg'];
+  var ths = table.querySelectorAll('thead th.sortable');
+  cols.forEach(function(c, i) {
+    if (c === merchantSortCol && ths[i]) {
+      ths[i].classList.add(merchantSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
+  });
 }
 
 function filterMerchantTable() {
@@ -1301,9 +1318,9 @@ function renderTrends() {
   charts.daily = new Chart(document.getElementById('chart-daily'), {
     type: 'line',
     data: { labels, datasets: [{ data: dailyData, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 2 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+    options: withChartAnimation({ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
       scales: { x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 10 }, maxTicksLimit: 10 } },
-               y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } }
+               y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } })
   });
 
   // Cumulative
@@ -1312,9 +1329,9 @@ function renderTrends() {
   charts.cumulative = new Chart(document.getElementById('chart-cumulative'), {
     type: 'line',
     data: { labels, datasets: [{ data: cumData, borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,0.1)', fill: true, tension: 0.3, pointRadius: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+    options: withChartAnimation({ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
       scales: { x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 10 }, maxTicksLimit: 10 } },
-               y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v.toLocaleString() } } } }
+               y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v.toLocaleString() } } } })
   });
 
   // Weekly category breakdown
@@ -1335,10 +1352,10 @@ function renderTrends() {
   charts.weeklyCat = new Chart(document.getElementById('chart-weekly-cat'), {
     type: 'bar',
     data: { labels: ctx.weeks.map(w => w.label), datasets: weeklyDatasets },
-    options: { responsive: true, maintainAspectRatio: false,
+    options: withChartAnimation({ responsive: true, maintainAspectRatio: false,
       plugins: { legend: { labels: { color: '#e4e4e7', font: { size: 10 } } } },
       scales: { x: { stacked: true, grid: { display: false }, ticks: { color: '#71717a' } },
-               y: { stacked: true, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } }
+               y: { stacked: true, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } })
   });
 
   // Day of week
@@ -1352,10 +1369,10 @@ function renderTrends() {
   charts.dow = new Chart(document.getElementById('chart-dow'), {
     type: 'bar',
     data: { labels: dowLabels, datasets: [{ data: dowData, backgroundColor: dowLabels.map((_, i) => i === 0 || i === 6 ? 'rgba(244,63,94,0.5)' : 'rgba(59,130,246,0.5)'), borderRadius: 6 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false },
-      tooltip: { callbacks: { afterLabel: (ctx) => dowCount[ctx.dataIndex] + ' transactions' } } },
+    options: withChartAnimation({ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false },
+      tooltip: { callbacks: { afterLabel: (ttCtx) => dowCount[ttCtx.dataIndex] + ' transactions' } } },
       scales: { x: { grid: { display: false }, ticks: { color: '#e4e4e7' } },
-               y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } }
+               y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } })
   });
 
   // ── Spending Streaks ──
@@ -1435,10 +1452,10 @@ function renderTransactions() {
   html += '</div>';
 
   html += '<div class="card" style="overflow-x:auto"><table id="tx-table"><thead><tr>';
-  html += '<th onclick="sortTxTable(\'date\')">Date</th>';
-  html += '<th onclick="sortTxTable(\'merchant\')">Merchant</th>';
-  html += '<th onclick="sortTxTable(\'category\')">Category</th>';
-  html += '<th onclick="sortTxTable(\'amount\')" class="text-right">Amount</th>';
+  html += '<th class="sortable' + (txSortCol === 'date' ? (txSortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '') + '" onclick="sortTxTable(\'date\')">Date</th>';
+  html += '<th class="sortable' + (txSortCol === 'merchant' ? (txSortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '') + '" onclick="sortTxTable(\'merchant\')">Merchant</th>';
+  html += '<th class="sortable' + (txSortCol === 'category' ? (txSortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '') + '" onclick="sortTxTable(\'category\')">Category</th>';
+  html += '<th class="sortable text-right' + (txSortCol === 'amount' ? (txSortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '') + '" onclick="sortTxTable(\'amount\')">Amount</th>';
   html += '<th class="text-center">Source</th>';
   html += '<th></th>';
   html += '</tr></thead><tbody id="tx-tbody"></tbody></table></div>';
@@ -1492,7 +1509,23 @@ function renderTxRows() {
 function sortTxTable(col) {
   if (txSortCol === col) txSortDir = txSortDir === 'asc' ? 'desc' : 'asc';
   else { txSortCol = col; txSortDir = col === 'amount' ? 'desc' : 'asc'; }
+  updateTxSortHeaders();
   renderTxRows();
+}
+
+function updateTxSortHeaders() {
+  var table = document.getElementById('tx-table');
+  if (!table) return;
+  table.querySelectorAll('thead th.sortable').forEach(function(th) {
+    th.classList.remove('sort-asc', 'sort-desc');
+  });
+  var cols = ['date', 'merchant', 'category', 'amount'];
+  var ths = table.querySelectorAll('thead th.sortable');
+  cols.forEach(function(c, i) {
+    if (c === txSortCol && ths[i]) {
+      ths[i].classList.add(txSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
+  });
 }
 
 function clearTxFilters() {
@@ -1593,9 +1626,9 @@ function renderCompare() {
       labels: allMonths.map(m => m.ctx.monthAbbr + ' ' + m.ctx.year),
       datasets: [{ label: 'Total', data: allMonths.map(m => m.total), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 5, pointBackgroundColor: '#3b82f6' }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+    options: withChartAnimation({ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
       scales: { x: { grid: { display: false }, ticks: { color: '#e4e4e7' } },
-               y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v.toLocaleString() } } } }
+               y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v.toLocaleString() } } } })
   });
 
   // Category grouped bar
@@ -1609,10 +1642,10 @@ function renderCompare() {
   charts.compareCats = new Chart(document.getElementById('chart-compare-cats'), {
     type: 'bar',
     data: { labels: compareCats, datasets },
-    options: { responsive: true, maintainAspectRatio: false,
+    options: withChartAnimation({ responsive: true, maintainAspectRatio: false,
       plugins: { legend: { labels: { color: '#e4e4e7', font: { size: 11 } } } },
       scales: { x: { grid: { display: false }, ticks: { color: '#e4e4e7', font: { size: 10 }, maxRotation: 45 } },
-               y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } }
+               y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } })
   });
 }
 
@@ -1864,9 +1897,9 @@ function showCategoryDetail(categoryName, source) {
     new Chart(document.getElementById('chart-cat-detail-daily'), {
       type: 'bar',
       data: { labels, datasets: [{ data: dailyData, backgroundColor: catColor + '80', borderRadius: 3 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      options: withChartAnimation({ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
         scales: { x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 10 }, maxRotation: 45 } },
-                 y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } }
+                 y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } })
     });
   }
 }

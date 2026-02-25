@@ -295,7 +295,7 @@ function buildMonthSelector() {
 
 function switchMonth(monthKey) {
   const data = loadMonthData(monthKey);
-  if (!data) { alert("No data found for this month."); return; }
+  if (!data) { showToast("No data found for this month.", "warning"); return; }
   if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) demoSet("grocery_activeMonth", monthKey);
   else localStorage.setItem("grocery_activeMonth", monthKey);
   ctx = buildMonthContext(monthKey);
@@ -371,6 +371,7 @@ function showView(id, filterType, filterOpts) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('view-' + id).classList.add('active');
+  fadeInView('view-' + id);
   // Highlight the matching tab (trip-detail highlights "Trips" tab, category-detail highlights nothing)
   const tabId = id === 'trip-detail' ? 'trips' : (id === 'category-detail' || id === 'product-detail') ? '' : id;
   document.querySelectorAll('.tab').forEach(t => {
@@ -687,9 +688,9 @@ function showCategoryDetail(categoryName, source) {
     charts.catDetailDaily = new Chart(document.getElementById('chart-cat-detail-daily'), {
       type: 'bar',
       data: { labels, datasets: [{ data: dailyData, backgroundColor: catColor + '80', borderRadius: 3 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      options: withChartAnimation({ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
         scales: { x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 10 }, maxRotation: 45 } },
-                 y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } }
+                 y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } } })
     });
   }
 
@@ -897,6 +898,7 @@ function renderOverview() {
       <div class="kpi-value" style="color:${k.color}">${k.value}</div>
       <div class="kpi-sub">${k.sub}</div>
     </div>`).join("");
+  animateKPICards('#kpi-overview');
 
   // Category pie
   const catGroups = groupBy(activeData, "c");
@@ -906,14 +908,14 @@ function renderOverview() {
       labels: catGroups.map(g => g.name),
       datasets: [{ data: catGroups.map(g => +g.total.toFixed(2)), backgroundColor: catGroups.map((_, i) => PALETTE[i % PALETTE.length]), borderWidth: 0 }]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       cutout: "55%",
       plugins: {
         legend: { position: legendPos, labels: { font: { size: 11 }, padding: 8 } },
         tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, grandTotal)})` } }
       }
-    }
+    })
   });
 
   makeChartClickable(charts.catPie, document.getElementById("chart-cat-pie"), catGroups.map(g => g.name), "cat");
@@ -926,14 +928,14 @@ function renderOverview() {
       labels: storeGroups.map(g => g.name),
       datasets: [{ data: storeGroups.map(g => +g.total.toFixed(2)), backgroundColor: storeGroups.map(g => STORE_COLORS[g.name] || "#888"), borderWidth: 0 }]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       cutout: "55%",
       plugins: {
         legend: { position: legendPos, labels: { font: { size: 11 }, padding: 8 } },
         tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, grandTotal)})` } }
       }
-    }
+    })
   });
 
   makeChartClickable(charts.storePie, document.getElementById("chart-store-pie"), storeGroups.map(g => g.name), "store");
@@ -955,11 +957,11 @@ function renderOverview() {
         { label: "Toiletries", data: weeklyData.map(w => w.toiletry), backgroundColor: "#a855f7", borderRadius: 6 },
       ]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       scales: { x: { stacked: true }, y: { stacked: true, ticks: { callback: v => "$" + v } } },
       plugins: { tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt(ctx.raw)}` } } }
-    }
+    })
   });
 
   // Grocery/Toiletry/Other split
@@ -973,13 +975,13 @@ function renderOverview() {
         borderWidth: 0
       }]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       cutout: "60%",
       plugins: {
         tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, grandTotal)})` } }
       }
-    }
+    })
   });
 
   // Make split chart clickable - Groceries/Toiletries/Other navigate to respective tabs
@@ -1182,6 +1184,7 @@ function renderGroceries() {
     { label: "Categories", value: cats.length, color: "var(--amber)", sub: `Top: ${cats[0].name}`, nav: "overview" },
     { label: "Avg Per Grocery Trip", value: fmt(groceryTotal / trips), color: "var(--teal)", sub: `${trips} trips with groceries`, nav: "trends" },
   ].map(k => `<div class="kpi-card" onclick="showView('${k.nav}'${k.filter ? ",'" + k.filter + "'" : ''})"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:${k.color}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join("");
+  animateKPICards('#kpi-grocery');
 
   // Grocery category bar
   charts.groceryCat = new Chart(document.getElementById("chart-grocery-cat"), {
@@ -1190,13 +1193,13 @@ function renderGroceries() {
       labels: cats.map(c => c.name),
       datasets: [{ data: cats.map(c => +c.total.toFixed(2)), backgroundColor: cats.map((_, i) => PALETTE[i % PALETTE.length]), borderWidth: 0 }]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false, cutout: "50%",
       plugins: {
         legend: { position: legendPos, labels: { font: { size: 11 }, padding: 8 } },
         tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, groceryTotal)})` } }
       }
-    }
+    })
   });
 
   makeChartClickable(charts.groceryCat, document.getElementById("chart-grocery-cat"), cats.map(c => c.name), "cat");
@@ -1210,14 +1213,14 @@ function renderGroceries() {
       labels: top15.map(p => p.name.length > 30 ? p.name.slice(0,28) + "..." : p.name),
       datasets: [{ data: top15.map(p => +p.total.toFixed(2)), backgroundColor: "#22c55e", borderRadius: 4 }]
     },
-    options: {
+    options: withChartAnimation({
       indexAxis: "y", responsive: true, maintainAspectRatio: false,
       scales: { x: { ticks: { callback: v => "$" + v } } },
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: { label: ctx => `${fmt(ctx.raw)} (qty: ${top15[ctx.dataIndex].qty})` } }
       }
-    }
+    })
   });
   groceryTopCanvas.style.cursor = 'pointer';
   groceryTopCanvas.onclick = e => {
@@ -1248,6 +1251,7 @@ function renderToiletries() {
     { label: "Categories", value: cats.length, color: "var(--amber)", sub: cats.map(c => c.name).join(", "), nav: "overview" },
     { label: "Avg Item Cost", value: fmt(toiletryTotal / toiletries.reduce((s,i)=>s+i.q,0)), color: "var(--teal)", sub: "per unit", nav: "stores" },
   ].map(k => `<div class="kpi-card" onclick="showView('${k.nav}'${k.filter ? ",'" + k.filter + "'" : ''})"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:${k.color}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join("");
+  animateKPICards('#kpi-toiletry');
 
   // Toiletry by category
   const toilCatColors = ["#a855f7", "#d946ef", "#ec4899"];
@@ -1257,12 +1261,12 @@ function renderToiletries() {
       labels: cats.map(c => c.name),
       datasets: [{ data: cats.map(c => +c.total.toFixed(2)), backgroundColor: toilCatColors, borderWidth: 0 }]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false, cutout: "55%",
       plugins: {
         tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, toiletryTotal)})` } }
       }
-    }
+    })
   });
 
   makeChartClickable(charts.toilCat, document.getElementById("chart-toiletry-cat"), cats.map(c => c.name), "cat");
@@ -1274,11 +1278,11 @@ function renderToiletries() {
       labels: stores.map(s => s.name),
       datasets: [{ data: stores.map(s => +s.total.toFixed(2)), backgroundColor: stores.map(s => STORE_COLORS[s.name] || "#888"), borderRadius: 6 }]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       scales: { y: { ticks: { callback: v => "$" + v } } },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmt(ctx.raw) } } }
-    }
+    })
   });
 
   makeChartClickable(charts.toilStore, document.getElementById("chart-toiletry-store"), stores.map(s => s.name), "store");
@@ -1327,11 +1331,11 @@ function renderStores() {
         },
       ]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       scales: { x: { stacked: true }, y: { stacked: true, ticks: { callback: v => "$" + v } } },
       plugins: { tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt(ctx.raw)}` } } }
-    }
+    })
   });
 
   makeChartClickable(charts.storeBar, document.getElementById("chart-store-bar"), storeGroups.map(s => s.name), "store");
@@ -1377,11 +1381,11 @@ function renderTrends() {
         fill: true, tension: 0.3, pointRadius: 5, pointBackgroundColor: "#22c55e"
       }]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       scales: { y: { ticks: { callback: v => "$" + v } } },
       plugins: { tooltip: { callbacks: { label: ctx => fmt(ctx.raw) } } }
-    }
+    })
   });
 
   // Cumulative spend
@@ -1398,11 +1402,11 @@ function renderTrends() {
         fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: "#06b6d4"
       }]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       scales: { y: { ticks: { callback: v => "$" + v } } },
       plugins: { tooltip: { callbacks: { label: ctx => fmt(ctx.raw) } } }
-    }
+    })
   });
 
   // Trips per week
@@ -1421,11 +1425,11 @@ function renderTrends() {
       labels: weekNames,
       datasets: [{ label: "Trips", data: weekTrips, backgroundColor: "#3b82f6", borderRadius: 6 }]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
       plugins: { legend: { display: false } }
-    }
+    })
   });
 
   // Avg spend per trip by store
@@ -1447,11 +1451,11 @@ function renderTrends() {
       labels: avgTripData.map(d => d.name),
       datasets: [{ label: "Avg/Trip", data: avgTripData.map(d => d.avg), backgroundColor: avgTripData.map(d => STORE_COLORS[d.name] || "#888"), borderRadius: 6 }]
     },
-    options: {
+    options: withChartAnimation({
       responsive: true, maintainAspectRatio: false,
       scales: { y: { ticks: { callback: v => "$" + v } } },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmt(ctx.raw) + " avg per trip" } } }
-    }
+    })
   });
 
   // Spending streaks
@@ -1916,8 +1920,8 @@ function renderTable() {
 
   let html = `<thead><tr>`;
   cols.forEach(col => {
-    const arrow = currentSort.col === col.key ? (currentSort.dir === "asc" ? " ↑" : " ↓") : "";
-    html += `<th onclick="sortTable('${col.key}')">${col.label}${arrow}</th>`;
+    const sortClass = currentSort.col === col.key ? (currentSort.dir === "asc" ? " sort-asc" : " sort-desc") : "";
+    html += `<th class="sortable${sortClass}" onclick="sortTable('${col.key}')">${col.label}</th>`;
   });
   html += `<th style="width:50px"></th></tr></thead><tbody>`;
 
@@ -2128,7 +2132,7 @@ function parseExcelFile(file) {
       ) || workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
       const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-      if (rows.length === 0) { alert("No data found in sheet: " + sheetName); return; }
+      if (rows.length === 0) { showToast("No data found in sheet: " + sheetName, "error"); return; }
 
       const headers = Object.keys(rows[0]);
       const mapping = autoDetectColumns(headers);
@@ -2151,7 +2155,7 @@ function parseExcelFile(file) {
         };
       }).filter(item => item.d && item.n && item.t > 0);
 
-      if (parsed.length === 0) { alert("No valid items found. Check column headers."); return; }
+      if (parsed.length === 0) { showToast("No valid items found. Check column headers.", "error"); return; }
 
       const monthNum = parseInt(parsed[0].d.split("/")[0]);
       const year = detectedYear || new Date().getFullYear();
@@ -2160,7 +2164,7 @@ function parseExcelFile(file) {
 
       showUploadPreview(parsed, pendingUploadKey, sheetName);
     } catch(err) {
-      alert("Error parsing file: " + err.message);
+      showToast("Error parsing file: " + err.message, "error");
     }
   };
   reader.readAsArrayBuffer(file);
@@ -2282,16 +2286,15 @@ function loadDataFile(event) {
   reader.onload = function() {
     try {
       const data = JSON.parse(reader.result);
-      if (!data.keys || data.type !== "grocery") { alert("Invalid grocery backup file."); return; }
+      if (!data.keys || data.type !== "grocery") { showToast("Invalid grocery backup file.", "error"); return; }
       const hasExisting = getLoadedMonths().some(mk => localStorage.getItem("data_" + mk));
       if (hasExisting) {
         if (!confirm("This will overwrite your existing grocery data on this device. Continue?")) return;
       }
       Object.entries(data.keys).forEach(([k, v]) => localStorage.setItem(k, v));
-      alert("Data loaded successfully! The page will now reload.");
-      location.reload();
+      showToast("Data loaded successfully! Reloading...", "success"); setTimeout(function(){ location.reload(); }, 1500);
     } catch(e) {
-      alert("Error reading file: " + e.message);
+      showToast("Error reading file: " + e.message, "error");
     }
   };
   reader.readAsText(file);
@@ -2382,7 +2385,7 @@ function renderCompare() {
         { label: "Toiletries", data: allMonthData.map(m => +m.toiletryTotal.toFixed(2)), borderColor: "#a855f7", tension: 0.3, pointRadius: 5, pointBackgroundColor: "#a855f7" },
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => "$" + v } } }, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmt(c.raw) } } } }
+    options: withChartAnimation({ responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => "$" + v } } }, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmt(c.raw) } } } })
   });
 
   // Category comparison grouped bar
@@ -2398,7 +2401,7 @@ function renderCompare() {
         borderRadius: 4,
       }))
     },
-    options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => "$" + v } } }, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmt(c.raw) } } } }
+    options: withChartAnimation({ responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => "$" + v } } }, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmt(c.raw) } } } })
   });
 
   // Store comparison grouped bar
@@ -2414,6 +2417,6 @@ function renderCompare() {
         borderRadius: 4,
       }))
     },
-    options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => "$" + v } } }, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmt(c.raw) } } } }
+    options: withChartAnimation({ responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => "$" + v } } }, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmt(c.raw) } } } })
   });
 }

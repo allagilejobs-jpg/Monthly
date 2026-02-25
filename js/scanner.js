@@ -1074,7 +1074,7 @@ function checkExistingMonth(monthKey) {
 // ============================================================
 async function doExcelExport() {
   const monthVal = document.getElementById('excelMonth').value;
-  if (!monthVal) { alert('Please select a month'); return; }
+  if (!monthVal) { showToast('Please select a month.', 'warning'); return; }
   const [yr, mo] = monthVal.split('-');
   const monthName = new Date(yr, parseInt(mo)-1).toLocaleString('default',{month:'long'});
 
@@ -1254,7 +1254,7 @@ async function doExcelExport() {
 // ============================================================
 function doDashboardImport() {
   const monthVal = document.getElementById('dashMonth').value;
-  if (!monthVal) { alert('Please select a month'); return; }
+  if (!monthVal) { showToast('Please select a month.', 'warning'); return; }
   const [yr, mo] = monthVal.split('-');
   const monthKey = yr + '_' + mo;
 
@@ -1313,7 +1313,7 @@ function doDashboardImport() {
 function undoImport(monthKey, monthLabel) {
   const backup = localStorage.getItem('backup_data_' + monthKey);
   if (!backup) {
-    alert('No backup found to restore.');
+    showToast('No backup found to restore.', 'warning');
     return;
   }
   if (!confirm('Restore previous data for ' + monthLabel + '? This will undo the import.')) return;
