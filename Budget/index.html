@@ -391,6 +391,7 @@ body.light .tx-filter-select { background:#f9fafb; border-color:#d1d5db; }
     <div class="card-title">
       <span>Budget Configuration</span>
       <div style="display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="openBulkUploadModal()">&#128451; Upload Statements</button>
         <button class="btn btn-secondary btn-sm" onclick="importSetupFromExcel()">Import Excel</button>
         <button class="btn btn-secondary btn-sm" onclick="exportToExcel()">Export Excel</button>
       </div>
@@ -410,45 +411,6 @@ body.light .tx-filter-select { background:#f9fafb; border-color:#d1d5db; }
           <option value="9">September</option><option value="10">October</option>
           <option value="11">November</option><option value="12">December</option>
         </select>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Upload Statements Section ── -->
-  <div class="card" id="setup-upload-card">
-    <div class="card-title">
-      <span>Upload Bank &amp; Credit Card Statements</span>
-    </div>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
-      Upload CSV, PDF, or Excel bank/credit card statements. Transactions are auto-categorized and sorted into the correct month.
-      You can upload multiple files at once.
-    </p>
-    <div class="bulk-drop-zone" id="bulk-drop-zone"
-         ondragover="event.preventDefault();this.classList.add('drag-over')"
-         ondragleave="this.classList.remove('drag-over')"
-         ondrop="handleBulkDrop(event)" onclick="document.getElementById('bulk-file-input').click()">
-      <div style="font-size:40px;margin-bottom:8px">&#128451;</div>
-      <div style="font-size:15px;font-weight:600;margin-bottom:4px">Drop files here or click to browse</div>
-      <div style="font-size:12px;color:var(--text-muted)">Supports CSV, PDF, and Excel files &middot; Multiple files allowed</div>
-      <div style="display:flex;gap:16px;justify-content:center;margin-top:12px">
-        <span style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px">&#128196; CSV</span>
-        <span style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px">&#128195; PDF</span>
-        <span style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px">&#128202; Excel</span>
-      </div>
-    </div>
-    <input type="file" id="bulk-file-input" style="display:none" accept=".csv,.txt,.pdf,.xlsx,.xls" multiple onchange="handleBulkFiles(this.files)">
-
-    <!-- File Queue -->
-    <div id="bulk-file-queue" class="hidden" style="margin-top:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-size:13px;font-weight:700">Files to Import</span>
-        <button class="btn btn-secondary btn-sm" onclick="clearBulkQueue()">Clear All</button>
-      </div>
-      <div id="bulk-file-list"></div>
-      <div id="bulk-summary" style="margin-top:12px"></div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-        <button class="btn btn-secondary" onclick="clearBulkQueue()">Cancel</button>
-        <button class="btn btn-primary" id="bulk-import-btn" onclick="confirmBulkImport()">Import All Transactions</button>
       </div>
     </div>
   </div>
@@ -922,6 +884,43 @@ body.light .tx-filter-select { background:#f9fafb; border-color:#d1d5db; }
         <button class="btn btn-secondary btn-sm" onclick="goUploadStep(1)">Back</button>
         <button class="btn btn-primary" onclick="confirmStatementImport()">Import Transactions</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ BULK UPLOAD MODAL ═══════ -->
+<div class="modal-overlay" id="bulk-upload-modal">
+  <div class="modal" style="max-width:620px">
+    <h3>Upload Bank &amp; Credit Card Statements</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
+      Drop or select CSV, PDF, or Excel statements. Multiple files supported — transactions are auto-categorized and sorted by month.
+    </p>
+    <div class="bulk-drop-zone" id="bulk-drop-zone"
+         ondragover="event.preventDefault();this.classList.add('drag-over')"
+         ondragleave="this.classList.remove('drag-over')"
+         ondrop="handleBulkDrop(event)" onclick="document.getElementById('bulk-file-input').click()">
+      <div style="font-size:36px;margin-bottom:8px">&#128451;</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Drop files here or click to browse</div>
+      <div style="font-size:12px;color:var(--text-muted)">
+        <span style="margin:0 6px">&#128196; CSV</span>
+        <span style="margin:0 6px">&#128195; PDF</span>
+        <span style="margin:0 6px">&#128202; Excel</span>
+      </div>
+    </div>
+    <input type="file" id="bulk-file-input" style="display:none" accept=".csv,.txt,.pdf,.xlsx,.xls" multiple onchange="handleBulkFiles(this.files)">
+
+    <div id="bulk-file-queue" class="hidden" style="margin-top:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:13px;font-weight:700">Files to Import</span>
+        <button class="btn btn-secondary btn-sm" onclick="clearBulkQueue()">Clear All</button>
+      </div>
+      <div id="bulk-file-list" style="max-height:240px;overflow-y:auto"></div>
+      <div id="bulk-summary" style="margin-top:12px"></div>
+    </div>
+
+    <div class="form-actions" style="margin-top:16px">
+      <button class="btn btn-secondary" onclick="closeBulkUploadModal()">Cancel</button>
+      <button class="btn btn-primary" id="bulk-import-btn" onclick="confirmBulkImport()" disabled>Import All Transactions</button>
     </div>
   </div>
 </div>
@@ -2909,6 +2908,21 @@ function detectFileFormat(fileName) {
   return null;
 }
 
+function openBulkUploadModal() {
+  if (_isDemo && typeof showDemoUpgradePrompt === 'function') {
+    showDemoUpgradePrompt('Sign up to upload bank statements.');
+    return;
+  }
+  _bulkQueue = [];
+  renderBulkQueue();
+  document.getElementById('bulk-upload-modal').classList.add('open');
+}
+function closeBulkUploadModal() {
+  document.getElementById('bulk-upload-modal').classList.remove('open');
+  _bulkQueue = [];
+  renderBulkQueue();
+}
+
 function handleBulkDrop(e) {
   e.preventDefault();
   e.currentTarget.classList.remove('drag-over');
@@ -3128,6 +3142,9 @@ function confirmBulkImport() {
     switchMonth(months[months.length - 1]);
   }
   updateMonthNav();
+
+  // Close modal
+  closeBulkUploadModal();
 
   alert('Successfully imported ' + totalImported + ' transactions from ' + doneItems.length + ' file(s)!');
 
