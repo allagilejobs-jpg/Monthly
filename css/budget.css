@@ -403,3 +403,10 @@ body.light .tx-filter-select { background:#f9fafb; border-color:#d1d5db; }
 .pagination-bar .page-btn:disabled { opacity:0.35; cursor:default; }
 .pagination-bar .page-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
 .pagination-bar .page-info { font-size:12px; }
+@media(max-width:480px) {
+  .pagination-bar { flex-direction:column; align-items:stretch; gap:8px; }
+  .pagination-bar .page-size-wrap { justify-content:center; }
+  .pagination-bar .page-btns { justify-content:center; flex-wrap:wrap; }
+  .pagination-bar .page-btn { padding:6px 12px; min-height:34px; }
+  .pagination-bar .page-info { text-align:center; }
+}
