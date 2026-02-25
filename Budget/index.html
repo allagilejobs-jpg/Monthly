@@ -257,6 +257,65 @@ a.nav-link:hover { text-decoration:underline; }
 .preview-stat { display:flex; justify-content:space-between; padding:4px 0; font-size:13px; }
 .preview-stat span:last-child { font-weight:600; }
 @media(max-width:480px) { .format-grid { grid-template-columns:1fr; } }
+/* ── Insights Cards ── */
+.insight-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+.insight-card {
+  background:var(--card); border:1px solid var(--card-border); border-radius:12px;
+  padding:14px; position:relative; overflow:hidden;
+}
+.insight-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+}
+.insight-card.green::before { background:var(--green); }
+.insight-card.red::before { background:var(--red); }
+.insight-card.amber::before { background:var(--amber); }
+.insight-card.purple::before { background:var(--accent); }
+.insight-card.blue::before { background:var(--blue); }
+.insight-icon { font-size:20px; margin-bottom:6px; }
+.insight-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px; }
+.insight-value { font-size:16px; font-weight:700; }
+.insight-detail { font-size:11px; color:var(--text-muted); margin-top:4px; line-height:1.4; }
+/* ── Anomaly/Recurring ── */
+.anomaly-item {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.04);
+  font-size:13px;
+}
+body.light .anomaly-item { border-bottom:1px solid rgba(0,0,0,0.06); }
+.anomaly-item:last-child { border-bottom:none; }
+.anomaly-badge {
+  display:inline-block; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700;
+  text-transform:uppercase; letter-spacing:0.5px;
+}
+.anomaly-badge.spike { background:rgba(239,68,68,0.15); color:var(--red); }
+.anomaly-badge.recurring { background:rgba(59,130,246,0.15); color:var(--blue); }
+.anomaly-badge.unusual { background:rgba(245,158,11,0.15); color:var(--amber); }
+/* ── Search/Filter ── */
+.tx-toolbar {
+  display:flex; gap:8px; margin-bottom:12px; align-items:center; flex-wrap:wrap;
+}
+.tx-search {
+  flex:1; min-width:160px; padding:7px 12px; border-radius:8px;
+  border:1px solid var(--card-border); background:var(--bg); color:var(--text);
+  font-size:13px; font-family:inherit;
+}
+.tx-search:focus { outline:none; border-color:var(--accent); }
+body.light .tx-search { background:#f9fafb; border-color:#d1d5db; }
+.tx-filter-select {
+  padding:7px 12px; border-radius:8px; border:1px solid var(--card-border);
+  background:var(--bg); color:var(--text); font-size:13px; font-family:inherit;
+  min-width:120px;
+}
+.tx-filter-select:focus { outline:none; border-color:var(--accent); }
+body.light .tx-filter-select { background:#f9fafb; border-color:#d1d5db; }
+@media(max-width:900px) {
+  .insight-grid { grid-template-columns:repeat(2,1fr); }
+}
+@media(max-width:480px) {
+  .insight-grid { grid-template-columns:1fr 1fr; }
+  .insight-card { padding:10px; }
+  .insight-value { font-size:14px; }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -287,6 +346,7 @@ a.nav-link:hover { text-decoration:underline; }
   <button class="tab" onclick="showView('tracker')">Monthly Tracker</button>
   <button class="tab" onclick="showView('accounts')">Bank Accounts</button>
   <button class="tab" onclick="showView('annual')">Annual Overview</button>
+  <button class="tab" onclick="showView('trends')">Trends &amp; Insights</button>
   <button class="tab" onclick="showView('networth')">Net Worth</button>
 </div>
 
@@ -420,6 +480,20 @@ a.nav-link:hover { text-decoration:underline; }
               <button class="btn btn-secondary btn-sm" onclick="openUploadModal()">Upload Statement</button>
               <button class="btn btn-primary btn-sm" onclick="openTxModal()">+ Add</button>
             </div>
+          </div>
+          <div class="tx-toolbar">
+            <input type="text" class="tx-search" id="tx-search" placeholder="Search transactions..." oninput="filterTxTable()">
+            <select class="tx-filter-select" id="tx-cat-filter" onchange="filterTxTable()">
+              <option value="">All Categories</option>
+            </select>
+            <select class="tx-filter-select" id="tx-method-filter" onchange="filterTxTable()">
+              <option value="">All Methods</option>
+              <option value="Debit">Debit</option>
+              <option value="Credit">Credit</option>
+              <option value="Cash">Cash</option>
+              <option value="Transfer">Transfer</option>
+              <option value="Other">Other</option>
+            </select>
           </div>
           <div style="overflow-x:auto">
             <table class="tbl" id="tx-table">
@@ -568,6 +642,65 @@ a.nav-link:hover { text-decoration:underline; }
   <div id="nw-empty" class="empty-state hidden">
     <p>Add bank accounts to track your net worth over time.</p>
     <button class="btn btn-primary" onclick="showView('accounts')">Go to Bank Accounts</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- TAB 6: TRENDS & INSIGHTS                  -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="view" id="view-trends">
+  <div class="month-nav">
+    <select id="trends-month-select" onchange="switchMonth(this.value)"></select>
+  </div>
+
+  <!-- Key Insights -->
+  <div class="insight-grid" id="trends-insights"></div>
+
+  <!-- Daily Spending + Cumulative -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Daily Spending</div>
+      <div class="chart-wrap"><canvas id="chart-daily-spend"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Cumulative Spend vs Budget Pace</div>
+      <div class="chart-wrap"><canvas id="chart-cumulative"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Category Trends across months -->
+  <div class="card">
+    <div class="card-title">Category Spending Trends (Multi-Month)</div>
+    <div class="chart-wrap" style="height:320px"><canvas id="chart-cat-trends"></canvas></div>
+  </div>
+
+  <!-- Top Categories + Day of Week -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Top Spending Categories</div>
+      <div class="chart-wrap"><canvas id="chart-top-cats"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Spending by Day of Week</div>
+      <div class="chart-wrap"><canvas id="chart-dow"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Anomalies + Recurring -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Spending Anomalies</div>
+      <div id="anomaly-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Recurring Expenses Detected</div>
+      <div id="recurring-list"></div>
+    </div>
+  </div>
+
+  <div id="trends-empty" class="empty-state hidden">
+    <p>Add transactions in the Monthly Tracker to see trends and insights.</p>
+    <button class="btn btn-primary" onclick="showView('tracker')">Go to Tracker</button>
   </div>
 </div>
 
@@ -883,12 +1016,16 @@ function switchMonth(mk) {
   destroyAllCharts();
   renderTracker();
   renderAccounts();
+  // Re-render trends if that tab is active
+  if (document.getElementById('view-trends') && document.getElementById('view-trends').classList.contains('active')) {
+    renderTrends();
+  }
 }
 
 function updateMonthNav() {
   var months = loadMonths().sort();
   var activeMk = ctx ? ctx.monthKey : '';
-  ['month-select','acct-month-select'].forEach(function(id) {
+  ['month-select','acct-month-select','trends-month-select'].forEach(function(id) {
     var sel = document.getElementById(id);
     if (!sel) return;
     sel.innerHTML = '';
@@ -910,7 +1047,7 @@ function showView(id) {
   var view = document.getElementById('view-' + id);
   if (view) view.classList.add('active');
   var tabs = document.querySelectorAll('.tab');
-  var tabMap = {setup:0, tracker:1, accounts:2, annual:3, networth:4};
+  var tabMap = {setup:0, tracker:1, accounts:2, annual:3, trends:4, networth:5};
   if (tabs[tabMap[id]]) tabs[tabMap[id]].classList.add('active');
 
   // Render on tab switch
@@ -918,6 +1055,7 @@ function showView(id) {
   if (id === 'networth') renderNetWorth();
   if (id === 'tracker') renderTracker();
   if (id === 'accounts') renderAccounts();
+  if (id === 'trends') renderTrends();
 }
 
 // ── Theme ──
@@ -1151,6 +1289,9 @@ function renderTxTable() {
   var body = document.getElementById('tx-body');
   var empty = document.getElementById('tx-empty');
 
+  // Populate category filter dropdown
+  populateCatFilter();
+
   if (activeData.length === 0) {
     body.innerHTML = '';
     empty.classList.remove('hidden');
@@ -1160,12 +1301,20 @@ function renderTxTable() {
   empty.classList.add('hidden');
   document.getElementById('tx-table').classList.remove('hidden');
 
+  // Get filtered data
+  var filtered = getFilteredTx();
+
   // Sort
-  var sorted = activeData.slice().sort(function(a,b) {
+  var sorted = filtered.slice().sort(function(a,b) {
     var va = a[txSortCol], vb = b[txSortCol];
     if (txSortCol === 'amount') return ((va||0) - (vb||0)) * txSortDir;
     return String(va||'').localeCompare(String(vb||'')) * txSortDir;
   });
+
+  if (sorted.length === 0 && activeData.length > 0) {
+    body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px">No transactions match your filters</td></tr>';
+    return;
+  }
 
   body.innerHTML = sorted.map(function(tx) {
     return '<tr>'
@@ -2690,6 +2839,554 @@ function confirmStatementImport() {
   switchMonth(mk);
   alert('Imported ' + _pendingImport.length + ' transactions successfully!');
   _pendingImport = [];
+}
+
+// ════════════════════════════════════════
+// SEARCH / FILTER — Transaction Table
+// ════════════════════════════════════════
+
+var _txSearchQuery = '';
+var _txCatFilter = '';
+var _txMethodFilter = '';
+
+function populateCatFilter() {
+  var setup = loadSetup();
+  var sel = document.getElementById('tx-cat-filter');
+  if (!sel) return;
+  var current = sel.value;
+  sel.innerHTML = '<option value="">All Categories</option>';
+  var cats = {};
+  activeData.forEach(function(tx) { cats[tx.category] = true; });
+  setup.categories.concat(setup.extras || []).forEach(function(c) {
+    if (cats[c.name] || (c.budget > 0 && !c.name.match(/^Extra \d+$/))) cats[c.name] = true;
+  });
+  Object.keys(cats).sort().forEach(function(cat) {
+    var opt = document.createElement('option');
+    opt.value = cat; opt.textContent = cat;
+    sel.appendChild(opt);
+  });
+  sel.value = current;
+}
+
+function filterTxTable() {
+  _txSearchQuery = (document.getElementById('tx-search').value || '').toLowerCase().trim();
+  _txCatFilter = document.getElementById('tx-cat-filter').value;
+  _txMethodFilter = document.getElementById('tx-method-filter').value;
+  renderTxTable();
+}
+
+function getFilteredTx() {
+  return activeData.filter(function(tx) {
+    if (_txCatFilter && tx.category !== _txCatFilter) return false;
+    if (_txMethodFilter && tx.paymentMethod !== _txMethodFilter) return false;
+    if (_txSearchQuery) {
+      var haystack = ((tx.description || '') + ' ' + (tx.category || '') + ' ' + (tx.date || '') + ' ' + (tx.paymentMethod || '')).toLowerCase();
+      if (haystack.indexOf(_txSearchQuery) < 0) return false;
+    }
+    return true;
+  });
+}
+
+// ════════════════════════════════════════
+// TRENDS & INSIGHTS TAB
+// ════════════════════════════════════════
+
+function renderTrends() {
+  var months = loadMonths();
+  var trendsEmpty = document.getElementById('trends-empty');
+
+  if (months.length === 0 || !ctx) {
+    trendsEmpty.classList.remove('hidden');
+    document.getElementById('trends-insights').innerHTML = '';
+    return;
+  }
+
+  if (activeData.length === 0) {
+    trendsEmpty.classList.remove('hidden');
+    return;
+  }
+  trendsEmpty.classList.add('hidden');
+
+  // Generate all visualizations
+  renderInsights();
+  renderDailySpendChart();
+  renderCumulativeChart();
+  renderCatTrendsChart();
+  renderTopCatsChart();
+  renderDowChart();
+  renderAnomalies();
+  renderRecurring();
+}
+
+// ── Key Insights ──
+function renderInsights() {
+  var setup = loadSetup();
+  var allCats = setup.categories.concat(setup.extras || []);
+  var totalBudget = allCats.reduce(function(s, c) { return s + (c.budget || 0); }, 0);
+  var totalSpent = activeData.reduce(function(s, t) { return s + (t.amount || 0); }, 0);
+
+  // Category totals
+  var catTotals = {};
+  activeData.forEach(function(tx) {
+    catTotals[tx.category] = (catTotals[tx.category] || 0) + (tx.amount || 0);
+  });
+  var sortedCats = Object.entries(catTotals).sort(function(a, b) { return b[1] - a[1]; });
+  var topCat = sortedCats.length > 0 ? sortedCats[0] : ['None', 0];
+
+  // Over-budget categories
+  var overBudget = [];
+  allCats.forEach(function(c) {
+    var actual = catTotals[c.name] || 0;
+    if (c.budget > 0 && actual > c.budget * 1.1) {
+      overBudget.push({ name: c.name, budget: c.budget, actual: actual, over: actual - c.budget });
+    }
+  });
+  overBudget.sort(function(a, b) { return b.over - a.over; });
+
+  // Spending pace
+  var today = new Date();
+  var dayOfMonth = (ctx.year === today.getFullYear() && ctx.month === today.getMonth() + 1) ? today.getDate() : ctx.daysInMonth;
+  var pctMonthGone = dayOfMonth / ctx.daysInMonth * 100;
+  var pctBudgetUsed = totalBudget > 0 ? totalSpent / totalBudget * 100 : 0;
+  var paceStatus, paceColor, paceClass;
+  if (pctBudgetUsed <= pctMonthGone * 0.9) { paceStatus = 'Under pace'; paceColor = 'var(--green)'; paceClass = 'green'; }
+  else if (pctBudgetUsed <= pctMonthGone * 1.1) { paceStatus = 'On pace'; paceColor = 'var(--amber)'; paceClass = 'amber'; }
+  else { paceStatus = 'Over pace'; paceColor = 'var(--red)'; paceClass = 'red'; }
+
+  // Largest transaction
+  var largest = activeData.reduce(function(max, tx) { return (tx.amount || 0) > (max.amount || 0) ? tx : max; }, { amount: 0 });
+
+  // Month-over-month change
+  var months = loadMonths().sort();
+  var prevIdx = months.indexOf(ctx.monthKey) - 1;
+  var momChange = null;
+  if (prevIdx >= 0) {
+    var prevTxs = loadTransactions(months[prevIdx]);
+    var prevTotal = prevTxs.reduce(function(s, t) { return s + (t.amount || 0); }, 0);
+    if (prevTotal > 0) momChange = ((totalSpent - prevTotal) / prevTotal * 100);
+  }
+
+  // Daily average
+  var dailyAvg = dayOfMonth > 0 ? totalSpent / dayOfMonth : 0;
+  var txCount = activeData.length;
+
+  var html = '';
+
+  // Card 1: Top Category
+  html += '<div class="insight-card purple">'
+    + '<div class="insight-icon">&#128200;</div>'
+    + '<div class="insight-label">Top Category</div>'
+    + '<div class="insight-value">' + escHtml(topCat[0]) + '</div>'
+    + '<div class="insight-detail">' + fmt(topCat[1]) + ' (' + fmtPct(totalSpent > 0 ? topCat[1] / totalSpent * 100 : 0) + ' of total)</div>'
+    + '</div>';
+
+  // Card 2: Budget Pace
+  html += '<div class="insight-card ' + paceClass + '">'
+    + '<div class="insight-icon">&#9201;</div>'
+    + '<div class="insight-label">Budget Pace</div>'
+    + '<div class="insight-value" style="color:' + paceColor + '">' + paceStatus + '</div>'
+    + '<div class="insight-detail">' + fmtPct(pctBudgetUsed) + ' used with ' + fmtPct(pctMonthGone) + ' of month passed</div>'
+    + '</div>';
+
+  // Card 3: Over Budget
+  html += '<div class="insight-card ' + (overBudget.length > 0 ? 'red' : 'green') + '">'
+    + '<div class="insight-icon">' + (overBudget.length > 0 ? '&#9888;' : '&#9989;') + '</div>'
+    + '<div class="insight-label">Budget Alerts</div>'
+    + '<div class="insight-value">' + overBudget.length + ' over budget</div>'
+    + '<div class="insight-detail">' + (overBudget.length > 0 ? overBudget.slice(0, 2).map(function(o) { return o.name + ' (+' + fmt(o.over) + ')'; }).join(', ') : 'All categories within budget') + '</div>'
+    + '</div>';
+
+  // Card 4: Month Stats
+  html += '<div class="insight-card blue">'
+    + '<div class="insight-icon">&#128202;</div>'
+    + '<div class="insight-label">Daily Average</div>'
+    + '<div class="insight-value">' + fmt(dailyAvg) + '/day</div>'
+    + '<div class="insight-detail">' + txCount + ' transactions' + (momChange !== null ? ' &middot; ' + (momChange >= 0 ? '+' : '') + fmtPct(momChange) + ' vs prev month' : '') + '</div>'
+    + '</div>';
+
+  document.getElementById('trends-insights').innerHTML = html;
+}
+
+// ── Daily Spending Line Chart ──
+function renderDailySpendChart() {
+  if (charts.dailySpend) charts.dailySpend.destroy();
+  var canvas = document.getElementById('chart-daily-spend');
+  if (!canvas || !ctx) return;
+
+  var dailyTotals = {};
+  for (var d = 1; d <= ctx.daysInMonth; d++) {
+    dailyTotals[d] = 0;
+  }
+  activeData.forEach(function(tx) {
+    if (!tx.date) return;
+    var day = parseInt(tx.date.split('-')[2]);
+    if (day >= 1 && day <= ctx.daysInMonth) dailyTotals[day] += (tx.amount || 0);
+  });
+
+  var labels = [];
+  var data = [];
+  for (var d = 1; d <= ctx.daysInMonth; d++) {
+    labels.push(d);
+    data.push(dailyTotals[d]);
+  }
+
+  // Average line
+  var avg = data.reduce(function(a, b) { return a + b; }, 0) / data.length;
+
+  charts.dailySpend = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Daily Spend', data: data, backgroundColor: 'rgba(168,85,247,0.6)', borderRadius: 3, barPercentage: 0.8 },
+        { label: 'Avg (' + fmt(avg) + ')', data: data.map(function() { return avg; }), type: 'line', borderColor: 'rgba(239,68,68,0.6)', borderDash: [5, 3], borderWidth: 2, pointRadius: 0, fill: false }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: function(v) { return '$' + v; } } },
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 15 } }
+      },
+      plugins: {
+        legend: { labels: { usePointStyle: true, padding: 12 } },
+        tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': ' + fmt(c.raw); } } }
+      }
+    }
+  });
+}
+
+// ── Cumulative Spend vs Budget Pace ──
+function renderCumulativeChart() {
+  if (charts.cumulative) charts.cumulative.destroy();
+  var canvas = document.getElementById('chart-cumulative');
+  if (!canvas || !ctx) return;
+
+  var setup = loadSetup();
+  var allCats = setup.categories.concat(setup.extras || []);
+  var totalBudget = allCats.reduce(function(s, c) { return s + (c.budget || 0); }, 0);
+
+  var dailyTotals = {};
+  for (var d = 1; d <= ctx.daysInMonth; d++) dailyTotals[d] = 0;
+  activeData.forEach(function(tx) {
+    if (!tx.date) return;
+    var day = parseInt(tx.date.split('-')[2]);
+    if (day >= 1 && day <= ctx.daysInMonth) dailyTotals[day] += (tx.amount || 0);
+  });
+
+  var labels = [];
+  var cumData = [];
+  var paceData = [];
+  var running = 0;
+  for (var d = 1; d <= ctx.daysInMonth; d++) {
+    labels.push(d);
+    running += dailyTotals[d];
+    cumData.push(running);
+    paceData.push(totalBudget / ctx.daysInMonth * d);
+  }
+
+  charts.cumulative = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Actual Spend', data: cumData, borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,0.1)', fill: true, tension: 0.3, pointRadius: 2 },
+        { label: 'Budget Pace', data: paceData, borderColor: '#64748b', borderDash: [6, 3], borderWidth: 2, pointRadius: 0, fill: false }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: function(v) { return '$' + v; } } },
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 15 } }
+      },
+      plugins: {
+        legend: { labels: { usePointStyle: true, padding: 12 } },
+        tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': ' + fmt(c.raw); } } }
+      }
+    }
+  });
+}
+
+// ── Category Trends across Multiple Months ──
+function renderCatTrendsChart() {
+  if (charts.catTrends) charts.catTrends.destroy();
+  var canvas = document.getElementById('chart-cat-trends');
+  if (!canvas) return;
+
+  var months = loadMonths().sort();
+  if (months.length < 1) { canvas.style.display = 'none'; return; }
+  canvas.style.display = '';
+
+  var setup = loadSetup();
+  var groups = {};
+  setup.categories.concat(setup.extras || []).forEach(function(c) {
+    if (!groups[c.group]) groups[c.group] = [];
+    groups[c.group].push(c.name);
+  });
+
+  var labels = months.map(function(mk) { return buildMonthContext(mk).monthAbbr; });
+  var datasets = [];
+  Object.keys(groups).forEach(function(group) {
+    var data = months.map(function(mk) {
+      var txs = loadTransactions(mk);
+      return txs.reduce(function(s, tx) {
+        return groups[group].indexOf(tx.category) >= 0 ? s + (tx.amount || 0) : s;
+      }, 0);
+    });
+    if (data.some(function(v) { return v > 0; })) {
+      datasets.push({ label: group, data: data, backgroundColor: GROUP_COLORS[group] || '#64748b' });
+    }
+  });
+
+  charts.catTrends = new Chart(canvas, {
+    type: 'bar',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: function(v) { return '$' + v; } } }
+      },
+      plugins: {
+        legend: { labels: { usePointStyle: true, padding: 12 } },
+        tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': ' + fmt(c.raw); } } }
+      }
+    }
+  });
+}
+
+// ── Top Spending Categories (Horizontal Bar) ──
+function renderTopCatsChart() {
+  if (charts.topCats) charts.topCats.destroy();
+  var canvas = document.getElementById('chart-top-cats');
+  if (!canvas) return;
+
+  var catTotals = {};
+  activeData.forEach(function(tx) {
+    catTotals[tx.category] = (catTotals[tx.category] || 0) + (tx.amount || 0);
+  });
+
+  var sorted = Object.entries(catTotals).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 10);
+  if (sorted.length === 0) { canvas.style.display = 'none'; return; }
+  canvas.style.display = '';
+
+  var setup = loadSetup();
+  var allCats = setup.categories.concat(setup.extras || []);
+
+  var labels = sorted.map(function(e) { return e[0]; });
+  var data = sorted.map(function(e) { return e[1]; });
+  var colors = sorted.map(function(e) {
+    var cat = allCats.find(function(c) { return c.name === e[0]; });
+    return cat ? (GROUP_COLORS[cat.group] || '#64748b') : '#64748b';
+  });
+
+  charts.topCats = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{ data: data, backgroundColor: colors, borderRadius: 4, barPercentage: 0.7 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: function(v) { return '$' + v; } } },
+        y: { grid: { display: false } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function(c) { return fmt(c.raw); } } }
+      }
+    }
+  });
+}
+
+// ── Spending by Day of Week ──
+function renderDowChart() {
+  if (charts.dow) charts.dow.destroy();
+  var canvas = document.getElementById('chart-dow');
+  if (!canvas) return;
+
+  var dowTotals = [0, 0, 0, 0, 0, 0, 0];
+  var dowCounts = [0, 0, 0, 0, 0, 0, 0];
+  var DOW_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  activeData.forEach(function(tx) {
+    if (!tx.date) return;
+    var d = new Date(tx.date + 'T12:00:00');
+    if (isNaN(d)) return;
+    var dow = d.getDay();
+    dowTotals[dow] += (tx.amount || 0);
+    dowCounts[dow]++;
+  });
+
+  var data = dowTotals.map(function(total, i) { return dowCounts[i] > 0 ? total / dowCounts[i] : 0; });
+  var maxVal = Math.max.apply(null, data);
+  var colors = data.map(function(v) { return v === maxVal && v > 0 ? '#ef4444' : 'rgba(168,85,247,0.6)'; });
+
+  charts.dow = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: DOW_LABELS,
+      datasets: [{ label: 'Avg per Day', data: data, backgroundColor: colors, borderRadius: 4, barPercentage: 0.7 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: function(v) { return '$' + v; } } },
+        x: { grid: { display: false } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function(c) { return 'Avg: ' + fmt(c.raw); } } }
+      }
+    }
+  });
+}
+
+// ── Anomaly Detection ──
+function renderAnomalies() {
+  var div = document.getElementById('anomaly-list');
+  if (!div) return;
+
+  // Calculate average and std dev for daily spending
+  var dailyTotals = {};
+  activeData.forEach(function(tx) {
+    if (!tx.date) return;
+    dailyTotals[tx.date] = (dailyTotals[tx.date] || 0) + (tx.amount || 0);
+  });
+  var dailyValues = Object.values(dailyTotals);
+  if (dailyValues.length < 3) {
+    div.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:13px;text-align:center">Need at least 3 days of data to detect anomalies.</div>';
+    return;
+  }
+
+  var avg = dailyValues.reduce(function(a, b) { return a + b; }, 0) / dailyValues.length;
+  var variance = dailyValues.reduce(function(s, v) { return s + Math.pow(v - avg, 2); }, 0) / dailyValues.length;
+  var stdDev = Math.sqrt(variance);
+  var threshold = avg + stdDev * 1.5;
+
+  // Find spike days
+  var anomalies = [];
+  Object.entries(dailyTotals).forEach(function(entry) {
+    if (entry[1] > threshold) {
+      var dayTxs = activeData.filter(function(tx) { return tx.date === entry[0]; });
+      var topTx = dayTxs.sort(function(a, b) { return b.amount - a.amount; })[0];
+      anomalies.push({
+        date: entry[0],
+        total: entry[1],
+        deviation: ((entry[1] - avg) / avg * 100),
+        topItem: topTx ? topTx.description : 'Unknown'
+      });
+    }
+  });
+
+  // Also detect individual large transactions (>3x avg transaction)
+  var avgTx = activeData.reduce(function(s, t) { return s + (t.amount || 0); }, 0) / activeData.length;
+  activeData.forEach(function(tx) {
+    if (tx.amount > avgTx * 3 && tx.amount > 50) {
+      var already = anomalies.some(function(a) { return a.date === tx.date && a.topItem === tx.description; });
+      if (!already) {
+        anomalies.push({
+          date: tx.date,
+          total: tx.amount,
+          deviation: ((tx.amount - avgTx) / avgTx * 100),
+          topItem: tx.description,
+          isTransaction: true
+        });
+      }
+    }
+  });
+
+  anomalies.sort(function(a, b) { return b.deviation - a.deviation; });
+
+  if (anomalies.length === 0) {
+    div.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:13px;text-align:center">No spending anomalies detected this month. Your spending is consistent!</div>';
+    return;
+  }
+
+  var html = '';
+  anomalies.slice(0, 6).forEach(function(a) {
+    var badgeType = a.isTransaction ? 'unusual' : 'spike';
+    var badgeText = a.isTransaction ? 'Large Tx' : 'Spike Day';
+    html += '<div class="anomaly-item">'
+      + '<div><span class="anomaly-badge ' + badgeType + '">' + badgeText + '</span> '
+      + '<strong>' + escHtml(a.date) + '</strong> &mdash; ' + escHtml(a.topItem)
+      + '</div>'
+      + '<div style="text-align:right"><strong>' + fmt(a.total) + '</strong>'
+      + '<div style="font-size:11px;color:var(--red)">+' + fmtPct(a.deviation) + ' above avg</div>'
+      + '</div></div>';
+  });
+  div.innerHTML = html;
+}
+
+// ── Recurring Expense Detection ──
+function renderRecurring() {
+  var div = document.getElementById('recurring-list');
+  if (!div) return;
+
+  // Look across multiple months for same description appearing in most months
+  var months = loadMonths().sort();
+  if (months.length < 2) {
+    div.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:13px;text-align:center">Need at least 2 months of data to detect recurring expenses.</div>';
+    return;
+  }
+
+  // Count description occurrences across months
+  var descMonthMap = {}; // description -> Set of monthKeys
+  var descAmounts = {};  // description -> [amounts]
+  months.forEach(function(mk) {
+    var txs = loadTransactions(mk);
+    txs.forEach(function(tx) {
+      var key = (tx.description || '').toLowerCase().trim();
+      if (!key || key === 'unknown') return;
+      if (!descMonthMap[key]) descMonthMap[key] = {};
+      if (!descAmounts[key]) descAmounts[key] = [];
+      descMonthMap[key][mk] = true;
+      descAmounts[key].push(tx.amount || 0);
+    });
+  });
+
+  var recurring = [];
+  Object.keys(descMonthMap).forEach(function(desc) {
+    var monthCount = Object.keys(descMonthMap[desc]).length;
+    if (monthCount >= 2) {
+      var amounts = descAmounts[desc];
+      var avgAmt = amounts.reduce(function(a, b) { return a + b; }, 0) / amounts.length;
+      // Check if amounts are fairly consistent (coefficient of variation < 0.5)
+      var variance = amounts.reduce(function(s, v) { return s + Math.pow(v - avgAmt, 2); }, 0) / amounts.length;
+      var cv = avgAmt > 0 ? Math.sqrt(variance) / avgAmt : 999;
+      if (cv < 0.5 || amounts.length <= 2) {
+        recurring.push({
+          description: desc,
+          monthCount: monthCount,
+          totalMonths: months.length,
+          avgAmount: avgAmt,
+          consistent: cv < 0.3
+        });
+      }
+    }
+  });
+
+  recurring.sort(function(a, b) { return b.monthCount - a.monthCount || b.avgAmount - a.avgAmount; });
+
+  if (recurring.length === 0) {
+    div.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:13px;text-align:center">No recurring expenses detected yet.</div>';
+    return;
+  }
+
+  var html = '';
+  recurring.slice(0, 8).forEach(function(r) {
+    html += '<div class="anomaly-item">'
+      + '<div><span class="anomaly-badge recurring">Recurring</span> '
+      + '<strong>' + escHtml(r.description.charAt(0).toUpperCase() + r.description.slice(1)) + '</strong>'
+      + '<div style="font-size:11px;color:var(--text-muted)">' + r.monthCount + ' of ' + r.totalMonths + ' months' + (r.consistent ? ' &middot; Very consistent' : '') + '</div>'
+      + '</div>'
+      + '<div style="text-align:right;font-weight:600">' + fmt(r.avgAmount) + '<div style="font-size:11px;color:var(--text-muted);font-weight:400">avg/month</div></div>'
+      + '</div>';
+  });
+  div.innerHTML = html;
 }
 
 // ════════════════════════════════════════
