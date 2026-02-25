@@ -498,14 +498,11 @@ function injectDemoBanner(color) {
     '<button onclick="exitDemoAndSignUp()" style="background:rgba(' + cm.rgb + ',0.15);border:1px solid ' + accent + ';color:' + accentVar + ';border-radius:6px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Sign Up to Save Your Data</button>' +
     '<button onclick="exitDemo()" style="background:none;border:none;color:#71717a;cursor:pointer;font-size:12px;text-decoration:underline;font-family:inherit;">Exit Demo</button>';
   document.body.prepend(banner);
-  // Push down the header and content
+  // Push down everything below the fixed demo banner
+  document.body.style.paddingTop = '41px';
+  // Adjust sticky/fixed headers so they sit below the banner
   var header = document.querySelector('.header');
-  if (header) header.style.top = '41px';
-  var container = document.querySelector('.container');
-  if (container) {
-    var currentPad = parseInt(getComputedStyle(container).paddingTop) || 0;
-    container.style.paddingTop = (currentPad + 41) + 'px';
-  }
+  if (header && getComputedStyle(header).position === 'sticky') header.style.top = '41px';
 }
 
 function exitDemo() {
