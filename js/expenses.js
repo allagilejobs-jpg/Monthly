@@ -32,127 +32,428 @@ function getCatColor(cat) {
 }
 
 // ── Auto-categorization keywords ──
-const CATEGORY_KEYWORDS = {
-  // Groceries
-  "walmart": "Groceries", "publix": "Groceries", "kroger": "Groceries",
-  "aldi": "Groceries", "trader joe": "Groceries", "whole foods": "Groceries",
-  "safeway": "Groceries", "costco": "Groceries", "sam's club": "Groceries",
-  "heb": "Groceries", "meijer": "Groceries", "food lion": "Groceries",
-  "piggly wiggly": "Groceries", "winn-dixie": "Groceries", "sprouts": "Groceries",
-  "instacart": "Groceries", "amazon fresh": "Groceries", "target": "Shopping",
-  "dollar tree": "Shopping", "dollar general": "Shopping",
-  // Dining
-  "mcdonald": "Dining & Restaurants", "burger king": "Dining & Restaurants",
-  "wendy": "Dining & Restaurants", "chick-fil-a": "Dining & Restaurants",
-  "chipotle": "Dining & Restaurants", "subway": "Dining & Restaurants",
-  "starbucks": "Dining & Restaurants", "dunkin": "Dining & Restaurants",
-  "domino": "Dining & Restaurants", "pizza hut": "Dining & Restaurants",
-  "papa john": "Dining & Restaurants", "taco bell": "Dining & Restaurants",
-  "popeyes": "Dining & Restaurants", "chili's": "Dining & Restaurants",
-  "olive garden": "Dining & Restaurants", "applebee": "Dining & Restaurants",
-  "panera": "Dining & Restaurants", "doordash": "Dining & Restaurants",
-  "uber eats": "Dining & Restaurants", "grubhub": "Dining & Restaurants",
-  "restaurant": "Dining & Restaurants", "cafe": "Dining & Restaurants",
-  "diner": "Dining & Restaurants", "grill": "Dining & Restaurants",
-  "bistro": "Dining & Restaurants", "sushi": "Dining & Restaurants",
-  "wingstop": "Dining & Restaurants",
-  // Gas
-  "shell": "Gas & Fuel", "chevron": "Gas & Fuel", "exxon": "Gas & Fuel",
-  "mobil": "Gas & Fuel", "bp ": "Gas & Fuel", "marathon": "Gas & Fuel",
-  "circle k": "Gas & Fuel", "speedway": "Gas & Fuel", "wawa": "Gas & Fuel",
-  "racetrac": "Gas & Fuel", "murphy": "Gas & Fuel", "sunoco": "Gas & Fuel",
-  "gas station": "Gas & Fuel", "fuel": "Gas & Fuel",
-  // Transportation
-  "uber ": "Transportation", "lyft": "Transportation", "taxi": "Transportation",
-  "parking": "Transportation", "toll": "Transportation", "transit": "Transportation",
-  "metro": "Transportation",
-  // Shopping
-  "amazon": "Shopping", "ebay": "Shopping", "etsy": "Shopping",
-  "best buy": "Shopping", "home depot": "Shopping", "lowe": "Shopping",
-  "ikea": "Shopping", "t.j. maxx": "Shopping", "tjmaxx": "Shopping",
-  "marshalls": "Shopping", "ross": "Shopping", "nordstrom": "Shopping",
-  "macy": "Shopping", "old navy": "Shopping", "gap ": "Shopping",
-  "nike": "Shopping", "adidas": "Shopping",
-  // Entertainment
-  "netflix": "Subscriptions", "hulu": "Subscriptions", "disney+": "Subscriptions",
-  "spotify": "Subscriptions", "apple music": "Subscriptions", "hbo": "Subscriptions",
-  "youtube premium": "Subscriptions", "amazon prime": "Subscriptions",
-  "paramount": "Subscriptions", "peacock": "Subscriptions",
-  "amc": "Entertainment", "cinema": "Entertainment", "movie": "Entertainment",
-  "theater": "Entertainment", "bowling": "Entertainment", "arcade": "Entertainment",
-  "dave & buster": "Entertainment", "topgolf": "Entertainment",
-  // Utilities
-  "electric": "Utilities", "power": "Utilities", "water": "Utilities",
-  "gas bill": "Utilities", "internet": "Utilities", "comcast": "Utilities",
-  "at&t": "Utilities", "verizon": "Utilities", "t-mobile": "Utilities",
-  "sprint": "Utilities", "spectrum": "Utilities", "xfinity": "Utilities",
-  // Housing
-  "rent": "Housing", "mortgage": "Housing", "property tax": "Housing",
-  "hoa": "Housing",
-  // Health
-  "cvs": "Health & Medical", "walgreens": "Health & Medical", "pharmacy": "Health & Medical",
-  "hospital": "Health & Medical", "clinic": "Health & Medical", "doctor": "Health & Medical",
-  "dental": "Health & Medical", "optom": "Health & Medical", "urgent care": "Health & Medical",
-  "lab corp": "Health & Medical", "quest diag": "Health & Medical",
-  // Insurance
-  "geico": "Insurance", "state farm": "Insurance", "allstate": "Insurance",
-  "progressive": "Insurance", "insurance": "Insurance",
-  // Personal Care
-  "salon": "Personal Care", "barber": "Personal Care", "spa": "Personal Care",
-  "nail": "Personal Care", "haircut": "Personal Care", "beauty": "Personal Care",
-  // Education
-  "tuition": "Education", "school": "Education", "university": "Education",
-  "college": "Education", "udemy": "Education", "coursera": "Education",
-  // Travel
-  "airline": "Travel", "delta": "Travel", "united": "Travel", "american air": "Travel",
-  "southwest": "Travel", "hotel": "Travel", "marriott": "Travel", "hilton": "Travel",
-  "airbnb": "Travel", "booking.com": "Travel", "expedia": "Travel",
-  // Fees
-  "fee": "Fees & Charges", "overdraft": "Fees & Charges", "late charge": "Fees & Charges",
-  "interest charge": "Fees & Charges", "annual fee": "Fees & Charges",
-  // ATM
-  "atm": "ATM & Cash", "cash withdrawal": "ATM & Cash",
-  // Transfers
-  "transfer": "Transfers", "zelle": "Transfers", "venmo": "Transfers",
-  "paypal": "Transfers", "cash app": "Transfers",
-  // Gifts
-  "donation": "Gifts & Donations", "charity": "Gifts & Donations",
-  "gofundme": "Gifts & Donations", "church": "Gifts & Donations"
+// ══════════════════════════════════════════════════════════
+// MERCHANT MAP — known merchants → { name, cat }
+// Checked AFTER cleaning, BEFORE keyword fallback
+// ══════════════════════════════════════════════════════════
+const MERCHANT_MAP = {
+  // ── Groceries ──
+  "walmart": { name: "Walmart", cat: "Groceries" }, "wal-mart": { name: "Walmart", cat: "Groceries" },
+  "wal mart": { name: "Walmart", cat: "Groceries" }, "publix": { name: "Publix", cat: "Groceries" },
+  "kroger": { name: "Kroger", cat: "Groceries" }, "aldi": { name: "Aldi", cat: "Groceries" },
+  "trader joe": { name: "Trader Joe's", cat: "Groceries" }, "whole foods": { name: "Whole Foods", cat: "Groceries" },
+  "safeway": { name: "Safeway", cat: "Groceries" }, "costco": { name: "Costco", cat: "Groceries" },
+  "sam's club": { name: "Sam's Club", cat: "Groceries" }, "samsclub": { name: "Sam's Club", cat: "Groceries" },
+  "heb ": { name: "H-E-B", cat: "Groceries" }, "h-e-b": { name: "H-E-B", cat: "Groceries" },
+  "meijer": { name: "Meijer", cat: "Groceries" }, "food lion": { name: "Food Lion", cat: "Groceries" },
+  "piggly wiggly": { name: "Piggly Wiggly", cat: "Groceries" }, "winn-dixie": { name: "Winn-Dixie", cat: "Groceries" },
+  "winn dixie": { name: "Winn-Dixie", cat: "Groceries" }, "sprouts": { name: "Sprouts", cat: "Groceries" },
+  "instacart": { name: "Instacart", cat: "Groceries" }, "amazon fresh": { name: "Amazon Fresh", cat: "Groceries" },
+  "food city": { name: "Food City", cat: "Groceries" }, "ingles": { name: "Ingles", cat: "Groceries" },
+  "lidl": { name: "Lidl", cat: "Groceries" }, "save a lot": { name: "Save-A-Lot", cat: "Groceries" },
+  "fresh market": { name: "Fresh Market", cat: "Groceries" }, "shoprite": { name: "ShopRite", cat: "Groceries" },
+  "stop & shop": { name: "Stop & Shop", cat: "Groceries" }, "stop and shop": { name: "Stop & Shop", cat: "Groceries" },
+  "giant food": { name: "Giant", cat: "Groceries" }, "giant eagle": { name: "Giant Eagle", cat: "Groceries" },
+  "wegmans": { name: "Wegmans", cat: "Groceries" }, "harris teeter": { name: "Harris Teeter", cat: "Groceries" },
+  "food4less": { name: "Food 4 Less", cat: "Groceries" }, "winco": { name: "WinCo", cat: "Groceries" },
+  "bi-lo": { name: "BI-LO", cat: "Groceries" }, "albertsons": { name: "Albertsons", cat: "Groceries" },
+  "vons": { name: "Vons", cat: "Groceries" }, "jewel-osco": { name: "Jewel-Osco", cat: "Groceries" },
+  "hannaford": { name: "Hannaford", cat: "Groceries" }, "market basket": { name: "Market Basket", cat: "Groceries" },
+
+  // ── Dining & Restaurants ──
+  "mcdonald": { name: "McDonald's", cat: "Dining & Restaurants" },
+  "burger king": { name: "Burger King", cat: "Dining & Restaurants" },
+  "wendy's": { name: "Wendy's", cat: "Dining & Restaurants" }, "wendys": { name: "Wendy's", cat: "Dining & Restaurants" },
+  "chick-fil-a": { name: "Chick-fil-A", cat: "Dining & Restaurants" }, "chickfila": { name: "Chick-fil-A", cat: "Dining & Restaurants" },
+  "chick fil a": { name: "Chick-fil-A", cat: "Dining & Restaurants" },
+  "chipotle": { name: "Chipotle", cat: "Dining & Restaurants" },
+  "subway": { name: "Subway", cat: "Dining & Restaurants" },
+  "starbucks": { name: "Starbucks", cat: "Dining & Restaurants" },
+  "dunkin": { name: "Dunkin'", cat: "Dining & Restaurants" },
+  "domino": { name: "Domino's", cat: "Dining & Restaurants" },
+  "pizza hut": { name: "Pizza Hut", cat: "Dining & Restaurants" },
+  "papa john": { name: "Papa John's", cat: "Dining & Restaurants" },
+  "taco bell": { name: "Taco Bell", cat: "Dining & Restaurants" },
+  "popeyes": { name: "Popeyes", cat: "Dining & Restaurants" },
+  "chili's": { name: "Chili's", cat: "Dining & Restaurants" }, "chilis": { name: "Chili's", cat: "Dining & Restaurants" },
+  "olive garden": { name: "Olive Garden", cat: "Dining & Restaurants" },
+  "applebee": { name: "Applebee's", cat: "Dining & Restaurants" },
+  "panera": { name: "Panera Bread", cat: "Dining & Restaurants" },
+  "wingstop": { name: "Wingstop", cat: "Dining & Restaurants" },
+  "five guys": { name: "Five Guys", cat: "Dining & Restaurants" },
+  "raising cane": { name: "Raising Cane's", cat: "Dining & Restaurants" },
+  "sonic drive": { name: "Sonic", cat: "Dining & Restaurants" },
+  "jack in the box": { name: "Jack in the Box", cat: "Dining & Restaurants" },
+  "waffle house": { name: "Waffle House", cat: "Dining & Restaurants" },
+  "ihop": { name: "IHOP", cat: "Dining & Restaurants" },
+  "denny's": { name: "Denny's", cat: "Dining & Restaurants" }, "dennys": { name: "Denny's", cat: "Dining & Restaurants" },
+  "cracker barrel": { name: "Cracker Barrel", cat: "Dining & Restaurants" },
+  "buffalo wild wing": { name: "Buffalo Wild Wings", cat: "Dining & Restaurants" },
+  "red robin": { name: "Red Robin", cat: "Dining & Restaurants" },
+  "red lobster": { name: "Red Lobster", cat: "Dining & Restaurants" },
+  "outback steak": { name: "Outback Steakhouse", cat: "Dining & Restaurants" },
+  "texas roadhouse": { name: "Texas Roadhouse", cat: "Dining & Restaurants" },
+  "panda express": { name: "Panda Express", cat: "Dining & Restaurants" },
+  "zaxby": { name: "Zaxby's", cat: "Dining & Restaurants" },
+  "jimmy john": { name: "Jimmy John's", cat: "Dining & Restaurants" },
+  "jersey mike": { name: "Jersey Mike's", cat: "Dining & Restaurants" },
+  "firehouse sub": { name: "Firehouse Subs", cat: "Dining & Restaurants" },
+  "little caesar": { name: "Little Caesars", cat: "Dining & Restaurants" },
+  "arby's": { name: "Arby's", cat: "Dining & Restaurants" }, "arbys": { name: "Arby's", cat: "Dining & Restaurants" },
+  "kfc": { name: "KFC", cat: "Dining & Restaurants" }, "kentucky fried": { name: "KFC", cat: "Dining & Restaurants" },
+  "whataburger": { name: "Whataburger", cat: "Dining & Restaurants" },
+  "cookout": { name: "Cook Out", cat: "Dining & Restaurants" },
+  "doordash": { name: "DoorDash", cat: "Dining & Restaurants" },
+  "uber eats": { name: "Uber Eats", cat: "Dining & Restaurants" }, "ubereats": { name: "Uber Eats", cat: "Dining & Restaurants" },
+  "grubhub": { name: "Grubhub", cat: "Dining & Restaurants" },
+  "postmates": { name: "Postmates", cat: "Dining & Restaurants" },
+  "seamless": { name: "Seamless", cat: "Dining & Restaurants" },
+
+  // ── Gas & Fuel ──
+  "shell oil": { name: "Shell", cat: "Gas & Fuel" }, "shell service": { name: "Shell", cat: "Gas & Fuel" },
+  "chevron": { name: "Chevron", cat: "Gas & Fuel" }, "exxon": { name: "ExxonMobil", cat: "Gas & Fuel" },
+  "mobil ": { name: "Mobil", cat: "Gas & Fuel" },
+  "bp#": { name: "BP", cat: "Gas & Fuel" }, "bp ": { name: "BP", cat: "Gas & Fuel" },
+  "marathon petr": { name: "Marathon", cat: "Gas & Fuel" }, "marathon gas": { name: "Marathon", cat: "Gas & Fuel" },
+  "circle k": { name: "Circle K", cat: "Gas & Fuel" }, "speedway": { name: "Speedway", cat: "Gas & Fuel" },
+  "wawa ": { name: "Wawa", cat: "Gas & Fuel" },
+  "racetrac": { name: "RaceTrac", cat: "Gas & Fuel" }, "murphy usa": { name: "Murphy USA", cat: "Gas & Fuel" },
+  "murphy oil": { name: "Murphy", cat: "Gas & Fuel" }, "sunoco": { name: "Sunoco", cat: "Gas & Fuel" },
+  "quiktrip": { name: "QuikTrip", cat: "Gas & Fuel" }, "qt ": { name: "QuikTrip", cat: "Gas & Fuel" },
+  "sheetz": { name: "Sheetz", cat: "Gas & Fuel" }, "pilot ": { name: "Pilot", cat: "Gas & Fuel" },
+  "love's": { name: "Love's", cat: "Gas & Fuel" }, "loves travel": { name: "Love's", cat: "Gas & Fuel" },
+  "citgo": { name: "Citgo", cat: "Gas & Fuel" }, "phillips 66": { name: "Phillips 66", cat: "Gas & Fuel" },
+  "valero": { name: "Valero", cat: "Gas & Fuel" }, "sinclair": { name: "Sinclair", cat: "Gas & Fuel" },
+
+  // ── Shopping ──
+  "amazon.com": { name: "Amazon", cat: "Shopping" }, "amzn": { name: "Amazon", cat: "Shopping" },
+  "amazon mktp": { name: "Amazon", cat: "Shopping" }, "amazon market": { name: "Amazon", cat: "Shopping" },
+  "target": { name: "Target", cat: "Shopping" },
+  "best buy": { name: "Best Buy", cat: "Shopping" }, "bestbuy": { name: "Best Buy", cat: "Shopping" },
+  "home depot": { name: "Home Depot", cat: "Shopping" }, "homedepot": { name: "Home Depot", cat: "Shopping" },
+  "lowe's": { name: "Lowe's", cat: "Shopping" }, "lowes": { name: "Lowe's", cat: "Shopping" },
+  "ikea": { name: "IKEA", cat: "Shopping" },
+  "t.j. maxx": { name: "TJ Maxx", cat: "Shopping" }, "tjmaxx": { name: "TJ Maxx", cat: "Shopping" },
+  "tj maxx": { name: "TJ Maxx", cat: "Shopping" },
+  "marshalls": { name: "Marshalls", cat: "Shopping" }, "ross store": { name: "Ross", cat: "Shopping" },
+  "nordstrom": { name: "Nordstrom", cat: "Shopping" }, "macy's": { name: "Macy's", cat: "Shopping" },
+  "macys": { name: "Macy's", cat: "Shopping" },
+  "old navy": { name: "Old Navy", cat: "Shopping" }, "gap ": { name: "Gap", cat: "Shopping" },
+  "nike": { name: "Nike", cat: "Shopping" }, "adidas": { name: "Adidas", cat: "Shopping" },
+  "dollar tree": { name: "Dollar Tree", cat: "Shopping" }, "dollar general": { name: "Dollar General", cat: "Shopping" },
+  "five below": { name: "Five Below", cat: "Shopping" },
+  "bath & body": { name: "Bath & Body Works", cat: "Shopping" },
+  "bed bath": { name: "Bed Bath & Beyond", cat: "Shopping" },
+  "kohl's": { name: "Kohl's", cat: "Shopping" }, "kohls": { name: "Kohl's", cat: "Shopping" },
+  "jcpenney": { name: "JCPenney", cat: "Shopping" }, "jc penney": { name: "JCPenney", cat: "Shopping" },
+  "hobby lobby": { name: "Hobby Lobby", cat: "Shopping" },
+  "michael's": { name: "Michael's", cat: "Shopping" }, "michaels": { name: "Michael's", cat: "Shopping" },
+  "temu": { name: "Temu", cat: "Shopping" }, "shein": { name: "Shein", cat: "Shopping" },
+  "ebay": { name: "eBay", cat: "Shopping" }, "etsy": { name: "Etsy", cat: "Shopping" },
+  "wayfair": { name: "Wayfair", cat: "Shopping" },
+  "chewy": { name: "Chewy", cat: "Pet" },
+  "williams-sonoma": { name: "Williams-Sonoma", cat: "Shopping" },
+  "pottery barn": { name: "Pottery Barn", cat: "Shopping" },
+  "crate & barrel": { name: "Crate & Barrel", cat: "Shopping" },
+
+  // ── Subscriptions ──
+  "netflix": { name: "Netflix", cat: "Subscriptions" }, "hulu": { name: "Hulu", cat: "Subscriptions" },
+  "disney plus": { name: "Disney+", cat: "Subscriptions" }, "disney+": { name: "Disney+", cat: "Subscriptions" },
+  "disneyplus": { name: "Disney+", cat: "Subscriptions" },
+  "spotify": { name: "Spotify", cat: "Subscriptions" }, "apple music": { name: "Apple Music", cat: "Subscriptions" },
+  "hbo max": { name: "HBO Max", cat: "Subscriptions" }, "hbomax": { name: "HBO Max", cat: "Subscriptions" },
+  "youtube prem": { name: "YouTube Premium", cat: "Subscriptions" },
+  "amazon prime": { name: "Amazon Prime", cat: "Subscriptions" }, "prime video": { name: "Prime Video", cat: "Subscriptions" },
+  "paramount+": { name: "Paramount+", cat: "Subscriptions" }, "paramount plus": { name: "Paramount+", cat: "Subscriptions" },
+  "peacock": { name: "Peacock", cat: "Subscriptions" },
+  "adobe": { name: "Adobe", cat: "Subscriptions" }, "microsoft 365": { name: "Microsoft 365", cat: "Subscriptions" },
+  "msft ": { name: "Microsoft", cat: "Subscriptions" }, "microsoft": { name: "Microsoft", cat: "Subscriptions" },
+  "icloud": { name: "iCloud", cat: "Subscriptions" }, "apple.com/bill": { name: "Apple", cat: "Subscriptions" },
+  "google storage": { name: "Google One", cat: "Subscriptions" }, "google one": { name: "Google One", cat: "Subscriptions" },
+  "chatgpt": { name: "ChatGPT", cat: "Subscriptions" }, "openai": { name: "OpenAI", cat: "Subscriptions" },
+  "claude": { name: "Claude", cat: "Subscriptions" }, "anthropic": { name: "Anthropic", cat: "Subscriptions" },
+  "audible": { name: "Audible", cat: "Subscriptions" }, "kindle": { name: "Kindle", cat: "Subscriptions" },
+  "dropbox": { name: "Dropbox", cat: "Subscriptions" }, "notion": { name: "Notion", cat: "Subscriptions" },
+  "crunchyroll": { name: "Crunchyroll", cat: "Subscriptions" },
+  "apple tv": { name: "Apple TV+", cat: "Subscriptions" },
+  "max.com": { name: "Max", cat: "Subscriptions" },
+  "youtube tv": { name: "YouTube TV", cat: "Subscriptions" },
+  "sling tv": { name: "Sling TV", cat: "Subscriptions" },
+
+  // ── Transportation ──
+  "uber trip": { name: "Uber", cat: "Transportation" }, "uber ": { name: "Uber", cat: "Transportation" },
+  "lyft": { name: "Lyft", cat: "Transportation" },
+
+  // ── Entertainment ──
+  "amc theatre": { name: "AMC Theatres", cat: "Entertainment" }, "amc entertain": { name: "AMC Theatres", cat: "Entertainment" },
+  "regal cinema": { name: "Regal Cinemas", cat: "Entertainment" }, "regal entertain": { name: "Regal Cinemas", cat: "Entertainment" },
+  "cinemark": { name: "Cinemark", cat: "Entertainment" },
+  "dave & buster": { name: "Dave & Buster's", cat: "Entertainment" }, "dave and buster": { name: "Dave & Buster's", cat: "Entertainment" },
+  "topgolf": { name: "TopGolf", cat: "Entertainment" },
+  "main event": { name: "Main Event", cat: "Entertainment" },
+  "six flags": { name: "Six Flags", cat: "Entertainment" },
+
+  // ── Utilities ──
+  "comcast": { name: "Comcast", cat: "Utilities" }, "xfinity": { name: "Xfinity", cat: "Utilities" },
+  "spectrum": { name: "Spectrum", cat: "Utilities" }, "at&t": { name: "AT&T", cat: "Utilities" },
+  "verizon": { name: "Verizon", cat: "Utilities" }, "vzwrlss": { name: "Verizon", cat: "Utilities" },
+  "t-mobile": { name: "T-Mobile", cat: "Utilities" }, "tmobile": { name: "T-Mobile", cat: "Utilities" },
+  "sprint": { name: "Sprint", cat: "Utilities" }, "cox comm": { name: "Cox", cat: "Utilities" },
+  "centurylink": { name: "CenturyLink", cat: "Utilities" }, "lumen": { name: "Lumen", cat: "Utilities" },
+  "frontier comm": { name: "Frontier", cat: "Utilities" },
+  "google fi": { name: "Google Fi", cat: "Utilities" }, "mint mobile": { name: "Mint Mobile", cat: "Utilities" },
+  "cricket": { name: "Cricket", cat: "Utilities" }, "boost mobile": { name: "Boost Mobile", cat: "Utilities" },
+
+  // ── Health & Medical ──
+  "cvs": { name: "CVS", cat: "Health & Medical" }, "walgreens": { name: "Walgreens", cat: "Health & Medical" },
+  "rite aid": { name: "Rite Aid", cat: "Health & Medical" },
+  "labcorp": { name: "LabCorp", cat: "Health & Medical" }, "lab corp": { name: "LabCorp", cat: "Health & Medical" },
+  "quest diag": { name: "Quest Diagnostics", cat: "Health & Medical" },
+
+  // ── Fitness ──
+  "planet fitness": { name: "Planet Fitness", cat: "Fitness" },
+  "la fitness": { name: "LA Fitness", cat: "Fitness" }, "equinox": { name: "Equinox", cat: "Fitness" },
+  "anytime fitness": { name: "Anytime Fitness", cat: "Fitness" },
+  "ymca": { name: "YMCA", cat: "Fitness" }, "crossfit": { name: "CrossFit", cat: "Fitness" },
+  "orangetheory": { name: "Orangetheory", cat: "Fitness" }, "gold's gym": { name: "Gold's Gym", cat: "Fitness" },
+  "golds gym": { name: "Gold's Gym", cat: "Fitness" }, "crunch fitness": { name: "Crunch Fitness", cat: "Fitness" },
+
+  // ── Insurance ──
+  "geico": { name: "GEICO", cat: "Insurance" }, "state farm": { name: "State Farm", cat: "Insurance" },
+  "allstate": { name: "Allstate", cat: "Insurance" }, "progressive": { name: "Progressive", cat: "Insurance" },
+  "usaa": { name: "USAA", cat: "Insurance" }, "farmers ins": { name: "Farmers", cat: "Insurance" },
+  "liberty mutual": { name: "Liberty Mutual", cat: "Insurance" }, "nationwide": { name: "Nationwide", cat: "Insurance" },
+
+  // ── Pet ──
+  "petsmart": { name: "PetSmart", cat: "Pet" }, "petco": { name: "Petco", cat: "Pet" },
+  "barkbox": { name: "BarkBox", cat: "Pet" },
+
+  // ── Auto ──
+  "autozone": { name: "AutoZone", cat: "Auto" }, "o'reilly auto": { name: "O'Reilly Auto", cat: "Auto" },
+  "oreilly auto": { name: "O'Reilly Auto", cat: "Auto" },
+  "advance auto": { name: "Advance Auto Parts", cat: "Auto" },
+  "jiffy lube": { name: "Jiffy Lube", cat: "Auto" },
+  "discount tire": { name: "Discount Tire", cat: "Auto" }, "firestone": { name: "Firestone", cat: "Auto" },
+  "pep boys": { name: "Pep Boys", cat: "Auto" }, "napa auto": { name: "NAPA Auto Parts", cat: "Auto" },
+  "valvoline": { name: "Valvoline", cat: "Auto" }, "meineke": { name: "Meineke", cat: "Auto" },
+  "maaco": { name: "Maaco", cat: "Auto" }, "safelite": { name: "Safelite", cat: "Auto" },
+
+  // ── Personal Care ──
+  "great clips": { name: "Great Clips", cat: "Personal Care" },
+  "supercuts": { name: "Supercuts", cat: "Personal Care" },
+  "ulta": { name: "Ulta Beauty", cat: "Personal Care" }, "sephora": { name: "Sephora", cat: "Personal Care" },
+  "sport clips": { name: "Sport Clips", cat: "Personal Care" },
+  "european wax": { name: "European Wax Center", cat: "Personal Care" },
+
+  // ── Education ──
+  "udemy": { name: "Udemy", cat: "Education" }, "coursera": { name: "Coursera", cat: "Education" },
+  "skillshare": { name: "Skillshare", cat: "Education" }, "masterclass": { name: "MasterClass", cat: "Education" },
+  "linkedin learn": { name: "LinkedIn Learning", cat: "Education" },
+
+  // ── Travel ──
+  "delta air": { name: "Delta Airlines", cat: "Travel" }, "united air": { name: "United Airlines", cat: "Travel" },
+  "american air": { name: "American Airlines", cat: "Travel" },
+  "southwest air": { name: "Southwest Airlines", cat: "Travel" },
+  "jetblue": { name: "JetBlue", cat: "Travel" }, "spirit air": { name: "Spirit Airlines", cat: "Travel" },
+  "frontier air": { name: "Frontier Airlines", cat: "Travel" },
+  "marriott": { name: "Marriott", cat: "Travel" }, "hilton": { name: "Hilton", cat: "Travel" },
+  "hyatt": { name: "Hyatt", cat: "Travel" }, "best western": { name: "Best Western", cat: "Travel" },
+  "airbnb": { name: "Airbnb", cat: "Travel" }, "vrbo": { name: "VRBO", cat: "Travel" },
+  "booking.com": { name: "Booking.com", cat: "Travel" }, "expedia": { name: "Expedia", cat: "Travel" },
+  "hotels.com": { name: "Hotels.com", cat: "Travel" }, "kayak": { name: "Kayak", cat: "Travel" },
+
+  // ── Transfers ──
+  "zelle": { name: "Zelle", cat: "Transfers" }, "venmo": { name: "Venmo", cat: "Transfers" },
+  "paypal": { name: "PayPal", cat: "Transfers" }, "cash app": { name: "Cash App", cat: "Transfers" },
+  "cashapp": { name: "Cash App", cat: "Transfers" }, "wire transfer": { name: "Wire Transfer", cat: "Transfers" }
 };
 
-// ── Merchant name cleaning ──
+// ══════════════════════════════════════════════════════════
+// CATEGORY KEYWORDS — pattern-based fallback when MERCHANT_MAP misses
+// ══════════════════════════════════════════════════════════
+const CATEGORY_KEYWORDS = {
+  // Groceries
+  "grocery": "Groceries", "supermarket": "Groceries", "food store": "Groceries",
+  // Dining patterns
+  "restaurant": "Dining & Restaurants", "cafe": "Dining & Restaurants", "coffee": "Dining & Restaurants",
+  "diner": "Dining & Restaurants", "grill": "Dining & Restaurants", "bistro": "Dining & Restaurants",
+  "sushi": "Dining & Restaurants", "pizza": "Dining & Restaurants", "burger": "Dining & Restaurants",
+  "wing": "Dining & Restaurants", "bbq": "Dining & Restaurants", "barbeque": "Dining & Restaurants",
+  "bakery": "Dining & Restaurants", "brewery": "Dining & Restaurants", "brew pub": "Dining & Restaurants",
+  "tap house": "Dining & Restaurants", "steakhouse": "Dining & Restaurants",
+  "taqueria": "Dining & Restaurants", "cantina": "Dining & Restaurants",
+  "food truck": "Dining & Restaurants", "kitchen": "Dining & Restaurants",
+  // Gas patterns
+  "gas station": "Gas & Fuel", "fuel": "Gas & Fuel", "petrol": "Gas & Fuel",
+  // Transportation
+  "parking": "Transportation", "toll": "Transportation", "transit": "Transportation",
+  "taxi": "Transportation", "cab ": "Transportation",
+  // Shopping patterns
+  "amazon": "Shopping", "shop": "Shopping", "store": "Shopping", "mart": "Shopping",
+  // Entertainment
+  "cinema": "Entertainment", "movie": "Entertainment", "theater": "Entertainment",
+  "bowling": "Entertainment", "arcade": "Entertainment", "amusement": "Entertainment",
+  "concert": "Entertainment", "ticket": "Entertainment",
+  // Utilities
+  "electric": "Utilities", "power": "Utilities", "water util": "Utilities",
+  "gas bill": "Utilities", "internet": "Utilities", "broadband": "Utilities",
+  "wireless": "Utilities", "cellular": "Utilities", "mobile phone": "Utilities",
+  // Housing
+  "rent": "Housing", "mortgage": "Housing", "property tax": "Housing",
+  "hoa": "Housing", "lease": "Housing", "apartment": "Housing",
+  // Health patterns
+  "pharmacy": "Health & Medical", "hospital": "Health & Medical", "clinic": "Health & Medical",
+  "doctor": "Health & Medical", "dental": "Health & Medical", "optom": "Health & Medical",
+  "urgent care": "Health & Medical", "medical": "Health & Medical", "health": "Health & Medical",
+  "ortho": "Health & Medical", "derma": "Health & Medical", "pediatr": "Health & Medical",
+  // Fitness
+  "gym": "Fitness", "fitness": "Fitness", "workout": "Fitness",
+  // Insurance
+  "insurance": "Insurance", "insur ": "Insurance",
+  // Pet
+  "pet ": "Pet", "veterinar": "Pet", "vet clinic": "Pet", "animal hospital": "Pet",
+  // Auto
+  "auto part": "Auto", "car wash": "Auto", "tire": "Auto", "mechanic": "Auto",
+  "lube": "Auto", "oil change": "Auto", "auto repair": "Auto", "body shop": "Auto",
+  // Personal Care
+  "salon": "Personal Care", "barber": "Personal Care", "spa ": "Personal Care",
+  "nail": "Personal Care", "haircut": "Personal Care", "beauty": "Personal Care",
+  "dry clean": "Personal Care", "laundry": "Personal Care", "tailor": "Personal Care",
+  // Education
+  "tuition": "Education", "school": "Education", "university": "Education",
+  "college": "Education", "academy": "Education",
+  // Travel
+  "airline": "Travel", "hotel": "Travel", "flight": "Travel", "travel": "Travel",
+  // Fees
+  "fee": "Fees & Charges", "overdraft": "Fees & Charges", "late charge": "Fees & Charges",
+  "interest charge": "Fees & Charges", "annual fee": "Fees & Charges", "service charge": "Fees & Charges",
+  // ATM
+  "atm": "ATM & Cash", "cash withdrawal": "ATM & Cash", "cash advance": "ATM & Cash",
+  // Transfers
+  "transfer": "Transfers",
+  // Gifts
+  "donation": "Gifts & Donations", "charity": "Gifts & Donations",
+  "gofundme": "Gifts & Donations", "church": "Gifts & Donations", "tithe": "Gifts & Donations",
+  // Childcare
+  "daycare": "Childcare", "childcare": "Childcare", "learning center": "Childcare",
+  "preschool": "Childcare",
+  // Home
+  "storage": "Housing", "u-haul": "Housing", "public storage": "Housing"
+};
+
+// ══════════════════════════════════════════════════════════
+// MERCHANT NAME CLEANING — strip all bank junk
+// ══════════════════════════════════════════════════════════
+var _US_STATES = 'AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|DC|PR';
+var _STATES_RE = new RegExp('\\s+(' + _US_STATES + ')$', 'i');
+
 function cleanMerchant(desc) {
-  if (!desc) return "Unknown";
-  let m = desc.trim();
-  // Remove trailing reference numbers, dates, card numbers
+  if (!desc) return 'Unknown';
+  var m = desc.trim();
+
+  // 1. Strip POS system prefixes
+  m = m.replace(/^(SQ\s?\*|TST\s?\*|PP\s?\*|APL\s?\*|APPL\s?\*|WPY\s?\*|CKE\s?\*|CHK\s?\*|PAY\s?\*|SP\s+\*?|IN\s+\*?)\s*/i, '');
+
+  // 2. Strip transaction type prefixes
+  m = m.replace(/^(PURCHASE AUTHORIZED ON\s+\d{2}\/\d{2}\s*|CHECKCARD\s+\d{2}\d{2}\s*|POS\s+(DEBIT|PURCHASE|REFUND)\s*|DEBIT CARD PURCHASE\s*|RECURRING DEBIT\s*|RECURRING PAYMENT\s*|ACH\s+(DEBIT|CREDIT|PAYMENT)\s*|ONLINE\s+(PAYMENT|PURCHASE)\s*|MOBILE\s+PAYMENT\s*|VISA\s+(DIRECT|DEBIT)\s*|PREAUTHORIZED\s+DEBIT\s*|PENDING\s+)/i, '');
+
+  // 3. Strip ACH metadata (ORIG CO NAME:..., DES:..., CO ID:..., etc.)
+  m = m.replace(/\s*(ORIG CO NAME|DES|INDN|CO ID|SEC|PPD ID|CCD ID|WEB ID|TEL ID|TRACE)\s*:.*/i, '');
+
+  // 4. Strip trailing auth codes and merchant IDs
+  m = m.replace(/\s+AUTH(?:\s+CODE|\s*#)?\s*\d+/gi, '');
+  m = m.replace(/\s+MER(?:\s+ID)?\s*\d+/gi, '');
+  m = m.replace(/\s+REF\s*#?\s*\d+/gi, '');
+  m = m.replace(/\s+TRANS(?:ACTION)?\s*#?\s*\d+/gi, '');
+
+  // 5. Strip trailing reference numbers (4+ digits), dates, card numbers
   m = m.replace(/\s+\d{4,}$/g, '');
   m = m.replace(/\s+\d{2}\/\d{2}(\/\d{2,4})?$/g, '');
+  m = m.replace(/\s+\d{2}-\d{2}(-\d{2,4})?$/g, '');
   m = m.replace(/\s+#\d+/g, '');
-  m = m.replace(/\s+(xx|x{2,})\d{4}/gi, '');
+  m = m.replace(/\s+(xx|x{2,})\d{2,}/gi, '');
   m = m.replace(/\s+\*+\d+/g, '');
-  // Remove city/state suffixes (common in bank descriptions)
+
+  // 6. Strip trailing domains
+  m = m.replace(/\s*\.(com|net|org|io|co|us|edu)\b/gi, '');
+
+  // 7. Strip trailing location: WORD(S) XX 12345
+  m = m.replace(/\s+\w+\s+[A-Z]{2}\s+\d{5}(-\d{4})?$/g, '');
+  // Strip standalone state+zip
   m = m.replace(/\s+[A-Z]{2}\s*\d{5}(-\d{4})?$/g, '');
-  m = m.replace(/\s+(US|USA|CA|NY|FL|TX|IL|GA|OH|NC|PA)$/gi, '');
-  // Trim extra whitespace
-  m = m.replace(/\s+/g, ' ').trim();
-  // Title case
-  if (m === m.toUpperCase() && m.length > 3) {
-    m = m.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.substr(1).toLowerCase());
+  // Strip all 50 US state abbreviations at end
+  m = m.replace(_STATES_RE, '');
+  // Strip trailing US/USA/country
+  m = m.replace(/\s+(US|USA|UNITED STATES)$/gi, '');
+
+  // 8. Handle asterisk-separated: MERCHANT*LOCATION → keep MERCHANT
+  if (/\*/.test(m) && !/\b(amazon|amzn)\b/i.test(m)) {
+    var parts = m.split('*');
+    if (parts[0].trim().length >= 3) m = parts[0];
   }
-  return m || "Unknown";
+
+  // 9. Strip leading/trailing non-alphanumeric
+  m = m.replace(/^[^a-zA-Z0-9]+/, '').replace(/[^a-zA-Z0-9)]+$/, '');
+
+  // 10. Normalize whitespace
+  m = m.replace(/\s+/g, ' ').trim();
+
+  // 11. Title-case ALL CAPS (but preserve short acronyms like CVS, ATM, KFC)
+  if (m === m.toUpperCase() && m.length > 4) {
+    m = m.replace(/\b\w+/g, function(t) {
+      if (t.length <= 3) return t; // keep short words uppercase (CVS, KFC, ATM, etc.)
+      return t.charAt(0).toUpperCase() + t.substr(1).toLowerCase();
+    });
+  }
+
+  return m || 'Unknown';
 }
 
-// ── Categorize from merchant name ──
-function categorize(merchant) {
-  const rules = loadCategoryRules();
-  const lower = merchant.toLowerCase();
-  // Check learned rules first
-  if (rules[lower]) return rules[lower];
-  // Check keywords
-  for (const [keyword, cat] of Object.entries(CATEGORY_KEYWORDS)) {
-    if (lower.includes(keyword)) return cat;
+// ══════════════════════════════════════════════════════════
+// MERCHANT IDENTIFICATION & CATEGORIZATION
+// ══════════════════════════════════════════════════════════
+
+// Look up cleaned name in MERCHANT_MAP → { name, cat } or null
+function identifyMerchant(cleanedName) {
+  var lower = cleanedName.toLowerCase();
+  for (var key in MERCHANT_MAP) {
+    if (MERCHANT_MAP.hasOwnProperty(key) && lower.indexOf(key) !== -1) {
+      return MERCHANT_MAP[key];
+    }
   }
-  return "Other";
+  return null;
+}
+
+// Keyword-only categorization (no learned rules — those are checked separately)
+function categorizeByKeyword(merchant) {
+  var lower = merchant.toLowerCase();
+  for (var keyword in CATEGORY_KEYWORDS) {
+    if (CATEGORY_KEYWORDS.hasOwnProperty(keyword) && lower.indexOf(keyword) !== -1) {
+      return CATEGORY_KEYWORDS[keyword];
+    }
+  }
+  return 'Other';
+}
+
+// Full resolution: clean desc → identify merchant → categorize
+// Priority: learned rules > MERCHANT_MAP > CATEGORY_KEYWORDS > "Other"
+function resolveMerchant(desc) {
+  var cleaned = cleanMerchant(desc);
+  var match = identifyMerchant(cleaned);
+  var merchant = match ? match.name : cleaned;
+  var rules = loadCategoryRules();
+  var cat = rules[merchant.toLowerCase()] || (match ? match.cat : null) || categorizeByKeyword(merchant);
+  return { merchant: merchant, category: cat };
+}
+
+// Keep legacy categorize() for backward compatibility
+function categorize(merchant) {
+  var rules = loadCategoryRules();
+  var lower = merchant.toLowerCase();
+  if (rules[lower]) return rules[lower];
+  var match = identifyMerchant(lower);
+  if (match) return match.cat;
+  return categorizeByKeyword(merchant);
 }
 
 // ── UUID generator ──
@@ -478,12 +779,11 @@ function extractTransaction(headers, cols, bank) {
   }
 
   if (!dateStr || amount <= 0) return null;
-  const merchant = cleanMerchant(desc);
-  const cat = categorize(merchant);
+  var resolved = resolveMerchant(desc);
   return {
     id: uuid(), date: normalizeDate(dateStr), description: desc,
-    merchant, category: cat, amount: Math.abs(amount),
-    source: 'csv', bank, _origCategory: cat, _manualCategory: false
+    merchant: resolved.merchant, category: resolved.category, amount: Math.abs(amount),
+    source: 'csv', bank, _origCategory: resolved.category, _manualCategory: false
   };
 }
 
@@ -542,12 +842,11 @@ function parsePDFLine(line) {
       if (/payment|thank you|credit|refund/i.test(desc)) return null;
       // Skip very small amounts (likely fees listed differently)
       if (isNaN(amount) || amount <= 0) return null;
-      const merchant = cleanMerchant(desc);
-      const cat = categorize(merchant);
+      var resolved = resolveMerchant(desc);
       return {
         id: uuid(), date: normalizeDate(dateStr), description: desc,
-        merchant, category: cat, amount: Math.abs(amount),
-        source: 'pdf', bank: 'unknown', _origCategory: cat, _manualCategory: false
+        merchant: resolved.merchant, category: resolved.category, amount: Math.abs(amount),
+        source: 'pdf', bank: 'unknown', _origCategory: resolved.category, _manualCategory: false
       };
     }
   }
@@ -581,12 +880,11 @@ function parseExcel(arrayBuffer) {
     let amount = parseFloat(String(row[amountCol]).replace(/[$,]/g, ''));
     if (isNaN(amount) || amount === 0) return;
     amount = Math.abs(amount);
-    const merchant = cleanMerchant(desc);
-    const cat = categorize(merchant);
+    var resolved = resolveMerchant(desc);
     transactions.push({
       id: uuid(), date: normalizeDate(dateStr), description: desc,
-      merchant, category: cat, amount,
-      source: 'xlsx', bank: 'unknown', _origCategory: cat, _manualCategory: false
+      merchant: resolved.merchant, category: resolved.category, amount,
+      source: 'xlsx', bank: 'unknown', _origCategory: resolved.category, _manualCategory: false
     });
   });
   return transactions;
