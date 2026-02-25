@@ -463,7 +463,7 @@ function renderTxTable() {
       + '<td>'+escHtml(tx.category)+'</td>'
       + '<td>'+escHtml(tx.description)+'</td>'
       + '<td>'+escHtml(tx.paymentMethod)+'</td>'
-      + '<td>'+fmt(tx.amount)+'</td>'
+      + '<td'+(tx.amount < 0 ? ' style="color:var(--green)"' : '')+'>'+fmt(tx.amount)+'</td>'
       + '<td><div class="action-cell"><button class="btn btn-secondary btn-sm" onclick="openTxModal(\''+tx.id+'\')">Edit</button>'
       + '<button class="btn btn-danger btn-sm" onclick="deleteTx(\''+tx.id+'\')">X</button></div></td>'
       + '</tr>';
@@ -1786,38 +1786,89 @@ function extractStatementTx(headers, cols, bank) {
   };
 }
 
-// ── PDF parsing ──
-function parseStatementPDF(arrayBuffer) {
-  return pdfjsLib.getDocument({data:arrayBuffer}).promise.then(function(pdf) {
-    var transactions = [];
-    var pagePromises = [];
-    for (var p = 1; p <= pdf.numPages; p++) {
-      pagePromises.push(pdf.getPage(p).then(function(page) {
-        return page.getTextContent().then(function(content) {
-          var items = content.items.sort(function(a,b) {
-            var dy = b.transform[5] - a.transform[5];
-            return Math.abs(dy) > 3 ? dy : a.transform[4] - b.transform[4];
-          });
-          var lines = [], currentLine = '', lastY = null;
-          items.forEach(function(item) {
-            var y = Math.round(item.transform[5]);
-            if (lastY !== null && Math.abs(y - lastY) > 3) {
-              if (currentLine.trim()) lines.push(currentLine.trim());
-              currentLine = '';
-            }
-            currentLine += (currentLine ? ' ' : '') + item.str;
-            lastY = y;
-          });
-          if (currentLine.trim()) lines.push(currentLine.trim());
-          lines.forEach(function(line) {
-            var tx = parseStatementPDFLine(line);
-            if (tx) transactions.push(tx);
-          });
-        });
-      }));
+// ── PDF parsing with credit/charge column detection ──
+async function parseStatementPDF(arrayBuffer) {
+  var pdf = await pdfjsLib.getDocument({data:arrayBuffer}).promise;
+  var transactions = [];
+  var creditX = -1, chargeX = -1;
+
+  for (var p = 1; p <= pdf.numPages; p++) {
+    var page = await pdf.getPage(p);
+    var content = await page.getTextContent();
+    var items = content.items.filter(function(it) { return it.str.trim(); });
+    if (items.length === 0) continue;
+
+    items.sort(function(a,b) {
+      var dy = b.transform[5] - a.transform[5];
+      return Math.abs(dy) > 3 ? dy : a.transform[4] - b.transform[4];
+    });
+
+    // Group items into rows by Y position
+    var rows = [];
+    var rowItems = [items[0]];
+    for (var i = 1; i < items.length; i++) {
+      var y = Math.round(items[i].transform[5]);
+      var prevY = Math.round(rowItems[rowItems.length - 1].transform[5]);
+      if (Math.abs(y - prevY) > 3) {
+        rows.push(rowItems.slice());
+        rowItems = [];
+      }
+      rowItems.push(items[i]);
     }
-    return Promise.all(pagePromises).then(function() { return transactions; });
-  });
+    if (rowItems.length) rows.push(rowItems);
+
+    // Scan for column headers: "Credits" and "Charges"
+    if (creditX < 0 || chargeX < 0) {
+      for (var h = 0; h < rows.length; h++) {
+        var rowText = rows[h].map(function(it) { return it.str; }).join(' ').toLowerCase();
+        if (/credits?/i.test(rowText) && /charges?|debit/i.test(rowText)) {
+          for (var c = 0; c < rows[h].length; c++) {
+            var txt = rows[h][c].str.trim().toLowerCase();
+            if (/^credits?$/.test(txt)) creditX = rows[h][c].transform[4];
+            if (/^charges?$|^debit$/.test(txt)) chargeX = rows[h][c].transform[4];
+          }
+          if (creditX < 0 || chargeX < 0) {
+            for (var c2 = 0; c2 < rows[h].length; c2++) {
+              var txt2 = rows[h][c2].str.trim().toLowerCase();
+              if (creditX < 0 && /credit/i.test(txt2) && !/card/i.test(txt2)) creditX = rows[h][c2].transform[4];
+              if (chargeX < 0 && /charge/i.test(txt2) && !/finance|other/i.test(txt2)) chargeX = rows[h][c2].transform[4];
+            }
+          }
+          if (creditX > 0 && chargeX > 0) break;
+        }
+      }
+    }
+
+    // Parse each row
+    for (var r = 0; r < rows.length; r++) {
+      var row = rows[r];
+      var line = row.map(function(it) { return it.str; }).join(' ').replace(/\s+/g, ' ').trim();
+      var tx = parseStatementPDFLine(line);
+      if (!tx) continue;
+
+      // Detect credit by X position of dollar amount
+      if (creditX > 0 && chargeX > 0) {
+        var amountX = -1;
+        for (var a = row.length - 1; a >= 0; a--) {
+          var cleaned = row[a].str.replace(/[$,\s]/g, '');
+          if (/^\d+\.\d{2}$/.test(cleaned)) {
+            amountX = row[a].transform[4];
+            break;
+          }
+        }
+        if (amountX > 0) {
+          var distToCredit = Math.abs(amountX - creditX);
+          var distToCharge = Math.abs(amountX - chargeX);
+          if (distToCredit < distToCharge) {
+            tx.amount = -Math.abs(tx.amount);
+            tx.isCredit = true;
+          }
+        }
+      }
+      transactions.push(tx);
+    }
+  }
+  return transactions;
 }
 
 function parseStatementPDFLine(line) {
