@@ -466,7 +466,8 @@ function uuid() {
 
 // ── Dollar formatting ──
 function fmt(v) {
-  return "$" + Math.abs(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  var str = "$" + Math.abs(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return v < 0 ? "-" + str : str;
 }
 
 // ── localStorage helpers ──
@@ -880,11 +881,14 @@ function extractTransaction(headers, cols, bank) {
 }
 
 // ══════════════════════════════════════════════════════════
-// PDF PARSER — line-based approach
+// PDF PARSER — line-based with credit/charge column detection
 // ══════════════════════════════════════════════════════════
 async function parsePDF(arrayBuffer) {
   var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   var transactions = [];
+  // Track column header X positions across pages (set once from header row)
+  var creditX = -1, chargeX = -1;
+
   for (var p = 1; p <= pdf.numPages; p++) {
     var page = await pdf.getPage(p);
     var content = await page.getTextContent();
@@ -897,26 +901,62 @@ async function parsePDF(arrayBuffer) {
       return Math.abs(dy) > 3 ? dy : a.transform[4] - b.transform[4];
     });
 
-    // Group items into text lines by Y position, join with spaces
-    var lines = [];
-    var lineItems = [items[0]];
+    // Group items into rows by Y position (keep item objects for X-position analysis)
+    var rows = [];
+    var rowItems = [items[0]];
     for (var i = 1; i < items.length; i++) {
       var y = Math.round(items[i].transform[5]);
-      var prevY = Math.round(lineItems[lineItems.length - 1].transform[5]);
+      var prevY = Math.round(rowItems[rowItems.length - 1].transform[5]);
       if (Math.abs(y - prevY) > 3) {
-        lines.push(lineItems.map(function(it) { return it.str; }).join(' ').replace(/\s+/g, ' ').trim());
-        lineItems = [];
+        rows.push(rowItems.slice());
+        rowItems = [];
       }
-      lineItems.push(items[i]);
+      rowItems.push(items[i]);
     }
-    if (lineItems.length) {
-      lines.push(lineItems.map(function(it) { return it.str; }).join(' ').replace(/\s+/g, ' ').trim());
+    if (rowItems.length) rows.push(rowItems);
+
+    // Scan for column headers: "Credits" and "Charges" (or "Debit"/"Credit")
+    if (creditX < 0 || chargeX < 0) {
+      for (var h = 0; h < rows.length; h++) {
+        for (var c = 0; c < rows[h].length; c++) {
+          var txt = rows[h][c].str.trim().toLowerCase();
+          if (txt === 'credits' || txt === 'credit') creditX = rows[h][c].transform[4];
+          if (txt === 'charges' || txt === 'charge' || txt === 'debit') chargeX = rows[h][c].transform[4];
+        }
+        if (creditX > 0 && chargeX > 0) break;
+      }
     }
 
-    // Parse each reconstructed line
-    for (var j = 0; j < lines.length; j++) {
-      var tx = parsePDFLine(lines[j]);
-      if (tx) transactions.push(tx);
+    // Parse each row: reconstruct text line + detect credit via X position
+    for (var r = 0; r < rows.length; r++) {
+      var row = rows[r];
+      var line = row.map(function(it) { return it.str; }).join(' ').replace(/\s+/g, ' ').trim();
+
+      var tx = parsePDFLine(line);
+      if (!tx) continue;
+
+      // Determine if amount is a credit by checking X position of the dollar amount
+      if (creditX > 0 && chargeX > 0) {
+        // Find the rightmost dollar-amount item in this row
+        var amountX = -1;
+        for (var a = row.length - 1; a >= 0; a--) {
+          var cleaned = row[a].str.replace(/[$,\s]/g, '');
+          if (/^\d+\.\d{2}$/.test(cleaned)) {
+            amountX = row[a].transform[4];
+            break;
+          }
+        }
+        if (amountX > 0) {
+          var distToCredit = Math.abs(amountX - creditX);
+          var distToCharge = Math.abs(amountX - chargeX);
+          if (distToCredit < distToCharge) {
+            tx.amount = -Math.abs(tx.amount);
+            tx.isCredit = true;
+          }
+        }
+      }
+
+      transactions.push(tx);
     }
   }
   return transactions;
@@ -1295,6 +1335,8 @@ function showMultiMonthPreview() {
     var txns = parsedMonthBuckets[mk];
     var mkCtx = buildMonthContext(mk);
     var total = txns.reduce(function(s, t) { return s + t.amount; }, 0);
+    var credits = txns.filter(function(t) { return t.amount < 0; });
+    var creditTotal = credits.reduce(function(s, t) { return s + t.amount; }, 0);
     var dates = txns.map(function(t) { return t.date; }).filter(function(d) { return d; }).sort();
     var dateRange = dates.length ? dates[0] + ' to ' + dates[dates.length - 1] : '';
     var hasExisting = existingMonths.indexOf(mk) !== -1;
@@ -1305,6 +1347,9 @@ function showMultiMonthPreview() {
     html += '<span class="month-bucket-count">' + txns.length + ' txns</span>';
     html += '</div>';
     html += '<div class="month-bucket-total">' + fmt(total) + '</div>';
+    if (credits.length > 0) {
+      html += '<div style="font-size:12px;color:var(--green);margin-top:2px">' + credits.length + ' credit' + (credits.length > 1 ? 's' : '') + ': ' + fmt(creditTotal) + '</div>';
+    }
     html += '<div class="month-bucket-dates">' + dateRange + '</div>';
 
     if (hasExisting) {
@@ -1325,7 +1370,8 @@ function showMultiMonthPreview() {
   html += '<div style="margin-top:16px"><span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">Sample Transactions</span>';
   html += '<div class="preview-table"><table><thead><tr><th>Date</th><th>Merchant</th><th>Category</th><th>Amount</th></tr></thead><tbody>';
   allSorted.slice(0, 5).forEach(function(t) {
-    html += '<tr><td>' + t.date + '</td><td>' + t.merchant + '</td><td>' + t.category + '</td><td class="amt">' + fmt(t.amount) + '</td></tr>';
+    var amtStyle = t.amount < 0 ? ' style="color:var(--green)"' : '';
+    html += '<tr><td>' + t.date + '</td><td>' + t.merchant + '</td><td>' + t.category + '</td><td class="amt"' + amtStyle + '>' + fmt(t.amount) + '</td></tr>';
   });
   if (parsedTransactions.length > 5) {
     html += '<tr><td colspan="4" style="color:var(--text-muted);text-align:center">... and ' + (parsedTransactions.length - 5) + ' more</td></tr>';
@@ -2186,7 +2232,7 @@ function renderTxRows() {
     return '<tr><td class="mono">' + t.date + '</td>' +
       '<td style="font-weight:600">' + t.merchant + editDot + '</td>' +
       '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>' +
-      '<td class="text-right amt">' + fmt(t.amount) + '</td>' +
+      '<td class="text-right amt"' + (t.amount < 0 ? ' style="color:var(--green)"' : '') + '>' + fmt(t.amount) + '</td>' +
       '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td>' +
       '<td><span class="edit-icon" onclick="event.stopPropagation();openEditModal(\'' + t.id + '\')">&#9998;</span></td></tr>';
   }).join('');
@@ -2476,7 +2522,7 @@ function showMerchantDetail(merchantName, source) {
       }
       html += '<tr><td class="mono">' + t.date + '</td>';
       html += '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>';
-      html += '<td class="text-right amt">' + fmt(t.amount) + '</td>';
+      html += '<td class="text-right amt"' + (t.amount < 0 ? ' style="color:var(--green)"' : '') + '>' + fmt(t.amount) + '</td>';
       html += '<td class="text-right" style="font-size:12px">' + changeHtml + '</td></tr>';
     });
     html += '</tbody></table></div>';
@@ -2489,7 +2535,7 @@ function showMerchantDetail(merchantName, source) {
     html += '<tr><td class="mono">' + t.date + '</td>';
     html += '<td style="font-size:12px;color:var(--text-muted);max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g, '&quot;') + '">' + (t.description || t.merchant) + '</td>';
     html += '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>';
-    html += '<td class="text-right amt">' + fmt(t.amount) + '</td>';
+    html += '<td class="text-right amt"' + (t.amount < 0 ? ' style="color:var(--green)"' : '') + '>' + fmt(t.amount) + '</td>';
     html += '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td></tr>';
   });
   html += '</tbody></table></div>';
@@ -2570,7 +2616,7 @@ function showCategoryDetail(categoryName, source) {
     html += '<td class="mono">' + t.date + '</td>';
     html += '<td style="font-weight:600">' + t.merchant + '</td>';
     html += '<td style="font-size:12px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (t.description || '').replace(/"/g,'&quot;') + '">' + (t.description || t.merchant) + '</td>';
-    html += '<td class="text-right amt">' + fmt(t.amount) + '</td>';
+    html += '<td class="text-right amt"' + (t.amount < 0 ? ' style="color:var(--green)"' : '') + '>' + fmt(t.amount) + '</td>';
     html += '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + t.source.toUpperCase() + '</span></td></tr>';
   });
   html += '</tbody></table></div>';
