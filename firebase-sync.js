@@ -315,17 +315,34 @@ async function doForgotPassword() {
 
 function signInWithGoogle() {
   if (!fb_auth) return;
-  var provider = new firebase.auth.GoogleAuthProvider();
-  provider.addScope('email');
-  provider.addScope('profile');
-  provider.setCustomParameters({ prompt: 'select_account' });
-  fb_auth.signInWithPopup(provider)
-    .then(function() { closeAuthModal(); })
-    .catch(function(e) {
-      if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') return;
-      console.error('Google sign-in error:', e.code, e.message);
-      showAuthError(e.message || 'Google sign-in failed.');
-    });
+  // Use Google Identity Services token flow — bypasses Firebase auth handler
+  if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+    var s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = function() { _requestGoogleToken(); };
+    s.onerror = function() { showAuthError('Failed to load Google Sign-In.'); };
+    document.head.appendChild(s);
+    return;
+  }
+  _requestGoogleToken();
+}
+
+function _requestGoogleToken() {
+  var client = google.accounts.oauth2.initTokenClient({
+    client_id: '295516575227-nuon8278ld6l228b56hvj2grsqudtdij.apps.googleusercontent.com',
+    scope: 'email profile',
+    callback: function(tokenResponse) {
+      if (tokenResponse.error) {
+        showAuthError('Google sign-in failed: ' + tokenResponse.error);
+        return;
+      }
+      var credential = firebase.auth.GoogleAuthProvider.credential(null, tokenResponse.access_token);
+      fb_auth.signInWithCredential(credential)
+        .then(function() { closeAuthModal(); })
+        .catch(function(e) { showAuthError(e.message || 'Sign-in failed.'); });
+    }
+  });
+  client.requestAccessToken();
 }
 
 function doSignOut() {
