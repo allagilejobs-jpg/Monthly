@@ -888,61 +888,159 @@ async function parsePDF(arrayBuffer) {
   for (let p = 1; p <= pdf.numPages; p++) {
     const page = await pdf.getPage(p);
     const content = await page.getTextContent();
-    // Reconstruct lines from text items
-    const items = content.items.sort((a, b) => {
-      const dy = b.transform[5] - a.transform[5];
+    // Group text items into rows by Y position, then separate columns by X gaps
+    const items = content.items.filter(function(it) { return it.str.trim(); });
+    if (items.length === 0) continue;
+
+    // Group by Y position (same row)
+    var rows = [];
+    var rowItems = [];
+    var lastY = null;
+    items.sort(function(a, b) {
+      var dy = b.transform[5] - a.transform[5];
       return Math.abs(dy) > 3 ? dy : a.transform[4] - b.transform[4];
     });
-    let lines = []; let currentLine = ''; let lastY = null;
-    items.forEach(item => {
-      const y = Math.round(item.transform[5]);
+    items.forEach(function(item) {
+      var y = Math.round(item.transform[5]);
       if (lastY !== null && Math.abs(y - lastY) > 3) {
-        if (currentLine.trim()) lines.push(currentLine.trim());
-        currentLine = '';
+        if (rowItems.length) rows.push(rowItems);
+        rowItems = [];
       }
-      currentLine += (currentLine ? ' ' : '') + item.str;
+      rowItems.push({ text: item.str, x: item.transform[4], w: item.width || 0 });
       lastY = y;
     });
-    if (currentLine.trim()) lines.push(currentLine.trim());
+    if (rowItems.length) rows.push(rowItems);
 
-    // Parse transaction lines
-    lines.forEach(line => {
-      const tx = parsePDFLine(line);
+    // For each row, detect columns by X-position gaps and build separated line
+    rows.forEach(function(row) {
+      row.sort(function(a, b) { return a.x - b.x; });
+      // Build line with tab separators where there are large X gaps
+      var parts = [];
+      var currentPart = row[0].text;
+      for (var i = 1; i < row.length; i++) {
+        var gap = row[i].x - (row[i-1].x + row[i-1].w);
+        if (gap > 15) {
+          // Large gap = new column
+          parts.push(currentPart.trim());
+          currentPart = row[i].text;
+        } else {
+          // Same column, append with space
+          currentPart += ' ' + row[i].text;
+        }
+      }
+      parts.push(currentPart.trim());
+
+      // Try to parse as a transaction using column-aware approach
+      var tx = parsePDFColumns(parts);
       if (tx) transactions.push(tx);
     });
   }
   return transactions;
 }
 
-function parsePDFLine(line) {
-  // Common patterns:
-  // MM/DD description amount
-  // MM/DD/YYYY description amount
-  // MM/DD description $amount
-  const patterns = [
-    /^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(.+?)\s+(-?\$?[\d,]+\.\d{2})\s*$/,
-    /^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(.+?)\s+\$?([\d,]+\.\d{2})\s*(?:CR|DR)?\s*$/i,
-    /^(\d{1,2}-\d{1,2}(?:-\d{2,4})?)\s+(.+?)\s+(-?\$?[\d,]+\.\d{2})\s*$/
-  ];
-  for (const pat of patterns) {
-    const m = line.match(pat);
-    if (m) {
-      const dateStr = m[1];
-      const desc = m[2].trim();
-      let amount = parseFloat(m[3].replace(/[$,]/g, ''));
-      // Skip credit/payment lines
-      if (/payment|thank you|credit|refund/i.test(desc)) return null;
-      // Skip very small amounts (likely fees listed differently)
-      if (isNaN(amount) || amount <= 0) return null;
-      var resolved = resolveMerchant(desc);
-      return {
-        id: uuid(), date: normalizeDate(dateStr), description: desc,
-        merchant: resolved.merchant, category: resolved.category, amount: Math.abs(amount),
-        source: 'pdf', bank: 'unknown', _origCategory: resolved.category, _manualCategory: false
-      };
+function parsePDFColumns(parts) {
+  // Bank PDF columns are typically:
+  // [date] [description] [amount] [balance]
+  // or [date] [post date] [description] [amount] [balance]
+  // or [date] [description] [debit] [credit] [balance]
+  if (parts.length < 3) return null;
+
+  var dateStr = '', desc = '', amount = NaN;
+
+  // Find date (first part that looks like a date)
+  var dateIdx = -1;
+  for (var i = 0; i < Math.min(parts.length, 3); i++) {
+    if (/^\d{1,2}[\/\-]\d{1,2}([\/\-]\d{2,4})?$/.test(parts[i].trim())) {
+      dateStr = parts[i].trim();
+      dateIdx = i;
+      break;
     }
   }
-  return null;
+  if (dateIdx === -1) return null;
+
+  // Find amount columns — scan from the right for dollar amounts
+  var amounts = [];
+  for (var j = parts.length - 1; j > dateIdx; j--) {
+    var cleaned = parts[j].replace(/[$,\s]/g, '').replace(/CR$/i, '').replace(/DR$/i, '');
+    if (/^-?\d+\.\d{2}$/.test(cleaned)) {
+      amounts.unshift({ idx: j, val: parseFloat(cleaned), raw: parts[j] });
+    } else {
+      break; // stop at first non-amount from right
+    }
+  }
+
+  if (amounts.length === 0) {
+    // Fallback: try to find ANY amount in the parts after the date
+    for (var k = parts.length - 1; k > dateIdx; k--) {
+      var v = parts[k].replace(/[$,\s]/g, '').replace(/CR$/i, '').replace(/DR$/i, '');
+      if (/^-?\d+\.\d{2}$/.test(v)) {
+        amounts.push({ idx: k, val: parseFloat(v), raw: parts[k] });
+        break;
+      }
+    }
+  }
+  if (amounts.length === 0) return null;
+
+  // The transaction amount is the FIRST amount column (leftmost of the right-side amounts)
+  // The last amount is typically the running balance — skip it
+  if (amounts.length >= 2) {
+    amount = Math.abs(amounts[0].val);
+  } else {
+    amount = Math.abs(amounts[0].val);
+  }
+
+  // Description is everything between the date and the first amount column
+  var descParts = [];
+  var firstAmtIdx = amounts[0].idx;
+  // Skip a second date column if present (post date)
+  var descStart = dateIdx + 1;
+  if (descStart < firstAmtIdx && /^\d{1,2}[\/\-]\d{1,2}([\/\-]\d{2,4})?$/.test(parts[descStart].trim())) {
+    descStart++; // skip post date
+  }
+  for (var d = descStart; d < firstAmtIdx; d++) {
+    descParts.push(parts[d]);
+  }
+  desc = descParts.join(' ').trim();
+
+  // If description is empty but we have columns between date and amounts, try the full line fallback
+  if (!desc) return null;
+
+  // Skip credit/payment/refund lines
+  if (/payment|thank you|^credit$|refund|payment received/i.test(desc)) return null;
+  if (isNaN(amount) || amount <= 0) return null;
+  // Skip very large amounts that are likely balance totals
+  if (amount > 50000) return null;
+
+  // Clean trailing dollar amounts that may have leaked into description
+  desc = desc.replace(/\s+-?\$?[\d,]+\.\d{2}\s*$/g, '').trim();
+
+  var resolved = resolveMerchant(desc);
+  return {
+    id: uuid(), date: normalizeDate(dateStr), description: desc,
+    merchant: resolved.merchant, category: resolved.category, amount: amount,
+    source: 'pdf', bank: 'unknown', _origCategory: resolved.category, _manualCategory: false
+  };
+}
+
+// Fallback: parse a single text line (when column detection merges everything)
+function parsePDFLine(line) {
+  // Match: date, then description, then 1-3 dollar amounts at end
+  // Take the first amount (transaction), ignore others (balance, running total)
+  var m = line.match(/^(\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\s+(.+?)\s+(-?\$?[\d,]+\.\d{2})(?:\s+-?\$?[\d,]+\.\d{2})*\s*$/);
+  if (!m) return null;
+  var dateStr = m[1];
+  var desc = m[2].trim();
+  var amount = parseFloat(m[3].replace(/[$,]/g, ''));
+  // Clean leaked amounts from description end
+  desc = desc.replace(/\s+-?\$?[\d,]+\.\d{2}\s*$/g, '').trim();
+  if (/payment|thank you|credit|refund/i.test(desc)) return null;
+  if (isNaN(amount) || amount <= 0) return null;
+  var resolved = resolveMerchant(desc);
+  return {
+    id: uuid(), date: normalizeDate(dateStr), description: desc,
+    merchant: resolved.merchant, category: resolved.category, amount: Math.abs(amount),
+    source: 'pdf', bank: 'unknown', _origCategory: resolved.category, _manualCategory: false
+  };
 }
 
 // ══════════════════════════════════════════════════════════
