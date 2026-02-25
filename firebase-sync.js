@@ -98,6 +98,10 @@ function initFirebase() {
 // ============================================================
 
 function injectAuthUI() {
+  // Skip on homepage — it has its own auth buttons
+  const path = window.location.pathname;
+  if (path.endsWith('/Monthly/') || path.endsWith('/Monthly/index.html') || path === '/Monthly') return;
+
   // Auth button in header
   const header = document.querySelector('.header') || document.querySelector('header');
   if (!header) return;
