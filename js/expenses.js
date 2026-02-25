@@ -1709,6 +1709,72 @@ function saveEdit() {
   closeEditModal();
 }
 
+// ══════════════════════════════════════════════════════════
+// ADD EXPENSE MODAL
+// ══════════════════════════════════════════════════════════
+function openAddModal() {
+  if (!ctx || !ctx.monthKey) { showToast('Please select a month first.', 'warning'); return; }
+  // Set default date to first day of current month
+  var defaultDate = ctx.year + '-' + String(ctx.month).padStart(2, '0') + '-01';
+  document.getElementById('add-date').value = defaultDate;
+  document.getElementById('add-merchant').value = '';
+  document.getElementById('add-amount').value = '';
+  document.getElementById('add-source-type').value = '';
+  // Populate category dropdown
+  var sel = document.getElementById('add-category');
+  var allCats = [...new Set([...CATEGORY_LIST, ...catGroups.map(g => g.name)])];
+  sel.innerHTML = allCats.map(c => '<option value="' + c + '">' + c + '</option>').join('');
+  sel.innerHTML += '<option value="__new__">+ New Category...</option>';
+  document.getElementById('add-modal').classList.add('open');
+}
+function closeAddModal() { document.getElementById('add-modal').classList.remove('open'); }
+
+function saveAddExpense() {
+  var dateVal = document.getElementById('add-date').value;
+  var merchantVal = document.getElementById('add-merchant').value.trim();
+  var catVal = document.getElementById('add-category').value;
+  var amountVal = parseFloat(document.getElementById('add-amount').value);
+  var sourceTypeVal = document.getElementById('add-source-type').value.trim();
+
+  if (!dateVal) { showToast('Please enter a date.', 'warning'); return; }
+  if (!merchantVal) { showToast('Please enter a merchant or description.', 'warning'); return; }
+  if (isNaN(amountVal) || amountVal <= 0) { showToast('Please enter a valid amount.', 'warning'); return; }
+
+  if (catVal === '__new__') {
+    catVal = prompt('Enter new category name:');
+    if (!catVal) return;
+  }
+
+  var resolved = resolveMerchant(merchantVal);
+  var tx = {
+    id: uuid(), date: dateVal, description: merchantVal,
+    merchant: resolved.merchant, category: catVal, amount: amountVal,
+    source: 'manual', sourceType: sourceTypeVal, bank: 'manual',
+    _origCategory: catVal, _manualCategory: true
+  };
+
+  activeData.push(tx);
+  saveData(ctx.monthKey, activeData);
+  recomputeAll();
+  destroyAllCharts();
+  renderAll();
+  closeAddModal();
+  showToast('Expense added successfully!', 'success');
+}
+
+function deleteTx(id) {
+  if (!confirm('Delete this transaction?')) return;
+  activeData = activeData.filter(t => t.id !== id);
+  saveData(ctx.monthKey, activeData);
+  var edits = loadEdits(ctx.monthKey);
+  delete edits[id];
+  saveEdits(ctx.monthKey, edits);
+  recomputeAll();
+  destroyAllCharts();
+  renderAll();
+  showToast('Transaction deleted', 'success');
+}
+
 function resetEdit() {
   if (!editingId || !ctx.monthKey) return;
   const tx = activeData.find(t => t.id === editingId);
@@ -2220,12 +2286,13 @@ let txSortCol = 'date', txSortDir = 'asc';
 function renderTransactions() {
   const el = document.getElementById('view-transactions');
   if (activeData.length === 0) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128203;</div><div class="empty-state-title">No Transactions</div><div class="empty-state-text">Upload a statement to see your transactions.</div></div>';
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128203;</div><div class="empty-state-title">No Transactions</div><div class="empty-state-text">Upload a statement or <a href="#" onclick="event.preventDefault();openAddModal()" style="color:var(--blue)">add an expense manually</a>.</div></div>';
     return;
   }
 
   // Build filter bar
-  let html = '<div class="filter-bar">';
+  let html = '<div class="filter-bar" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">';
+  html += '<button class="btn-add-expense" onclick="openAddModal()">+ Add Expense</button>';
   html += '<select id="tx-filter-date"><option value="All">All Dates</option>';
   const dates = [...new Set(activeData.map(t => t.date))].sort();
   dates.forEach(d => { html += '<option value="' + d + '">' + d + '</option>'; });
@@ -2288,7 +2355,7 @@ function renderTxRows() {
       '<td class="text-right amt"' + (t.amount < 0 ? ' style="color:var(--green)"' : '') + '>' + fmt(t.amount) + '</td>' +
       '<td class="text-center" style="font-size:12px">' + (t.sourceType || '\u2014') + '</td>' +
       '<td class="text-center"><span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">' + (t.source || '').toUpperCase() + '</span></td>' +
-      '<td><span class="edit-icon" onclick="event.stopPropagation();openEditModal(\'' + t.id + '\')">&#9998;</span></td></tr>';
+      '<td><span class="edit-icon" onclick="event.stopPropagation();openEditModal(\'' + t.id + '\')" title="Edit">&#9998;</span> <span class="delete-icon" onclick="event.stopPropagation();deleteTx(\'' + t.id + '\')" title="Delete">&#128465;</span></td></tr>';
   }).join('');
   const countEl = document.getElementById('tx-count');
   if (countEl) countEl.textContent = 'Showing ' + filtered.length + ' of ' + activeData.length + ' transactions' + (filtered.length !== activeData.length ? ' \u2022 Total: ' + fmt(filtered.reduce((s, t) => s + t.amount, 0)) : '');
