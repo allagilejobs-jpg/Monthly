@@ -261,248 +261,146 @@
 <!-- Help Modal -->
 <div class="modal-overlay" id="help-modal" onclick="if(event.target===this)closeHelpModal()">
   <div class="modal" style="max-width:740px;max-height:85vh;overflow-y:auto">
-    <div class="modal-title" style="font-size:18px">Receipt Analysis Methodology</div>
-    <div class="help-text" style="margin-bottom:20px">Reference guide for monthly receipt processing and Excel file preparation.</div>
+    <div class="modal-title" style="font-size:18px">Groceries Dashboard &mdash; Help &amp; Guide</div>
+    <div class="help-text" style="margin-bottom:20px">Everything you need to know about tracking your grocery and household spending.</div>
 
-    <!-- 1. Data Collection -->
+    <!-- Getting Started -->
     <div class="help-section">
-      <div class="help-section-title">1. Data Collection</div>
+      <div class="help-section-title">Getting Started</div>
       <div class="help-text">
-        Collect <strong>all receipt images</strong> for the month from every store. Receipts may come as:
-      </div>
-      <div class="help-text" style="margin-top:6px">
-        &#8226; Physical paper receipt photos<br>
-        &#8226; Digital screenshots from store apps<br>
-        &#8226; Online order confirmations
+        The Groceries Dashboard helps you track every item you buy from grocery stores each month. It breaks down your spending by store, category, and item &mdash; so you can see exactly where your money goes.
       </div>
       <div class="help-text" style="margin-top:8px">
-        Target stores include <strong>Walmart, Publix, Target, Costco</strong> (in-warehouse and online), <strong>Austell Farmers Market</strong>, and <strong>Instacart</strong> (covering Sprouts, Ingles, Costco delivery). Upload all receipt images at once for processing.<br><br>
-        <strong>New stores can be added at any time.</strong> If you shop at a new store in a future month, simply include those receipts &mdash; the dashboard will automatically pick up any new store names from the data. No configuration needed.
+        <strong>What you need:</strong> An Excel file (.xlsx) with your monthly grocery receipts entered as line items. Each row represents one product purchased.
       </div>
     </div>
 
-    <!-- 2. Data Extraction -->
+    <!-- How to Upload -->
     <div class="help-section">
-      <div class="help-section-title">2. Data Extraction</div>
-      <div class="help-text" style="margin-bottom:10px">
-        Every line item on every receipt is extracted. For each item, capture the following data points into the base table:
-      </div>
-      <div style="overflow-x:auto">
-        <table class="help-table">
-          <thead><tr><th>Column</th><th>Field Name</th><th>Description</th><th>Example</th></tr></thead>
-          <tbody>
-            <tr><td>A</td><td>Date</td><td>MM/DD date from receipt timestamp</td><td>01/14</td></tr>
-            <tr><td>B</td><td>Store</td><td>Full store name as identified from receipt header</td><td>Publix</td></tr>
-            <tr><td>C</td><td>Receipt Name</td><td>Abbreviated name exactly as printed on receipt</td><td>OV GRASSMILK HG</td></tr>
-            <tr><td>D</td><td>Full Product Name</td><td>Decoded human-readable product name</td><td>Organic Valley Grassmilk Half Gallon</td></tr>
-            <tr><td>E</td><td>Category</td><td>Assigned category from the master category list</td><td>Dairy &amp; Eggs</td></tr>
-            <tr><td>F</td><td>Qty</td><td>Quantity purchased (count from receipt)</td><td>2</td></tr>
-            <tr><td>G</td><td>Unit Price</td><td>Price per single unit of the item</td><td>$7.19</td></tr>
-            <tr><td>H</td><td>Line Total</td><td>Qty &times; Unit Price (or receipt total for that line)</td><td>$14.38</td></tr>
-            <tr><td>I</td><td>Non-Grocery?</td><td>TRUE if item is not food/drink; FALSE if grocery</td><td>FALSE</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 3. Product Name Decoding -->
-    <div class="help-section">
-      <div class="help-section-title">3. Product Name Decoding</div>
-      <div class="help-text" style="margin-bottom:10px">
-        Receipts use heavily abbreviated product names. Each abbreviation must be decoded to its full product name. When a receipt abbreviation is ambiguous, use the <strong>UPC barcode number</strong> (printed on many receipts) to look up the exact product. For weight-based items (e.g., produce sold per pound), record the total line price as the Line Total.
-      </div>
-      <div style="overflow-x:auto">
-        <table class="help-table">
-          <thead><tr><th>Receipt Abbreviation</th><th>Decoded Name</th><th>Decoding Logic</th></tr></thead>
-          <tbody>
-            <tr><td>OV GRASSMILK HG</td><td>Organic Valley Grassmilk Half Gallon</td><td>Brand initials + product + size abbrev</td></tr>
-            <tr><td>MOOALA UNSW ALMDMK</td><td>Mooala Unsweetened Almond Milk</td><td>Brand + truncated descriptors</td></tr>
-            <tr><td>CHIFLE SWEET MAD</td><td>Chifles Sweet Maduro Plantain Chips</td><td>Brand + flavor abbreviation</td></tr>
-            <tr><td>PBX CHKN DMSTKS</td><td>Publix Chicken Drumsticks</td><td>Store brand abbrev + consonant-only words</td></tr>
-            <tr><td>KSOXIPOWDER</td><td>Kirkland Signature Oxi Powder</td><td>Brand initials concatenated with product</td></tr>
-            <tr><td>CPCKE 6CT CELEBRTN</td><td>Celebration Cupcakes 6-Count</td><td>Truncated words + count + truncated descriptor</td></tr>
-            <tr><td>JENGIBRE</td><td>Ginger Root</td><td>Spanish product name</td></tr>
-            <tr><td>DV MC TRFL</td><td>Dove Men+Care Body Wash</td><td>Brand initials + product initials</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 4. Category Assignment -->
-    <div class="help-section">
-      <div class="help-section-title">4. Category Assignment</div>
-      <div class="help-text" style="margin-bottom:10px">Every item is assigned exactly one category. Use these consistently across months for accurate comparisons. <strong>New categories can be added at any time</strong> &mdash; if a product doesn't fit an existing category, create a new one in the spreadsheet and the dashboard will automatically include it. You can also rename or recategorize items after uploading by clicking any item in the All Items tab.</div>
-
-      <div style="margin-bottom:12px">
-        <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px">GROCERY CATEGORIES</div>
-        <table class="help-table">
-          <thead><tr><th>Category</th><th>Includes</th></tr></thead>
-          <tbody>
-            <tr><td><span class="help-chip tag-grocery">Produce</span></td><td>Fresh fruits, vegetables, herbs, leafy greens, plantains, peppers, potatoes, onions</td></tr>
-            <tr><td><span class="help-chip tag-grocery">Dairy &amp; Eggs</span></td><td>Milk, almond milk, butter, cream, eggs, yogurt pouches</td></tr>
-            <tr><td><span class="help-chip tag-grocery">Meat &amp; Protein</span></td><td>Chicken, ground beef, goat meat, turkey wings</td></tr>
-            <tr><td><span class="help-chip tag-grocery">Bakery &amp; Bread</span></td><td>Bread loaves, brioche, pita, donuts, cupcakes</td></tr>
-            <tr><td><span class="help-chip tag-grocery">Snacks &amp; Chips</span></td><td>Chips, popcorn, granola bars, crackers, cookies, cashews, plantain chips</td></tr>
-            <tr><td><span class="help-chip tag-grocery">Candy &amp; Sweets</span></td><td>Chocolate bars, candy, PEZ, gummies, Sweethearts</td></tr>
-            <tr><td><span class="help-chip tag-grocery">Beverages</span></td><td>Juice, water packs, ginger ale, cold pressed juice</td></tr>
-            <tr><td><span class="help-chip tag-grocery">Frozen Desserts</span></td><td>Ice cream, popsicles, frozen treats</td></tr>
-            <tr><td><span class="help-chip tag-grocery">Frozen Foods</span></td><td>Frozen vegetables (okra, etc.)</td></tr>
-            <tr><td><span class="help-chip tag-grocery">Canned &amp; Packaged Foods</span></td><td>Canned beans, corn, soup, pasta sauce, tomato paste, instant noodles, pasta, broth</td></tr>
-            <tr><td><span class="help-chip tag-grocery">Baking &amp; Pantry</span></td><td>Flour, salt, spices, bay leaves, seasoning mixes, marshmallows</td></tr>
-            <tr><td><span class="help-chip tag-grocery">Cooking Oils &amp; Condiments</span></td><td>Olive oil, cooking oils</td></tr>
-            <tr><td><span class="help-chip tag-grocery">Breakfast &amp; Cereal</span></td><td>Cereal (Weetabix, etc.)</td></tr>
-            <tr><td><span class="help-chip tag-grocery">Baby Care (Food)</span></td><td>Baby food pouches like Once Upon a Farm (categorized as grocery)</td></tr>
-            <tr><td><span class="help-chip tag-grocery">Prepared Foods &amp; Deli</span></td><td>Deli items, prepared meals</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div style="margin-bottom:12px">
-        <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:6px">TOILETRY CATEGORIES (auto-classified by dashboard)</div>
-        <table class="help-table">
-          <thead><tr><th>Category</th><th>Includes</th></tr></thead>
-          <tbody>
-            <tr><td><span class="help-chip tag-toiletry">Health &amp; Beauty</span></td><td>Lip balm, body lotion, body wash, hair care products</td></tr>
-            <tr><td><span class="help-chip tag-toiletry">Household &amp; Cleaning</span></td><td>Dish soap, laundry detergent/pods, oxi powder, trash bags, flushable wipes, Ziploc bags</td></tr>
-            <tr><td><span class="help-chip tag-toiletry">Paper Products</span></td><td>Bath tissue, paper towels</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div>
-        <div style="font-size:11px;font-weight:700;color:var(--rose);margin-bottom:6px">NON-GROCERY CATEGORIES (mark Non-Grocery? = TRUE)</div>
-        <table class="help-table">
-          <thead><tr><th>Category</th><th>Includes</th></tr></thead>
-          <tbody>
-            <tr><td><span class="help-chip tag-nongrocery">Electronics &amp; Batteries</span></td><td>Batteries (Duracell, etc.)</td></tr>
-            <tr><td><span class="help-chip tag-nongrocery">Clothing &amp; Apparel</span></td><td>Socks, clothing items</td></tr>
-            <tr><td><span class="help-chip tag-nongrocery">Baby Care (Non-Food)</span></td><td>Baby wipes</td></tr>
-            <tr><td><span class="help-chip tag-nongrocery">Toys</span></td><td>Children's toys</td></tr>
-            <tr><td><span class="help-chip tag-nongrocery">Housewares</span></td><td>Cups, bottles, kitchen items (Zak Designs, etc.)</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="help-text" style="margin-top:10px">
-        Non-grocery items are highlighted in <strong style="color:#f59e0b">yellow</strong> in the spreadsheet and flagged <strong>TRUE</strong> in column I. This allows filtering to see pure food spending vs. total spending.
-      </div>
-    </div>
-
-    <!-- 5. Classification Logic -->
-    <div class="help-section">
-      <div class="help-section-title">5. Dashboard Classification Logic</div>
-      <div class="help-text">
-        The dashboard auto-classifies each item into one of three types:<br><br>
-        <strong style="color:var(--purple)">Toiletry</strong> &mdash; Any item whose Category is "Health &amp; Beauty", "Household &amp; Cleaning", or "Paper Products" (regardless of the Non-Grocery flag).<br><br>
-        <strong style="color:var(--green)">Grocery</strong> &mdash; Any item where Non-Grocery = FALSE and it's not a toiletry category.<br><br>
-        <strong style="color:var(--rose)">Other</strong> &mdash; Any item where Non-Grocery = TRUE and it's not a toiletry category (toys, electronics, clothing, etc.).
-      </div>
-    </div>
-
-    <!-- 6. Spreadsheet Structure -->
-    <div class="help-section">
-      <div class="help-section-title">6. Spreadsheet Structure (6 Sheets)</div>
-      <div class="help-text" style="margin-bottom:8px">Only <strong>Sheet 1 (All Transactions)</strong> is required for the dashboard upload. Sheets 2&ndash;6 are optional reference sheets for your own analysis.</div>
-
-      <div style="margin-bottom:10px">
-        <div style="font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:4px">Sheet 1: All Transactions (REQUIRED)</div>
-        <div class="help-text">
-          &#8226; Every line item from every receipt, one row per item<br>
-          &#8226; Columns A through I as defined above<br>
-          &#8226; Sorted chronologically by date<br>
-          &#8226; Non-grocery rows highlighted in yellow (fill color FFF2CC)<br>
-          &#8226; Final row contains SUM formula for column H (grand total)
-        </div>
-      </div>
-
-      <div style="margin-bottom:10px">
-        <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:4px">Sheet 2: By Store (optional)</div>
-        <div class="help-text">
-          Pivot on Store. For each store: Total Items (SUM of Qty), Number of Trips (COUNT of unique dates), Total Spent (SUM of Line Total), % of Total Spend. Sorted descending by Total Spent.
-        </div>
-      </div>
-
-      <div style="margin-bottom:10px">
-        <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:4px">Sheet 3: By Category (optional)</div>
-        <div class="help-text">
-          Pivot on Category. For each category: Total Items, Total Spent, % of Total Spend, Grocery/Non-Grocery label. Non-grocery categories highlighted in yellow. Sorted descending by Total Spent.
-        </div>
-      </div>
-
-      <div style="margin-bottom:10px">
-        <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:4px">Sheet 4: Top Spent Items (optional)</div>
-        <div class="help-text">
-          Group by Full Product Name. For each unique product: Total Qty Bought, Total Spent. Ranked by Total Spent descending (rank 1 = most expensive cumulative item).
-        </div>
-      </div>
-
-      <div style="margin-bottom:10px">
-        <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:4px">Sheet 5: Frequently Purchased (optional)</div>
-        <div class="help-text">
-          Same as Sheet 4, but filtered to items where total quantity is 2 or more. Additional column: Avg Cost Per Unit (Total Spent &divide; Total Qty Bought). Sorted descending by Total Spent.
-        </div>
-      </div>
-
-      <div style="margin-bottom:4px">
-        <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:4px">Sheet 6: Summary Dashboard (optional)</div>
-        <div class="help-text">Key metrics calculated from all data:</div>
-        <table class="help-table" style="margin-top:6px">
-          <thead><tr><th>Metric</th><th>Formula / Logic</th></tr></thead>
-          <tbody>
-            <tr><td>Total Spend (All Items)</td><td>SUM of all Line Total values</td></tr>
-            <tr><td>Total Grocery Spend</td><td>SUM of Line Total WHERE Non-Grocery = FALSE</td></tr>
-            <tr><td>Total Non-Grocery Spend</td><td>SUM of Line Total WHERE Non-Grocery = TRUE</td></tr>
-            <tr><td>Total Line Items</td><td>COUNT of all data rows (one per receipt line)</td></tr>
-            <tr><td>Total Items Purchased</td><td>SUM of all Qty values (accounts for qty &gt; 1)</td></tr>
-            <tr><td>Number of Stores</td><td>COUNT of unique values in Store column</td></tr>
-            <tr><td>Number of Trips</td><td>COUNT of unique (Store + Date) combinations</td></tr>
-            <tr><td>Average Spend Per Trip</td><td>Total Spend &divide; Number of Trips</td></tr>
-          </tbody>
-        </table>
-        <div class="help-text" style="margin-top:6px">Also includes: Top 10 most expensive items (by cumulative spend) and Top 10 most frequently purchased items (by total quantity).</div>
-      </div>
-    </div>
-
-    <!-- 7. Formatting Rules -->
-    <div class="help-section">
-      <div class="help-section-title">7. Formatting Rules</div>
-      <div class="help-text">
-        &#8226; All currency values formatted as <strong>$#,##0.00</strong><br>
-        &#8226; Percentage values formatted as <strong>0.0%</strong><br>
-        &#8226; Header rows: <strong>white text on dark blue fill (2F5496)</strong>, bold Arial 11pt<br>
-        &#8226; Data rows: Arial 10pt, light gray borders (D9D9D9)<br>
-        &#8226; Non-grocery rows: <strong style="color:#f59e0b">yellow highlight fill (FFF2CC)</strong><br>
-        &#8226; Grand total rows: bold font<br>
-        &#8226; Dates with asterisk (e.g., 01/25*) indicate estimated dates from damaged/unreadable receipts
-      </div>
-    </div>
-
-    <!-- 8. Monthly Replication -->
-    <div class="help-section" style="margin-bottom:0">
-      <div class="help-section-title">8. Monthly Replication Checklist</div>
+      <div class="help-section-title">How to Upload a Month</div>
       <div class="help-step">
         <div class="help-step-num">1</div>
-        <div class="help-step-text">Upload all receipt images for the month</div>
+        <div class="help-step-text">Click the <strong>"+ Upload Month"</strong> button in the navigation bar</div>
       </div>
       <div class="help-step">
         <div class="help-step-num">2</div>
-        <div class="help-step-text">Extract and decode every line item using the same column structure</div>
+        <div class="help-step-text">Drag and drop your Excel file into the upload area, or click to browse for it</div>
       </div>
       <div class="help-step">
         <div class="help-step-num">3</div>
-        <div class="help-step-text">Assign categories using the master category list (add new categories only if needed)</div>
+        <div class="help-step-text">The dashboard will read <strong>Sheet 1</strong> and import all line items automatically</div>
       </div>
       <div class="help-step">
         <div class="help-step-num">4</div>
-        <div class="help-step-text">Build the 6-sheet spreadsheet with identical formulas and formatting</div>
+        <div class="help-step-text">Review the data in the dashboard tabs &mdash; Overview, By Store, By Category, All Items</div>
       </div>
-      <div class="help-step">
-        <div class="help-step-num">5</div>
-        <div class="help-step-text">Click <strong>"+ Upload Month"</strong> on the dashboard and drop in the Excel file</div>
+      <div class="help-text" style="margin-top:10px">
+        <strong>Tip:</strong> Only Sheet 1 (All Transactions) is required. Sheets 2&ndash;6 are optional reference sheets for your own analysis.
       </div>
-      <div class="help-step">
-        <div class="help-step-num">6</div>
-        <div class="help-step-text">Verify receipt count matches the number of uploaded files</div>
+    </div>
+
+    <!-- Excel File Format -->
+    <div class="help-section">
+      <div class="help-section-title">Excel File Format</div>
+      <div class="help-text" style="margin-bottom:10px">
+        Your spreadsheet must have these columns on Sheet 1 (the first sheet):
+      </div>
+      <div style="overflow-x:auto">
+        <table class="help-table">
+          <thead><tr><th>Column</th><th>Field</th><th>Description</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td>Date</td><td>Purchase date (MM/DD format)</td><td>01/14</td></tr>
+            <tr><td>B</td><td>Store</td><td>Store name</td><td>Publix</td></tr>
+            <tr><td>C</td><td>Receipt Name</td><td>Name as printed on receipt</td><td>OV GRASSMILK HG</td></tr>
+            <tr><td>D</td><td>Full Product Name</td><td>Decoded readable name</td><td>Organic Valley Grassmilk Half Gallon</td></tr>
+            <tr><td>E</td><td>Category</td><td>Product category</td><td>Dairy &amp; Eggs</td></tr>
+            <tr><td>F</td><td>Qty</td><td>Quantity purchased</td><td>2</td></tr>
+            <tr><td>G</td><td>Unit Price</td><td>Price per unit</td><td>$7.19</td></tr>
+            <tr><td>H</td><td>Line Total</td><td>Qty &times; Unit Price</td><td>$14.38</td></tr>
+            <tr><td>I</td><td>Non-Grocery?</td><td>TRUE if not food/drink</td><td>FALSE</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Dashboard Tabs Guide -->
+    <div class="help-section">
+      <div class="help-section-title">Dashboard Tabs Guide</div>
+      <div class="help-text">
+        <strong style="color:var(--green)">Overview</strong> &mdash; Summary cards showing total spend, item count, store count, and trip count. Includes spending breakdown chart and highlights.<br><br>
+        <strong style="color:var(--green)">By Store</strong> &mdash; See how much you spent at each store, how many trips, and percentage of total spending. Click any store for a detailed breakdown.<br><br>
+        <strong style="color:var(--green)">By Category</strong> &mdash; Spending grouped by product category (Produce, Dairy, Meat, etc.). Click any category to see all items in it.<br><br>
+        <strong style="color:var(--green)">All Items</strong> &mdash; Complete list of every item purchased. Click any item to edit its name or category.<br><br>
+        <strong style="color:var(--green)">Compare</strong> &mdash; Appears when you have 2+ months loaded. Compare spending side-by-side across months.
+      </div>
+    </div>
+
+    <!-- How Items Are Classified -->
+    <div class="help-section">
+      <div class="help-section-title">How Items Are Classified</div>
+      <div class="help-text">
+        The dashboard auto-classifies each item into one of three types:<br><br>
+        <strong style="color:var(--green)">Grocery</strong> &mdash; Food and drink items (Non-Grocery = FALSE and not a toiletry category).<br><br>
+        <strong style="color:var(--purple)">Toiletry</strong> &mdash; Items in "Health &amp; Beauty", "Household &amp; Cleaning", or "Paper Products" categories.<br><br>
+        <strong style="color:var(--rose)">Other</strong> &mdash; Non-food items like toys, electronics, clothing (Non-Grocery = TRUE and not toiletry).
+      </div>
+    </div>
+
+    <!-- Categories Reference -->
+    <div class="help-section">
+      <div class="help-section-title">Categories Reference</div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px">GROCERY</div>
+        <div class="help-text">Produce &bull; Dairy &amp; Eggs &bull; Meat &amp; Protein &bull; Bakery &amp; Bread &bull; Snacks &amp; Chips &bull; Candy &amp; Sweets &bull; Beverages &bull; Frozen Desserts &bull; Frozen Foods &bull; Canned &amp; Packaged Foods &bull; Baking &amp; Pantry &bull; Cooking Oils &amp; Condiments &bull; Breakfast &amp; Cereal &bull; Baby Care (Food) &bull; Prepared Foods &amp; Deli</div>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:6px">TOILETRY</div>
+        <div class="help-text">Health &amp; Beauty &bull; Household &amp; Cleaning &bull; Paper Products</div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--rose);margin-bottom:6px">NON-GROCERY</div>
+        <div class="help-text">Electronics &amp; Batteries &bull; Clothing &amp; Apparel &bull; Baby Care (Non-Food) &bull; Toys &bull; Housewares</div>
+      </div>
+      <div class="help-text" style="margin-top:10px">
+        <strong>Tip:</strong> You can add new categories at any time. Just use a new category name in your spreadsheet and the dashboard will pick it up automatically. You can also edit item categories after uploading by clicking any item in the All Items tab.
+      </div>
+    </div>
+
+    <!-- Managing Your Data -->
+    <div class="help-section">
+      <div class="help-section-title">Managing Your Data</div>
+      <div class="help-text">
+        <strong>Switch months:</strong> Use the month dropdown in the navigation bar to switch between uploaded months.<br><br>
+        <strong>Manage Data:</strong> Click "Manage Data" to download a backup of all your data as a JSON file, restore from a previous backup, or delete individual months.<br><br>
+        <strong>Edit items:</strong> In the All Items tab, click any item to change its product name or category. Your edits are saved immediately.<br><br>
+        <strong>Compare months:</strong> Once you have 2 or more months loaded, the "Compare" tab appears to show side-by-side spending comparisons.
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="help-section" style="margin-bottom:0">
+      <div class="help-section-title">Frequently Asked Questions</div>
+      <div class="help-text">
+        <strong>Q: Do I need all 6 sheets in my Excel file?</strong><br>
+        No. Only Sheet 1 (All Transactions) is required. Sheets 2&ndash;6 are optional reference sheets.<br><br>
+
+        <strong>Q: Can I add a new store?</strong><br>
+        Yes. Just include the store name in column B. The dashboard auto-detects new stores.<br><br>
+
+        <strong>Q: What if I bought multiple of the same item?</strong><br>
+        Enter the quantity in column F (Qty) and the unit price in column G. The Line Total (column H) should be Qty &times; Unit Price.<br><br>
+
+        <strong>Q: How do I mark non-food items (like batteries or toys)?</strong><br>
+        Set column I (Non-Grocery?) to TRUE. These items are tracked separately and highlighted in yellow in the spreadsheet.<br><br>
+
+        <strong>Q: Where is my data stored?</strong><br>
+        All data is stored locally on your device (in your browser's localStorage). Nothing is sent to any server. Use "Manage Data" to download a backup.<br><br>
+
+        <strong>Q: Can I use this on my phone?</strong><br>
+        Yes. The dashboard is fully responsive and works on mobile browsers. Upload and view your data from any device.<br><br>
+
+        <strong>Q: What if a receipt name is hard to decode?</strong><br>
+        Use the UPC barcode number (printed on many receipts) to look up the exact product online. For weight-based produce, just record the total line price.
       </div>
     </div>
 

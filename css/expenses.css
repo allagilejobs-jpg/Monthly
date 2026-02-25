@@ -419,6 +419,14 @@
   }
   .btn-add-expense:hover { background: #2563eb; }
 
+  /* Help modal styles */
+  .help-section { margin-bottom: 20px; }
+  .help-section-title { font-size: 13px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; padding-bottom: 6px; border-bottom: 1px solid var(--card-border); margin-bottom: 10px; }
+  .help-text { font-size: 13px; color: var(--text-muted); line-height: 1.7; }
+  .help-step { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+  .help-step-num { width: 28px; height: 28px; border-radius: 50%; background: rgba(59,130,246,0.15); color: var(--blue); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .help-step-text { font-size: 13px; color: var(--text-muted); line-height: 1.6; padding-top: 3px; }
+
   /* Compare delta cards */
   .delta-grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

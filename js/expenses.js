@@ -1710,6 +1710,12 @@ function saveEdit() {
 }
 
 // ══════════════════════════════════════════════════════════
+// HELP MODAL
+// ══════════════════════════════════════════════════════════
+function openHelpModal() { document.getElementById('help-modal').classList.add('open'); }
+function closeHelpModal() { document.getElementById('help-modal').classList.remove('open'); }
+
+// ══════════════════════════════════════════════════════════
 // ADD EXPENSE MODAL
 // ══════════════════════════════════════════════════════════
 function openAddModal() {

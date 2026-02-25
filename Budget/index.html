@@ -25,6 +25,7 @@
     <a href="../Scanner/">Scanner</a>
   </div>
   <div class="header-right">
+    <button class="btn-icon" onclick="openHelpModal()" title="Help &amp; Guide" style="font-size:16px">?</button>
     <button class="btn-icon" onclick="toggleTheme()" id="theme-toggle" title="Toggle theme">&#127769;</button>
   </div>
 </div>
@@ -491,6 +492,160 @@
   </div>
 </div>
 
+<!-- ═══════ HELP MODAL ═══════ -->
+<div class="modal-overlay" id="help-modal" onclick="if(event.target===this)closeHelpModal()">
+  <div class="modal" style="max-width:740px;max-height:85vh;overflow-y:auto">
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px">Budget Dashboard &mdash; Help &amp; Guide</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px">Plan your budget, track spending, and monitor your net worth.</div>
+
+    <!-- Getting Started -->
+    <div class="help-section">
+      <div class="help-section-title">Getting Started</div>
+      <div class="help-text">
+        The Budget Dashboard helps you plan monthly budgets, track actual spending against goals, monitor bank accounts, and see your financial trends over time.<br><br>
+        Start by going to the <strong>Setup</strong> tab to configure your budget year, income, expense categories, and savings goals.
+      </div>
+    </div>
+
+    <!-- Setup Tab -->
+    <div class="help-section">
+      <div class="help-section-title">How to Set Up Your Budget</div>
+      <div class="help-step">
+        <div class="help-step-num">1</div>
+        <div class="help-step-text">Go to the <strong>Setup</strong> tab and choose your budget year and starting month</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">2</div>
+        <div class="help-step-text">Enter your <strong>monthly income</strong> sources (salary, side income, etc.)</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">3</div>
+        <div class="help-step-text">Set budget amounts for each <strong>expense category</strong> (Rent, Groceries, Utilities, etc.). Use the standard categories or add custom ones in the "Extra" section</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">4</div>
+        <div class="help-step-text">Configure <strong>Savings &amp; Debt</strong> goals (emergency fund, investments, debt payments)</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">5</div>
+        <div class="help-step-text">Optionally add <strong>Big Expenses</strong> you expect during the year (vacation, car repair, etc.)</div>
+      </div>
+      <div class="help-text" style="margin-top:10px">
+        The summary at the top shows your <strong>Income - Expenses - Savings = Leftover</strong> so you can see if your budget balances. Both monthly and annual totals are shown.
+      </div>
+    </div>
+
+    <!-- Monthly Tracker -->
+    <div class="help-section">
+      <div class="help-section-title">Monthly Tracker</div>
+      <div class="help-text">
+        The Monthly Tracker is where you log your actual spending and compare it to your budget.<br><br>
+        <strong>Add transactions:</strong> Click <strong>"+ Add"</strong> to manually enter an expense with date, category, description, payment method, and amount.<br><br>
+        <strong>Import statements:</strong> Click <strong>"Upload Statement"</strong> to import transactions from your bank (CSV, PDF, or Excel). Name the source (e.g., "Chase Sapphire") during review.<br><br>
+        <strong>Budget vs Actual:</strong> The dashboard shows a comparison of your budgeted amount vs. actual spending for each category, with color-coded progress bars (green = under budget, red = over).<br><br>
+        <strong>Edit or delete:</strong> Click "Edit" on any transaction to modify it, or "X" to delete it.
+      </div>
+    </div>
+
+    <!-- Bank Accounts -->
+    <div class="help-section">
+      <div class="help-section-title">Bank Accounts</div>
+      <div class="help-text">
+        Track all your bank accounts, credit cards, loans, and investment accounts.<br><br>
+        <strong>Add accounts:</strong> Click "+ Add Account" and enter the account name, type (Checking, Savings, Investing, Credit Card, Loan), current balance, interest rate, and notes.<br><br>
+        <strong>Monthly snapshots:</strong> Account balances are stored per month. Update them each month to track growth over time.<br><br>
+        <strong>Copy from previous month:</strong> Click "Copy Previous Month" to bring forward your account list &mdash; then just update the balances.
+      </div>
+    </div>
+
+    <!-- Tabs Guide -->
+    <div class="help-section">
+      <div class="help-section-title">Dashboard Tabs Guide</div>
+      <div class="help-text">
+        <strong style="color:var(--purple)">Setup</strong> &mdash; Configure your budget year, income, expense categories, savings goals, and big expenses.<br><br>
+        <strong style="color:var(--purple)">Monthly Tracker</strong> &mdash; Log expenses, import statements, view budget vs. actual spending, see category breakdowns.<br><br>
+        <strong style="color:var(--purple)">Bank Accounts</strong> &mdash; Track checking, savings, investing, credit card, and loan balances each month.<br><br>
+        <strong style="color:var(--purple)">Annual Overview</strong> &mdash; See a 12-month grid of income and expenses, with trend charts across the year.<br><br>
+        <strong style="color:var(--purple)">Trends</strong> &mdash; Daily spending charts, cumulative pace vs. budget, category trends, spending by day of week, anomaly detection, and recurring expense identification.<br><br>
+        <strong style="color:var(--purple)">Net Worth</strong> &mdash; Net worth trend over time, investment growth, assets vs. liabilities breakdown with KPI cards.
+      </div>
+    </div>
+
+    <!-- Importing Statements -->
+    <div class="help-section">
+      <div class="help-section-title">Importing Bank Statements</div>
+      <div class="help-text">
+        <strong>Supported formats:</strong> CSV, PDF (bank statement PDFs), Excel (.xlsx, .xls).<br><br>
+        <strong>How it works:</strong><br>
+        &#8226; Choose the file format, then drag and drop your file<br>
+        &#8226; The dashboard auto-detects the bank (Chase, Wells Fargo, Capital One, etc.) and extracts transactions<br>
+        &#8226; Name the source so you can tell which account transactions came from<br>
+        &#8226; Review the preview and click "Import Transactions"<br><br>
+        <strong>Bulk upload:</strong> From the Setup tab, use "Upload Statements" to import multiple files at once.<br><br>
+        <strong>Credits/refunds:</strong> Automatically detected and shown in green with negative amounts. Categorized as "Income" (rewards, payroll) or "Refund" (returns).
+      </div>
+    </div>
+
+    <!-- Source Tracking -->
+    <div class="help-section">
+      <div class="help-section-title">Transaction Columns</div>
+      <div class="help-text">
+        Each transaction has these columns in the table:<br><br>
+        <strong>Date</strong> &mdash; Transaction date<br>
+        <strong>Category</strong> &mdash; Auto-assigned or manually set expense category<br>
+        <strong>Description</strong> &mdash; Merchant or payee name (cleaned up automatically)<br>
+        <strong>Method</strong> &mdash; Payment method (Credit, Debit, Cash, Transfer, Other)<br>
+        <strong>Source</strong> &mdash; The account name you entered during import (e.g., "Chase Sapphire")<br>
+        <strong>Import</strong> &mdash; How the transaction was imported (CSV, PDF, XLSX, or manual entry)<br>
+        <strong>Amount</strong> &mdash; Transaction amount (negative/green for credits)
+      </div>
+    </div>
+
+    <!-- Managing Data -->
+    <div class="help-section">
+      <div class="help-section-title">Managing Your Data</div>
+      <div class="help-text">
+        <strong>Add months:</strong> Click "+ Add Month" to create a new month. Your budget setup carries over but transactions start fresh.<br><br>
+        <strong>Delete months:</strong> Use the delete option to remove a month and all its transactions and account data.<br><br>
+        <strong>Export to Excel:</strong> Export your entire budget setup (income, categories, goals) to an Excel file for sharing or backup.<br><br>
+        <strong>Import from Excel:</strong> Restore a budget setup from a previously exported Excel file.<br><br>
+        <strong>Data storage:</strong> All data is stored locally in your browser. Use export regularly to back up your work.
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="help-section" style="margin-bottom:0">
+      <div class="help-section-title">Frequently Asked Questions</div>
+      <div class="help-text">
+        <strong>Q: How is this different from the Expenses dashboard?</strong><br>
+        The Expenses dashboard tracks spending after-the-fact from bank statements. The Budget dashboard lets you <em>plan</em> your spending with goals and then compare actual vs. budgeted amounts. It also tracks bank accounts and net worth.<br><br>
+
+        <strong>Q: Do I need to enter every transaction manually?</strong><br>
+        No. Import bank statements (CSV, PDF, Excel) to automatically populate your transactions. You can also add manual entries for cash expenses.<br><br>
+
+        <strong>Q: Can I customize the expense categories?</strong><br>
+        Yes. The Setup tab has 25 extra category slots you can name however you like. Imported transactions are auto-categorized, and you can always edit them.<br><br>
+
+        <strong>Q: What banks are supported for statement import?</strong><br>
+        Chase, Bank of America, Wells Fargo, Capital One, Citi, and most banks that offer CSV or PDF statement downloads.<br><br>
+
+        <strong>Q: How do I track investments?</strong><br>
+        Add investment accounts in the Bank Accounts tab with type "Investing". Update balances monthly. The Net Worth tab will chart your investment growth over time.<br><br>
+
+        <strong>Q: Where is my data stored?</strong><br>
+        Everything is stored locally in your browser (localStorage). No data is sent to any server. Export regularly for backup.<br><br>
+
+        <strong>Q: Can I use this on mobile?</strong><br>
+        Yes. The dashboard is fully responsive and works on phones and tablets.
+      </div>
+    </div>
+
+    <div style="margin-top:20px;text-align:right">
+      <button class="btn btn-secondary" onclick="closeHelpModal()">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════ UPLOAD STATEMENT MODAL ═══════ -->
 <div class="modal-overlay" id="upload-modal">
   <div class="modal" style="max-width:560px">
@@ -591,7 +746,7 @@
 <script src="../demo-data.js"></script>
 <script src="../firebase-sync.js"></script>
 <script src="../js/shared.js?v=20260225f"></script>
-<script src="../js/budget.js?v=20260225h"></script>
+<script src="../js/budget.js?v=20260225j"></script>
 <div style="text-align:center;padding:32px 20px 24px;font-size:12px;color:var(--text-muted);border-top:1px solid var(--card-border);margin-top:40px">
   <span style="font-weight:600;color:var(--text)">Family Finance Dashboards</span><br>
   <a href="https://allagilejobs-jpg.github.io/Monthly/Groceries/" style="color:var(--green);text-decoration:none;margin:0 8px">Groceries</a> &bull;

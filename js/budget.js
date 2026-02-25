@@ -198,6 +198,10 @@ function showView(id) {
   if (id === 'trends') renderTrends();
 }
 
+// ── Help Modal ──
+function openHelpModal() { document.getElementById('help-modal').classList.add('open'); }
+function closeHelpModal() { document.getElementById('help-modal').classList.remove('open'); }
+
 // ── Theme ──
 function toggleTheme() {
   var isLight = document.body.classList.toggle('light');

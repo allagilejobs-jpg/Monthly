@@ -11,8 +11,8 @@
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore-compat.js"></script>
 <script src="../demo-data.js"></script>
-<link rel="stylesheet" href="../css/shared.css?v=20260225h">
-<link rel="stylesheet" href="../css/expenses.css?v=20260225h">
+<link rel="stylesheet" href="../css/shared.css?v=20260225j">
+<link rel="stylesheet" href="../css/expenses.css?v=20260225j">
 </head>
 <body>
 <div class="container">
@@ -33,6 +33,7 @@
     <select id="month-select" onchange="switchMonth(this.value)"></select>
     <button class="month-nav-btn" style="background:rgba(59,130,246,0.15);color:var(--blue);border:1px solid rgba(59,130,246,0.3)" onclick="openUploadModal()">+ Upload Statement</button>
     <button class="month-nav-btn" style="background:rgba(255,255,255,0.04);color:var(--text-muted);border:1px solid var(--card-border)" onclick="openDataManager()">Manage Data</button>
+    <button class="month-nav-btn" style="background:rgba(59,130,246,0.12);color:var(--blue);border:1px solid rgba(59,130,246,0.25)" onclick="openHelpModal()">? Help</button>
   </div>
 
   <div class="tabs" id="tab-bar">
@@ -150,6 +151,162 @@
   </div>
 </div>
 
+<!-- Help Modal -->
+<div class="modal-overlay" id="help-modal" onclick="if(event.target===this)closeHelpModal()">
+  <div class="modal" style="max-width:740px;max-height:85vh;overflow-y:auto">
+    <div class="modal-title" style="font-size:18px">All Expenses Dashboard &mdash; Help &amp; Guide</div>
+    <div class="help-text" style="margin-bottom:20px">Track all your spending from bank statements. Upload CSV, PDF, or Excel files to get started.</div>
+
+    <!-- Getting Started -->
+    <div class="help-section">
+      <div class="help-section-title">Getting Started</div>
+      <div class="help-text">
+        The All Expenses Dashboard imports transactions from your bank or credit card statements and organizes them by category, merchant, and date. It supports <strong>CSV, PDF, and Excel</strong> files from most major banks.
+      </div>
+      <div class="help-text" style="margin-top:8px">
+        <strong>Supported banks include:</strong> Chase, Bank of America, Wells Fargo, Capital One, Citi, and most other banks that let you download statements.
+      </div>
+    </div>
+
+    <!-- How to Upload -->
+    <div class="help-section">
+      <div class="help-section-title">How to Upload Statements</div>
+      <div class="help-step">
+        <div class="help-step-num">1</div>
+        <div class="help-step-text">Click <strong>"+ Upload Statement"</strong> in the navigation bar</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">2</div>
+        <div class="help-step-text">Drag and drop your statement files into the upload area (you can upload <strong>up to 20 files at once</strong> &mdash; CSV, PDF, and Excel mixed)</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">3</div>
+        <div class="help-step-text">Click <strong>"Process Files"</strong> &mdash; the dashboard will extract transactions and detect the month(s)</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">4</div>
+        <div class="help-step-text">In the review step, name the <strong>Transaction Source</strong> (e.g., "Chase Sapphire", "BOA Checking") so you can identify the account later</div>
+      </div>
+      <div class="help-step">
+        <div class="help-step-num">5</div>
+        <div class="help-step-text">Select which months to import (check/uncheck month cards), choose <strong>Replace</strong> or <strong>Merge</strong> if that month already has data, then click Import</div>
+      </div>
+      <div class="help-text" style="margin-top:10px">
+        <strong>Tip:</strong> You can upload statements from multiple banks and cards at the same time. The dashboard auto-detects the bank format from the file columns.
+      </div>
+    </div>
+
+    <!-- How to Add an Expense Manually -->
+    <div class="help-section">
+      <div class="help-section-title">How to Add an Expense Manually</div>
+      <div class="help-text">
+        Not all expenses come from bank statements. To add a cash payment or other expense:<br><br>
+        &#8226; Go to the <strong>All Transactions</strong> tab and click <strong>"+ Add Expense"</strong><br>
+        &#8226; Enter the date, merchant/description, category, amount, and optionally name the source<br>
+        &#8226; Click <strong>"Add Expense"</strong> to save. It will appear in your transaction list with source marked as "MANUAL"
+      </div>
+    </div>
+
+    <!-- Dashboard Tabs Guide -->
+    <div class="help-section">
+      <div class="help-section-title">Dashboard Tabs Guide</div>
+      <div class="help-text">
+        <strong style="color:var(--blue)">Overview</strong> &mdash; Summary cards with total spending, transaction count, and top merchants. Includes a spending heatmap calendar and category breakdown chart.<br><br>
+        <strong style="color:var(--blue)">By Category</strong> &mdash; Spending breakdown by category (Groceries, Dining, Utilities, etc.) with percentages and charts. Click any category for a detailed view.<br><br>
+        <strong style="color:var(--blue)">By Merchant</strong> &mdash; See how much you spent at each merchant, sorted by total. Click any merchant for all their transactions.<br><br>
+        <strong style="color:var(--blue)">Trends</strong> &mdash; Available when you have multiple months loaded. See spending trends over time by category and total.<br><br>
+        <strong style="color:var(--blue)">All Transactions</strong> &mdash; Complete list of every transaction. Sort by any column, filter by date/category/merchant. Edit or delete individual transactions.<br><br>
+        <strong style="color:var(--blue)">Compare</strong> &mdash; Appears when 2+ months are loaded. Side-by-side month comparison with spending deltas.
+      </div>
+    </div>
+
+    <!-- Editing Transactions -->
+    <div class="help-section">
+      <div class="help-section-title">Editing &amp; Deleting Transactions</div>
+      <div class="help-text">
+        <strong>Edit a transaction:</strong> Hover over any transaction row and click the pencil icon (&#9998;). You can change the category and merchant name.<br><br>
+        <strong>Apply to all:</strong> Check "Apply category to all transactions from this merchant" to update every transaction from that merchant at once.<br><br>
+        <strong>Remember rules:</strong> Check "Remember this rule for future imports" so the dashboard auto-categorizes this merchant correctly in future uploads.<br><br>
+        <strong>Delete a transaction:</strong> Hover over any row and click the trash icon. Confirm to permanently remove it.<br><br>
+        <strong>Reset to original:</strong> In the edit modal, click "Reset" to revert to the auto-detected category.
+      </div>
+    </div>
+
+    <!-- Credits and Refunds -->
+    <div class="help-section">
+      <div class="help-section-title">Credits &amp; Refunds</div>
+      <div class="help-text">
+        The dashboard automatically detects credits and refunds from your statements:<br><br>
+        &#8226; <strong>PDF statements:</strong> Credits are detected by column position (Credits vs Charges columns)<br>
+        &#8226; <strong>CSV/Excel:</strong> If most amounts are negative (credit card format), signs are auto-flipped so charges are positive and credits are negative<br>
+        &#8226; Credits appear in <strong style="color:var(--green)">green</strong> with a negative amount and are categorized as "Refund"
+      </div>
+    </div>
+
+    <!-- Source Tracking -->
+    <div class="help-section">
+      <div class="help-section-title">Source Tracking</div>
+      <div class="help-text">
+        Every transaction has two source columns:<br><br>
+        <strong>Source</strong> &mdash; The name you gave during import (e.g., "Chase Sapphire", "Wells Fargo Checking"). Helps you identify which bank account or card each expense came from.<br><br>
+        <strong>Import</strong> &mdash; The file type used to import (CSV, PDF, XLSX, or MANUAL for hand-entered expenses).
+      </div>
+    </div>
+
+    <!-- Managing Data -->
+    <div class="help-section">
+      <div class="help-section-title">Managing Your Data</div>
+      <div class="help-text">
+        <strong>Switch months:</strong> Use the dropdown in the navigation bar to switch between months.<br><br>
+        <strong>Download backup:</strong> Click "Manage Data" &rarr; "Download Data" to save a JSON backup of all your expenses.<br><br>
+        <strong>Restore from backup:</strong> Click "Manage Data" &rarr; "Load Data" and select a previously downloaded JSON file.<br><br>
+        <strong>Delete a month:</strong> In the Manage Data dialog, click the delete button next to any month to remove it.
+      </div>
+    </div>
+
+    <!-- Auto-Categorization -->
+    <div class="help-section">
+      <div class="help-section-title">Auto-Categorization</div>
+      <div class="help-text">
+        When you import statements, the dashboard automatically assigns categories based on merchant names. It recognizes <strong>100+ common merchants</strong> (Walmart, Amazon, Netflix, Starbucks, etc.) and uses keyword matching for the rest.<br><br>
+        <strong>Default categories:</strong> Housing, Utilities, Groceries, Dining, Transportation, Gas, Shopping, Entertainment, Subscriptions, Health &amp; Medical, Insurance, Personal Care, Education, Gifts, Travel, Fees, ATM, Transfers, Income, Refund, Other.<br><br>
+        <strong>Tip:</strong> If a merchant is mis-categorized, edit it and check "Remember this rule" &mdash; future imports will use your correction automatically.
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="help-section" style="margin-bottom:0">
+      <div class="help-section-title">Frequently Asked Questions</div>
+      <div class="help-text">
+        <strong>Q: What file formats are supported?</strong><br>
+        CSV (.csv, .txt), PDF bank statements (.pdf), and Excel files (.xlsx, .xls). You can upload all three types in the same batch.<br><br>
+
+        <strong>Q: Which banks are supported?</strong><br>
+        Chase, Bank of America, Wells Fargo, Capital One, Citi, and most banks that provide downloadable CSV or PDF statements. Generic formats are also auto-detected.<br><br>
+
+        <strong>Q: Can I upload statements from multiple banks?</strong><br>
+        Yes. Upload all your files at once and name the source (e.g., "Chase Sapphire") during review. Transactions from each source will be tagged.<br><br>
+
+        <strong>Q: What if a statement spans two months?</strong><br>
+        The dashboard auto-detects months from transaction dates and splits them into separate month buckets. You can choose which months to import.<br><br>
+
+        <strong>Q: Where is my data stored?</strong><br>
+        All data is stored locally on your device (browser localStorage). Nothing is uploaded to any server. Use "Manage Data" to backup regularly.<br><br>
+
+        <strong>Q: Can I merge new transactions with existing ones?</strong><br>
+        Yes. When importing into a month that already has data, choose "Merge" to add only new transactions (duplicates are skipped based on date + merchant + amount).<br><br>
+
+        <strong>Q: How do I fix a wrong category?</strong><br>
+        Click the pencil icon on any transaction, change the category, and optionally check "Apply to all" and "Remember this rule" to fix all transactions from that merchant.
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="modal-btn modal-btn-cancel" onclick="closeHelpModal()">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Add Transaction Modal -->
 <div class="modal-overlay" id="add-modal" onclick="if(event.target===this)closeAddModal()">
   <div class="modal">
@@ -212,8 +369,8 @@
   </div>
 </div>
 
-<script src="../js/shared.js?v=20260225h"></script>
-<script src="../js/expenses.js?v=20260225i"></script>
+<script src="../js/shared.js?v=20260225j"></script>
+<script src="../js/expenses.js?v=20260225j"></script>
 <div style="text-align:center;padding:32px 20px 24px;font-size:12px;color:var(--text-muted);border-top:1px solid var(--card-border);margin-top:40px">
   <span style="font-weight:600;color:var(--text)">Family Finance Dashboards</span><br>
   <a href="https://allagilejobs-jpg.github.io/Monthly/Groceries/" style="color:var(--green);text-decoration:none;margin:0 8px">Groceries</a> &bull;
