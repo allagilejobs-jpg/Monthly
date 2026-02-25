@@ -203,7 +203,9 @@
   }
   .modal-wide { max-width: 640px; }
   /* Upload steps scroll content, keep buttons visible */
-  .upload-step { min-height: 0; }
+  .upload-step { min-height: 0; overflow: hidden; }
+  .upload-step .drop-zone { flex-shrink: 0; }
+  #upload-file-list { flex: 1; min-height: 0; overflow-y: auto; }
   #upload-preview { overflow-y: auto; min-height: 0; flex: 1; padding-bottom: 4px; }
   .upload-step .modal-actions { flex-shrink: 0; padding-top: 4px; }
   .upload-step .upload-actions { flex-shrink: 0; }
@@ -288,7 +290,6 @@
   /* Upload file list */
   .upload-file-grid {
     display: flex; flex-direction: column; gap: 8px; margin-top: 16px;
-    max-height: 280px; overflow-y: auto;
   }
   .upload-file-item {
     display: flex; align-items: center; gap: 12px;
@@ -514,7 +515,7 @@
     .filter-bar { gap: 8px; }
     .format-grid { grid-template-columns: 1fr; }
     .month-bucket-grid { grid-template-columns: 1fr; }
-    .upload-file-grid { max-height: 200px; }
+    .upload-file-grid { }
     .process-log { max-height: 150px; font-size: 11px; }
     .processing-section { padding: 16px; }
     .insight { padding: 12px 14px; }
