@@ -545,10 +545,20 @@ function applyEdits(data, monthKey) {
   const edits = loadEdits(monthKey);
   data.forEach(t => {
     // Re-resolve merchant/category from original description using latest cleanup logic
-    if (t.description && !t._manualCategory) {
-      var resolved = resolveMerchant(t.description);
-      t.merchant = resolved.merchant;
-      t.category = resolved.category;
+    if (t.description) {
+      try {
+        var resolved = resolveMerchant(t.description);
+        // Only apply if not manually edited
+        if (!t._manualCategory && !(edits[t.id] && edits[t.id].category)) {
+          t.merchant = resolved.merchant;
+          t.category = resolved.category;
+        } else if (!(edits[t.id] && edits[t.id].merchant)) {
+          // Still clean merchant name even if category was manually set
+          t.merchant = resolved.merchant;
+        }
+      } catch(e) {
+        console.error('resolveMerchant error for:', t.description, e);
+      }
     }
     // Then apply manual edits on top (these always win)
     if (edits[t.id]) {
@@ -2658,6 +2668,7 @@ function detectRecurring() {
 // INITIALIZATION
 // ══════════════════════════════════════════════════════════
 (function init() {
+  console.log('[Expenses] v20260225 loaded — MERCHANT_MAP entries:', Object.keys(MERCHANT_MAP).length, '| resolveMerchant test:', resolveMerchant('DELTA AIR LINES 123456'));
   // Restore theme
   const savedTheme = _isDemo ? sessionStorage.getItem('demo_expenses_theme') : localStorage.getItem('expenses_theme');
   if (savedTheme === 'light') {
