@@ -157,6 +157,10 @@ body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var
 
 /* Responsive */
 @media(max-width:700px){
+  .header { padding:10px 14px; flex-wrap:wrap; gap:8px; }
+  .header h1 { font-size:17px; }
+  .header-links { width:100%; justify-content:center; gap:10px; flex-wrap:wrap; }
+  .header-links a { font-size:11px; }
   .container { padding:16px; }
   .steps { flex-wrap:wrap; }
   .step-item { flex:1 1 45%; border-radius:8px !important; margin:2px; }

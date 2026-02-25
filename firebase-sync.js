@@ -91,20 +91,13 @@ function injectAuthUI() {
 
   const authContainer = document.createElement('div');
   authContainer.id = 'fb-auth-container';
-  authContainer.style.cssText = 'display:flex;align-items:center;gap:8px;';
+  authContainer.className = 'fb-auth-container';
   authContainer.innerHTML = `
-    <span id="fb-sync-status" style="font-size:12px;color:#71717a;display:none"></span>
-    <button id="fb-auth-btn" onclick="openAuthModal()" style="
-      background:rgba(249,115,22,0.15);color:#f97316;border:1px solid rgba(249,115,22,0.3);
-      border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;
-      font-family:inherit;transition:all .2s;display:none;
-    ">Sign In</button>
-    <span id="fb-user-info" style="display:none;font-size:12px;color:#a1a1aa;">
-      <span id="fb-user-email"></span>
-      <button onclick="doSignOut()" style="
-        background:none;border:none;color:#71717a;cursor:pointer;font-size:11px;
-        margin-left:6px;text-decoration:underline;font-family:inherit;
-      ">Sign Out</button>
+    <span id="fb-sync-status" class="fb-sync-status" style="display:none"></span>
+    <button id="fb-auth-btn" class="fb-auth-btn" onclick="openAuthModal()" style="display:none;">Sign In</button>
+    <span id="fb-user-info" class="fb-user-info" style="display:none;">
+      <span id="fb-user-email" class="fb-user-email"></span>
+      <button onclick="doSignOut()" class="fb-signout-btn">Sign Out</button>
     </span>
   `;
 
@@ -313,7 +306,7 @@ function updateAuthUI() {
 
   if (fb_user) {
     btn.style.display = 'none';
-    info.style.display = 'inline';
+    info.style.display = 'inline-flex';
     document.getElementById('fb-user-email').textContent = fb_user.email;
   } else {
     btn.style.display = 'inline-block';
