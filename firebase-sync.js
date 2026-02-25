@@ -127,13 +127,13 @@ function injectAuthUI() {
   modal.id = 'fb-auth-modal';
   modal.style.cssText = `
     display:none;position:fixed;top:0;left:0;right:0;bottom:0;
-    background:rgba(0,0,0,0.7);z-index:9999;justify-content:center;align-items:center;padding:20px;
+    background:rgba(0,0,0,0.7);z-index:9999;justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto;
   `;
   modal.onclick = function(e) { if (e.target === this) closeAuthModal(); };
   modal.innerHTML = `
     <div style="
-      background:#1a1b23;border:1px solid #2a2b35;border-radius:16px;padding:28px;
-      max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);
+      background:#1a1b23;border:1px solid #2a2b35;border-radius:16px;padding:24px;
+      max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);margin:auto;
     ">
       <div style="font-size:16px;font-weight:700;color:#f97316;margin-bottom:4px">Cloud Sync</div>
       <div style="font-size:12px;color:#71717a;margin-bottom:20px">Sign in to sync your data across devices</div>
@@ -207,6 +207,14 @@ function injectAuthUI() {
         ">Forgot password?</button>
       </div>
     </div>
+    <style>
+      @media(max-width:480px){
+        #fb-auth-modal>div{padding:18px 16px!important;border-radius:12px!important;margin:10px!important;}
+        #fb-auth-modal>div input{padding:9px 12px!important;font-size:13px!important;}
+        #fb-auth-modal>div button{font-size:12px!important;}
+        #fb-auth-tabs button{padding:8px!important;font-size:12px!important;}
+      }
+    </style>
   `;
   document.body.appendChild(modal);
 }
@@ -407,8 +415,8 @@ function showAuthGate() {
 
   const gate = document.createElement('div');
   gate.id = 'fb-auth-gate';
-  gate.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,17,23,0.95);z-index:9998;display:flex;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(2px);';
-  gate.innerHTML = '<div style="background:#1a1b23;border:1px solid #2a2b35;border-radius:20px;padding:40px;max-width:440px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5)">' +
+  gate.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,17,23,0.95);z-index:9998;display:flex;justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto;backdrop-filter:blur(2px);';
+  gate.innerHTML = '<div style="background:#1a1b23;border:1px solid #2a2b35;border-radius:20px;padding:32px 24px;max-width:440px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);margin:auto">' +
     '<div style="font-size:48px;margin-bottom:16px">&#128274;</div>' +
     '<div style="font-size:22px;font-weight:700;margin-bottom:8px;background:linear-gradient(135deg,#22c55e,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Sign In Required</div>' +
     '<div style="color:#71717a;font-size:14px;margin-bottom:28px;line-height:1.6">Sign in to access your dashboard and sync data across devices, or try the demo to explore with sample data.</div>' +
