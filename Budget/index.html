@@ -55,11 +55,14 @@ body {
 .tabs {
   display:flex; gap:4px; padding:12px 20px; overflow-x:auto;
   border-bottom:1px solid var(--card-border); background:var(--card);
+  scrollbar-width:thin;
 }
+.tabs::-webkit-scrollbar { height:4px; }
+.tabs::-webkit-scrollbar-thumb { background:var(--card-border); border-radius:4px; }
 .tab {
-  padding:8px 18px; border-radius:8px; border:none; background:none;
+  padding:8px 14px; border-radius:8px; border:none; background:none;
   color:var(--text-muted); font-size:13px; font-weight:600; cursor:pointer;
-  white-space:nowrap; font-family:inherit; transition:all .15s;
+  white-space:nowrap; font-family:inherit; transition:all .15s; flex-shrink:0;
 }
 .tab:hover { color:var(--text); background:var(--accent-dim); }
 .tab.active { color:var(--accent); background:var(--accent-dim); }
@@ -346,7 +349,7 @@ body.light .tx-filter-select { background:#f9fafb; border-color:#d1d5db; }
   <button class="tab" onclick="showView('tracker')">Monthly Tracker</button>
   <button class="tab" onclick="showView('accounts')">Bank Accounts</button>
   <button class="tab" onclick="showView('annual')">Annual Overview</button>
-  <button class="tab" onclick="showView('trends')">Trends &amp; Insights</button>
+  <button class="tab" onclick="showView('trends')">Trends</button>
   <button class="tab" onclick="showView('networth')">Net Worth</button>
 </div>
 
