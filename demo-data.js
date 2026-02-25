@@ -492,17 +492,26 @@ function injectDemoBanner(color) {
   var c1 = cm.c1, c2 = cm.c2, accent = cm.accent, accentVar = cm.accentVar;
   var banner = document.createElement('div');
   banner.id = 'demo-banner';
-  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:10000;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');border-bottom:1px solid ' + accent + ';padding:10px 20px;display:flex;justify-content:center;align-items:center;gap:16px;font-size:13px;color:#e4e4e7;flex-wrap:wrap;';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:10000;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');border-bottom:1px solid ' + accent + ';padding:8px 12px;display:flex;justify-content:center;align-items:center;gap:8px;font-size:12px;color:#e4e4e7;flex-wrap:wrap;';
   banner.innerHTML = '<span style="font-weight:700;color:' + accentVar + '">DEMO MODE</span>' +
     '<span style="color:#71717a">Exploring with sample data</span>' +
     '<button onclick="exitDemoAndSignUp()" style="background:rgba(' + cm.rgb + ',0.15);border:1px solid ' + accent + ';color:' + accentVar + ';border-radius:6px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Sign Up to Save Your Data</button>' +
     '<button onclick="exitDemo()" style="background:none;border:none;color:#71717a;cursor:pointer;font-size:12px;text-decoration:underline;font-family:inherit;">Exit Demo</button>';
   document.body.prepend(banner);
-  // Push down everything below the fixed demo banner
-  document.body.style.paddingTop = '41px';
+  // Push down everything below the fixed demo banner - responsive
+  var isMobile = window.innerWidth <= 480;
+  var bannerHeight = isMobile ? '60px' : '41px';
+  document.body.style.paddingTop = bannerHeight;
   // Adjust sticky/fixed headers so they sit below the banner
   var header = document.querySelector('.header');
-  if (header && getComputedStyle(header).position === 'sticky') header.style.top = '41px';
+  if (header && getComputedStyle(header).position === 'sticky') header.style.top = bannerHeight;
+  // Re-adjust on resize
+  window.addEventListener('resize', function() {
+    var mobile = window.innerWidth <= 480;
+    var h = mobile ? '60px' : '41px';
+    document.body.style.paddingTop = h;
+    if (header) header.style.top = h;
+  });
 }
 
 function exitDemo() {

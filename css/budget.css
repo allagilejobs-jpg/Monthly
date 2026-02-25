@@ -204,6 +204,16 @@ body.light .modal { box-shadow:0 20px 60px rgba(0,0,0,0.15); }
   .chart-wrap { height:200px; }
   .setup-row { grid-template-columns:1fr 1fr; }
   .setup-row .group-label { display:none; }
+  /* Mobile header fixes */
+  .header { padding:8px 12px; flex-wrap:wrap; gap:8px; }
+  .header-left { gap:8px; flex-wrap:wrap; }
+  .header-left a { font-size:11px; }
+  .logo { font-size:16px; }
+  .header-right { gap:4px; }
+  .btn-icon { font-size:16px; padding:4px 6px; }
+  .dash-subtitle { padding:10px 12px 0; font-size:12px; }
+  .tabs { padding:8px 12px; gap:2px; }
+  .tab { padding:6px 4px; font-size:10px; }
 }
 /* ── Misc ── */
 .badge {
