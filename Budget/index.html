@@ -119,6 +119,7 @@ body.light .progress-bar { background:rgba(0,0,0,0.08); }
 .btn-danger { background:rgba(239,68,68,0.15); color:var(--red); border:1px solid rgba(239,68,68,0.3); }
 .btn-danger:hover { background:rgba(239,68,68,0.25); }
 .btn-sm { padding:5px 10px; font-size:12px; }
+.action-cell { display:flex; gap:6px; align-items:center; white-space:nowrap; }
 /* ── Inputs ── */
 input[type="text"], input[type="number"], input[type="date"], select, textarea {
   background:var(--bg); color:var(--text); border:1px solid var(--card-border);
@@ -529,6 +530,14 @@ body.light .tx-filter-select { background:#f9fafb; border-color:#d1d5db; }
           </div>
           <div style="overflow-x:auto">
             <table class="tbl" id="tx-table">
+              <colgroup>
+                <col style="width:100px">
+                <col style="width:18%">
+                <col style="width:auto">
+                <col style="width:12%">
+                <col style="width:100px">
+                <col style="width:110px">
+              </colgroup>
               <thead>
                 <tr>
                   <th class="sortable" onclick="sortTx('date')">Date</th>
@@ -536,7 +545,7 @@ body.light .tx-filter-select { background:#f9fafb; border-color:#d1d5db; }
                   <th class="sortable" onclick="sortTx('description')">Description</th>
                   <th class="sortable" onclick="sortTx('paymentMethod')">Method</th>
                   <th class="sortable text-right" onclick="sortTx('amount')">Amount</th>
-                  <th style="width:60px"></th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody id="tx-body"></tbody>
@@ -600,11 +609,19 @@ body.light .tx-filter-select { background:#f9fafb; border-color:#d1d5db; }
       </div>
       <div style="overflow-x:auto">
         <table class="tbl" id="acct-table">
+          <colgroup>
+            <col style="width:14%">
+            <col style="width:22%">
+            <col style="width:16%">
+            <col style="width:12%">
+            <col style="width:auto">
+            <col style="width:110px">
+          </colgroup>
           <thead>
             <tr>
               <th>Type</th><th>Account Name</th>
               <th class="text-right">Balance</th><th class="text-right">Interest Rate</th>
-              <th>Notes</th><th style="width:60px"></th>
+              <th>Notes</th><th></th>
             </tr>
           </thead>
           <tbody id="acct-body"></tbody>
@@ -1392,8 +1409,8 @@ function renderTxTable() {
       + '<td>'+escHtml(tx.description)+'</td>'
       + '<td>'+escHtml(tx.paymentMethod)+'</td>'
       + '<td class="text-right">'+fmt(tx.amount)+'</td>'
-      + '<td><button class="btn btn-secondary btn-sm" onclick="openTxModal(\''+tx.id+'\')">Edit</button>'
-      + ' <button class="btn btn-danger btn-sm" onclick="deleteTx(\''+tx.id+'\')">X</button></td>'
+      + '<td><div class="action-cell"><button class="btn btn-secondary btn-sm" onclick="openTxModal(\''+tx.id+'\')">Edit</button>'
+      + '<button class="btn btn-danger btn-sm" onclick="deleteTx(\''+tx.id+'\')">X</button></div></td>'
       + '</tr>';
   }).join('');
 }
@@ -1692,8 +1709,8 @@ function renderAccounts() {
       + '<td class="text-right">'+fmt(a.amount)+'</td>'
       + '<td class="text-right">'+(a.interestRate ? a.interestRate+'%' : '-')+'</td>'
       + '<td>'+escHtml(a.notes||'')+'</td>'
-      + '<td><button class="btn btn-secondary btn-sm" onclick="openAcctModal(\''+a.id+'\')">Edit</button>'
-      + ' <button class="btn btn-danger btn-sm" onclick="deleteAcct(\''+a.id+'\')">X</button></td>'
+      + '<td><div class="action-cell"><button class="btn btn-secondary btn-sm" onclick="openAcctModal(\''+a.id+'\')">Edit</button>'
+      + '<button class="btn btn-danger btn-sm" onclick="deleteAcct(\''+a.id+'\')">X</button></div></td>'
       + '</tr>';
   }).join('');
 
