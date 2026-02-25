@@ -940,18 +940,8 @@ async function parsePDF(arrayBuffer) {
               if (chargeX < 0 && /charge/i.test(txt2) && !/finance|other/i.test(txt2)) chargeX = rows[h][c2].transform[4];
             }
           }
-          if (creditX > 0 && chargeX > 0) {
-            console.log('[PDF] Found column headers — Credits X:', creditX, 'Charges X:', chargeX);
-            break;
-          }
+          if (creditX > 0 && chargeX > 0) break;
         }
-      }
-      if (creditX < 0 || chargeX < 0) {
-        console.log('[PDF] Page', p, '— could not find Credits/Charges headers. Row samples:');
-        rows.slice(0, 10).forEach(function(row, ri) {
-          var items = row.map(function(it) { return '"' + it.str.trim() + '"@' + Math.round(it.transform[4]); });
-          console.log('  Row', ri, ':', items.join(' | '));
-        });
       }
     }
 
