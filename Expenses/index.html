@@ -85,58 +85,53 @@
 <!-- Upload Modal -->
 <div class="modal-overlay" id="upload-modal" onclick="if(event.target===this)closeUploadModal()">
   <div class="modal modal-wide">
-    <div class="modal-title">Upload Bank Statement</div>
+    <div class="modal-title">Upload Bank Statements</div>
     <div class="upload-steps-indicator">
       <div class="step-dot active" id="step-dot-0"></div>
       <div class="step-dot" id="step-dot-1"></div>
       <div class="step-dot" id="step-dot-2"></div>
     </div>
 
-    <!-- Step 1: Choose format -->
+    <!-- Step 1: Upload Files -->
     <div class="upload-step active" id="upload-step-0">
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Choose the format of your bank statement:</p>
-      <div class="format-grid">
-        <div class="format-card" onclick="selectFormat('csv')">
-          <div class="format-icon">&#128196;</div>
-          <div class="format-name">CSV File</div>
-          <div class="format-desc">Download from your bank's website. Supports Chase, BoA, Wells Fargo, Capital One, Citi, and more.</div>
-        </div>
-        <div class="format-card" onclick="selectFormat('pdf')">
-          <div class="format-icon">&#128195;</div>
-          <div class="format-name">PDF Statement</div>
-          <div class="format-desc">Bank statement PDF. We'll extract transactions from the text.</div>
-        </div>
-        <div class="format-card" onclick="selectFormat('xlsx')">
-          <div class="format-icon">&#128202;</div>
-          <div class="format-name">Excel File</div>
-          <div class="format-desc">Excel spreadsheet with transaction data in rows.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Step 2: Select file -->
-    <div class="upload-step" id="upload-step-1">
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px" id="upload-format-hint"></p>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Drop your bank statements below &mdash; CSV, PDF, and Excel files are all accepted. We auto-detect the format.</p>
       <div class="drop-zone" id="drop-zone"
            ondragover="event.preventDefault();this.classList.add('drag-over')"
            ondragleave="this.classList.remove('drag-over')"
-           ondrop="handleDrop(event)" onclick="document.getElementById('file-input').click()">
+           ondrop="handleMultiDrop(event)" onclick="document.getElementById('file-input').click()">
         <div class="drop-zone-icon">&#128449;</div>
-        <div class="drop-zone-text">Drop your file here or click to browse</div>
-        <div class="drop-zone-hint" id="drop-zone-hint"></div>
+        <div class="drop-zone-text">Drop files here or click to browse</div>
+        <div class="drop-zone-hint">.csv, .pdf, .xlsx accepted &mdash; up to 20 files at once</div>
       </div>
-      <input type="file" id="file-input" style="display:none" onchange="handleFileSelect(this.files[0])">
-      <div class="modal-actions" style="margin-top:16px">
-        <button class="modal-btn modal-btn-cancel" onclick="goUploadStep(0)">Back</button>
+      <input type="file" id="file-input" style="display:none" multiple
+             accept=".csv,.txt,.pdf,.xlsx,.xls"
+             onchange="handleMultiFiles(this.files);this.value=''">
+      <div id="upload-file-list"></div>
+      <div class="upload-actions" id="upload-actions" style="display:none">
+        <span class="upload-file-count" id="upload-file-count">0 files</span>
+        <button class="modal-btn modal-btn-reset" onclick="clearUploadFiles()" style="padding:6px 12px;font-size:12px">Clear All</button>
+        <div style="flex:1"></div>
+        <button class="modal-btn modal-btn-save" id="btn-process" onclick="processUploadedFiles()">Process Files &rarr;</button>
       </div>
     </div>
 
-    <!-- Step 3: Review & confirm -->
+    <!-- Step 2: Processing -->
+    <div class="upload-step" id="upload-step-1">
+      <div class="processing-section">
+        <div class="progress-overall">
+          <div class="progress-label"><span id="process-text">Processing...</span><span id="process-pct">0%</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="process-fill"></div></div>
+        </div>
+        <div class="process-log" id="process-log"></div>
+      </div>
+    </div>
+
+    <!-- Step 3: Review & Confirm -->
     <div class="upload-step" id="upload-step-2">
       <div id="upload-preview"></div>
       <div class="modal-actions">
-        <button class="modal-btn modal-btn-cancel" onclick="goUploadStep(1)">Back</button>
-        <button class="modal-btn modal-btn-save" onclick="confirmImport()">Import Transactions</button>
+        <button class="modal-btn modal-btn-cancel" onclick="goUploadStep(0)">&larr; Back</button>
+        <button class="modal-btn modal-btn-save" onclick="confirmMultiImport()">Import All</button>
       </div>
     </div>
   </div>

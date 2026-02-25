@@ -278,6 +278,103 @@
   .preview-stat { display: inline-block; padding: 6px 14px; border-radius: 8px; background: rgba(255,255,255,0.04); font-size: 13px; margin: 4px; }
   .preview-stat strong { color: var(--blue); }
 
+  /* Upload file list */
+  .upload-file-grid {
+    display: flex; flex-direction: column; gap: 8px; margin-top: 16px;
+    max-height: 280px; overflow-y: auto;
+  }
+  .upload-file-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; background: rgba(255,255,255,0.03);
+    border: 1px solid var(--card-border); border-radius: 10px; transition: all 0.15s;
+  }
+  .upload-file-item:hover { background: rgba(255,255,255,0.06); }
+  .upload-file-icon { font-size: 22px; flex-shrink: 0; }
+  .upload-file-info { flex: 1; min-width: 0; }
+  .upload-file-name {
+    font-size: 13px; font-weight: 600; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .upload-file-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .upload-file-remove {
+    background: rgba(244,63,94,0.1); border: 1px solid rgba(244,63,94,0.2);
+    color: var(--rose); border-radius: 50%; width: 26px; height: 26px;
+    cursor: pointer; font-size: 14px; display: flex; align-items: center;
+    justify-content: center; flex-shrink: 0; transition: all 0.15s;
+    font-family: inherit;
+  }
+  .upload-file-remove:hover { background: rgba(244,63,94,0.2); }
+  .upload-actions {
+    margin-top: 16px; display: flex; gap: 12px; align-items: center;
+  }
+  .upload-file-count { font-size: 13px; color: var(--text-muted); font-weight: 600; }
+
+  /* Processing section */
+  .processing-section {
+    background: rgba(255,255,255,0.02); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 24px;
+  }
+  .progress-overall { margin-bottom: 16px; }
+  .processing-section .progress-label {
+    font-size: 13px; color: var(--text-muted); margin-bottom: 6px;
+    display: flex; justify-content: space-between;
+  }
+  .processing-section .progress-bar {
+    height: 8px; background: rgba(255,255,255,0.05);
+    border-radius: 4px; overflow: hidden;
+  }
+  .processing-section .progress-fill {
+    height: 100%; background: var(--blue); border-radius: 4px;
+    transition: width 0.3s; width: 0%;
+  }
+  .process-log {
+    background: rgba(0,0,0,0.2); border: 1px solid var(--card-border);
+    border-radius: 8px; padding: 12px; max-height: 200px;
+    overflow-y: auto; margin-top: 16px;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px; line-height: 1.8;
+  }
+  .process-log-line { color: var(--text-muted); }
+  .process-log-line.info { color: var(--blue); }
+  .process-log-line.success { color: var(--green); }
+  .process-log-line.error { color: var(--rose); }
+
+  /* Month bucket cards */
+  .month-bucket-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin-top: 12px;
+  }
+  .month-bucket-card {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 16px 18px;
+  }
+  .month-bucket-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+  }
+  .month-bucket-name { font-size: 15px; font-weight: 700; color: var(--text); }
+  .month-bucket-count { font-size: 12px; color: var(--text-muted); }
+  .month-bucket-total { font-size: 20px; font-weight: 700; color: var(--amber); margin-bottom: 4px; }
+  .month-bucket-dates { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+  .month-bucket-conflict {
+    margin-top: 10px; padding: 10px 12px; border-radius: 8px;
+    background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25);
+  }
+  .month-bucket-conflict-label {
+    font-size: 12px; color: var(--amber); font-weight: 600; margin-bottom: 6px;
+  }
+  .month-bucket-radio {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-muted); cursor: pointer; margin-top: 4px;
+  }
+  .month-bucket-radio input { accent-color: var(--blue); }
+
+  /* Light theme adjustments */
+  body.light .upload-file-item { background: rgba(0,0,0,0.02); }
+  body.light .upload-file-item:hover { background: rgba(0,0,0,0.04); }
+  body.light .processing-section { background: rgba(0,0,0,0.02); }
+  body.light .process-log { background: rgba(0,0,0,0.03); }
+  body.light .month-bucket-card { background: rgba(0,0,0,0.02); }
+
   /* Edit indicators */
   .edit-icon {
     display: inline-block; margin-left: 6px; font-size: 12px; color: var(--text-muted);
@@ -402,6 +499,10 @@
     .filter-bar select, .filter-bar input { font-size: 12px; padding: 7px 10px; width: 100%; }
     .filter-bar { gap: 8px; }
     .format-grid { grid-template-columns: 1fr; }
+    .month-bucket-grid { grid-template-columns: 1fr; }
+    .upload-file-grid { max-height: 200px; }
+    .process-log { max-height: 150px; font-size: 11px; }
+    .processing-section { padding: 16px; }
     .insight { padding: 12px 14px; }
     .insight-title { font-size: 12px; }
     .insight-text { font-size: 12px; }
