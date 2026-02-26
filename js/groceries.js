@@ -2039,6 +2039,7 @@ function renderTable() {
   ];
 
   let html = `<thead><tr>`;
+  html += `<th class="tx-check-col"><input type="checkbox" class="tx-check" onchange="toggleAllGrocItems(this.checked)"></th>`;
   cols.forEach(col => {
     const sortClass = currentSort.col === col.key ? (currentSort.dir === "asc" ? " sort-asc" : " sort-desc") : "";
     html += `<th class="sortable${sortClass}" onclick="sortTable('${col.key}')">${col.label}</th>`;
@@ -2056,6 +2057,7 @@ function renderTable() {
     const dupeFlag = dupeInfo ? '<span class="dupe-flag" onclick="event.stopPropagation();showDupePopover(this,' + i._idx + ')" title="Possible duplicate of: ' + dupeInfo.match.replace(/"/g, '&quot;') + '">&#9873;</span>' : '';
     const escaped = i.n.replace(/'/g, "\\'").replace(/"/g, "&quot;");
     html += `<tr onclick="showProductDetail('${escaped}','items')" style="cursor:pointer" title="View purchase history">
+      <td class="tx-check-col"><input type="checkbox" class="tx-check" data-idx="${i._idx}" onclick="event.stopPropagation()" onchange="updateGrocBulkBar()"></td>
       <td class="mono">${i.d}</td>
       <td>${i.s}</td>
       <td class="bold">${i.n}${editDot}${dupeFlag} <span class="tag ${tagClass}">${tagLabel}</span></td>
@@ -2488,6 +2490,130 @@ function resetEdit() {
   renderTable();
   if (wasFromProductDetail) showProductDetail(item._origName, savedSource);
   if (!_isDemo && typeof syncToCloud === 'function') syncToCloud();
+}
+
+// ─────────── BULK ACTIONS (SELECT MODE) ───────────
+var _grocSelectMode = false;
+function toggleGrocSelectMode() {
+  _grocSelectMode = !_grocSelectMode;
+  var table = document.getElementById('table-all');
+  var btn = document.getElementById('btn-select-mode');
+  if (_grocSelectMode) {
+    if (table) table.classList.add('select-mode');
+    if (btn) { btn.classList.add('active'); btn.textContent = 'Cancel'; }
+  } else {
+    if (table) table.classList.remove('select-mode');
+    if (btn) { btn.classList.remove('active'); btn.textContent = 'Select'; }
+    clearGrocBulkSelection();
+  }
+}
+function getGrocCheckedIdxs() {
+  var checks = document.querySelectorAll('#table-all .tx-check:checked');
+  var idxs = [];
+  checks.forEach(function(cb) { if (cb.dataset.idx !== undefined) idxs.push(+cb.dataset.idx); });
+  return idxs;
+}
+function updateGrocBulkBar() {
+  var idxs = getGrocCheckedIdxs();
+  var bar = document.getElementById('bulk-bar');
+  var countEl = document.getElementById('bulk-count');
+  if (!bar) return;
+  if (idxs.length > 0) {
+    bar.classList.add('active');
+    if (countEl) countEl.textContent = idxs.length + ' selected';
+  } else {
+    bar.classList.remove('active');
+  }
+  // Sync header checkbox
+  var headerCb = document.querySelector('#table-all thead .tx-check');
+  var allCbs = document.querySelectorAll('#table-all tbody .tx-check');
+  if (headerCb && allCbs.length > 0) headerCb.checked = idxs.length === allCbs.length;
+}
+function toggleAllGrocItems(checked) {
+  document.querySelectorAll('#table-all tbody .tx-check').forEach(function(cb) { cb.checked = checked; });
+  updateGrocBulkBar();
+}
+function clearGrocBulkSelection() {
+  toggleAllGrocItems(false);
+  var h = document.querySelector('#table-all thead .tx-check');
+  if (h) h.checked = false;
+  updateGrocBulkBar();
+  _grocSelectMode = false;
+  var table = document.getElementById('table-all');
+  var btn = document.getElementById('btn-select-mode');
+  if (table) table.classList.remove('select-mode');
+  if (btn) { btn.classList.remove('active'); btn.textContent = 'Select'; }
+}
+function bulkGrocDelete() {
+  var idxs = getGrocCheckedIdxs();
+  if (idxs.length === 0) return;
+  if (!confirm('Delete ' + idxs.length + ' item' + (idxs.length > 1 ? 's' : '') + '? This cannot be undone.')) return;
+  var _isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
+  var edits = JSON.parse((_isDemo ? demoGet(ctx.editsKey) : localStorage.getItem(ctx.editsKey)) || "{}");
+  // Sort descending so splicing doesn't shift later indices
+  idxs.sort(function(a, b) { return b - a; });
+  idxs.forEach(function(idx) {
+    activeData.splice(idx, 1);
+    delete edits[idx];
+  });
+  // Re-index edits (indices shifted after splice)
+  var newEdits = {};
+  Object.keys(edits).forEach(function(k) {
+    var oldIdx = +k;
+    var shift = idxs.filter(function(d) { return d < oldIdx; }).length;
+    newEdits[oldIdx - shift] = edits[k];
+  });
+  if (_isDemo) { demoSet(ctx.editsKey, JSON.stringify(newEdits)); demoSet(ctx.storageKey, JSON.stringify(activeData)); }
+  else { localStorage.setItem(ctx.editsKey, JSON.stringify(newEdits)); localStorage.setItem(ctx.storageKey, JSON.stringify(activeData)); }
+  // Re-stamp _idx
+  activeData.forEach(function(item, i) { item._idx = i; });
+  invalidateProductNamesCache();
+  invalidateDupeCache();
+  clearGrocBulkSelection();
+  renderAll();
+}
+function bulkGrocRecat() {
+  var idxs = getGrocCheckedIdxs();
+  if (idxs.length === 0) return;
+  var overlay = document.createElement('div');
+  overlay.id = 'bulk-recat-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:100001;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)';
+  var catHtml = '<div style="background:var(--card,#1a1b2e);border:1px solid var(--card-border,#2a2b35);border-radius:16px;padding:24px;max-width:360px;width:100%;max-height:80vh;overflow-y:auto">';
+  catHtml += '<div style="font-size:16px;font-weight:700;margin-bottom:16px;text-align:center">Change Category (' + idxs.length + ' item' + (idxs.length > 1 ? 's' : '') + ')</div>';
+  ALL_CATEGORIES.forEach(function(cat) {
+    catHtml += '<button onclick="applyGrocBulkCategory(\'' + cat.replace(/'/g, "\\'") + '\')" style="display:block;width:100%;padding:12px 14px;margin-bottom:6px;border-radius:8px;border:1px solid var(--card-border);background:rgba(255,255,255,0.04);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left">' + cat + '</button>';
+  });
+  catHtml += '<button onclick="closeGrocBulkRecat()" style="display:block;width:100%;padding:12px;margin-top:8px;border:none;background:none;color:var(--text-muted);font-size:13px;cursor:pointer;font-family:inherit">Cancel</button>';
+  catHtml += '</div>';
+  overlay.innerHTML = catHtml;
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) closeGrocBulkRecat(); });
+  document.body.appendChild(overlay);
+}
+function closeGrocBulkRecat() {
+  var overlay = document.getElementById('bulk-recat-overlay');
+  if (overlay) overlay.parentNode.removeChild(overlay);
+}
+function applyGrocBulkCategory(newCat) {
+  var idxs = getGrocCheckedIdxs();
+  if (idxs.length === 0) return;
+  var _isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
+  var edits = JSON.parse((_isDemo ? demoGet(ctx.editsKey) : localStorage.getItem(ctx.editsKey)) || "{}");
+  idxs.forEach(function(idx) {
+    var item = activeData[idx];
+    if (!item) return;
+    item.c = newCat;
+    var hasChanges = item.n !== item._origName || item.c !== item._origCat || item.ng !== item._origNg;
+    if (hasChanges) {
+      edits[idx] = { n: item.n, c: item.c, ng: item.ng };
+    } else {
+      delete edits[idx];
+    }
+  });
+  if (_isDemo) demoSet(ctx.editsKey, JSON.stringify(edits));
+  else localStorage.setItem(ctx.editsKey, JSON.stringify(edits));
+  closeGrocBulkRecat();
+  clearGrocBulkSelection();
+  renderAll();
 }
 
 // ─────────── HELP MODAL ───────────

@@ -10,7 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore-compat.js"></script>
 <script src="../demo-data.js"></script>
-<link rel="stylesheet" href="../css/shared.css?v=20260226b">
+<link rel="stylesheet" href="../css/shared.css?v=20260226c">
 <link rel="stylesheet" href="../css/groceries.css?v=20260225n">
 </head>
 <body>
@@ -206,6 +206,7 @@
       <button class="btn-clear" onclick="clearFilters()">Clear Filters</button>
       <span id="filter-count" style="font-size:13px;color:var(--text-muted)"></span>
     </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn-select-mode" id="btn-select-mode" onclick="toggleGrocSelectMode()">Select</button></div>
     <div class="card">
       <div style="overflow-x:auto"><table id="table-all"></table></div>
     </div>
@@ -398,6 +399,19 @@
       </div>
     </div>
 
+    <!-- Bulk Actions -->
+    <div class="help-section">
+      <div class="help-section-title">Bulk Actions</div>
+      <div class="help-text">
+        To act on multiple items at once, click the <strong>"Select"</strong> button above the All Items table to enter selection mode.<br><br>
+        &#8226; Checkboxes will appear next to each row &mdash; check individual items or use the header checkbox to select all<br>
+        &#8226; A floating action bar appears at the bottom showing how many are selected<br>
+        &#8226; <strong>Change Category</strong> &mdash; Re-categorize all selected items at once<br>
+        &#8226; <strong>Delete</strong> &mdash; Remove all selected items<br><br>
+        Click <strong>"Cancel"</strong> to exit selection mode and hide the checkboxes.
+      </div>
+    </div>
+
     <!-- FAQ -->
     <div class="help-section" style="margin-bottom:0">
       <div class="help-section-title">Frequently Asked Questions</div>
@@ -471,6 +485,12 @@
   <a href="https://allagilejobs-jpg.github.io/Monthly/Expenses/" style="color:var(--blue);text-decoration:none;margin:0 8px">All Expenses</a> &bull;
   <a href="https://allagilejobs-jpg.github.io/Monthly/Budget/" style="color:#a855f7;text-decoration:none;margin:0 8px">Budget</a> &bull;
   <a href="https://allagilejobs-jpg.github.io/Monthly/" style="color:var(--text-muted);text-decoration:none;margin:0 8px">Home</a>
+</div>
+<div class="bulk-bar" id="bulk-bar">
+  <span class="bulk-count" id="bulk-count">0 selected</span>
+  <button class="bulk-recat" onclick="bulkGrocRecat()">Change Category</button>
+  <button class="bulk-delete" onclick="bulkGrocDelete()">Delete</button>
+  <button class="bulk-cancel" onclick="clearGrocBulkSelection()">Cancel</button>
 </div>
 <script src="../firebase-sync.js"></script>
 </body>
