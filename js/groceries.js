@@ -2900,6 +2900,8 @@ function downloadAllData() {
     if (d) keys["data_" + mk] = d;
     const e = localStorage.getItem("edits_" + mk);
     if (e) keys["edits_" + mk] = e;
+    const dd = localStorage.getItem("dupeDismissed_" + mk);
+    if (dd) keys["dupeDismissed_" + mk] = dd;
   });
   const blob = new Blob([JSON.stringify({ version: 1, type: "grocery", exported: new Date().toISOString(), keys }, null, 2)], { type: "application/json" });
   const a = document.createElement("a");

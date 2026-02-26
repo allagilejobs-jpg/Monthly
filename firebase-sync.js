@@ -23,7 +23,7 @@ function isDemoMode() {
 // ── Keys that sync to cloud (by prefix) ──
 const SYNC_PREFIXES = [
   'grocery_months', 'grocery_activeMonth',
-  'data_', 'edits_',
+  'data_', 'edits_', 'dupeDismissed_',
   'expenses_months', 'expenses_activeMonth',
   'expenses_data_', 'expenses_edits_', 'expenses_categoryRules',
   'scanner_abbrevDict',
@@ -65,7 +65,8 @@ function initFirebase() {
         syncFromCloud().then(() => {
           // Reload active data from freshly synced localStorage
           if (typeof switchMonth === 'function') {
-            var months = typeof loadMonths === 'function' ? loadMonths() : [];
+            var months = typeof loadMonths === 'function' ? loadMonths()
+                       : typeof getLoadedMonths === 'function' ? getLoadedMonths() : [];
             if (months.length > 0) {
               var active = localStorage.getItem('expenses_activeMonth') || localStorage.getItem('grocery_activeMonth') || '';
               var mk = (active && months.indexOf(active) !== -1) ? active : months.sort().reverse()[0];
@@ -525,6 +526,10 @@ async function syncToCloud() {
       if (edits) {
         batch.set(fb_db.collection('users').doc(uid).collection('grocery_edits').doc(mk), { json: edits });
       }
+      const dupeDismissed = localStorage.getItem('dupeDismissed_' + mk);
+      if (dupeDismissed) {
+        batch.set(fb_db.collection('users').doc(uid).collection('grocery_dismissals').doc(mk), { json: dupeDismissed });
+      }
     }
 
     // Expenses meta
@@ -660,6 +665,14 @@ async function syncFromCloud(forceMode) {
         const editsDoc = await userRef.collection('grocery_edits').doc(mk).get();
         if (editsDoc.exists && editsDoc.data().json) {
           localStorage.setItem('edits_' + mk, editsDoc.data().json);
+        }
+        const dismissDoc = await userRef.collection('grocery_dismissals').doc(mk).get();
+        if (dismissDoc.exists && dismissDoc.data().json) {
+          // Merge cloud dismissals with local ones (never lose a dismissal)
+          const cloudDismissals = JSON.parse(dismissDoc.data().json);
+          const localDismissals = JSON.parse(localStorage.getItem('dupeDismissed_' + mk) || '[]');
+          const merged = [...new Set([...localDismissals, ...cloudDismissals])];
+          localStorage.setItem('dupeDismissed_' + mk, JSON.stringify(merged));
         }
       }
     }
@@ -804,6 +817,14 @@ async function syncFromCloudMerge() {
         try { cloudLen = cloudData ? JSON.parse(cloudData).length : 0; } catch(e){}
         try { localLen = localData ? JSON.parse(localData).length : 0; } catch(e){}
         if (cloudLen > localLen && cloudData) localStorage.setItem('data_' + mk, cloudData);
+        // Always merge dismissals (union of both)
+        const dismissDoc = await userRef.collection('grocery_dismissals').doc(mk).get();
+        if (dismissDoc.exists && dismissDoc.data().json) {
+          const cloudDismissals = JSON.parse(dismissDoc.data().json);
+          const localDismissals = JSON.parse(localStorage.getItem('dupeDismissed_' + mk) || '[]');
+          const mergedDismissals = [...new Set([...localDismissals, ...cloudDismissals])];
+          localStorage.setItem('dupeDismissed_' + mk, JSON.stringify(mergedDismissals));
+        }
       }
     }
     // Expenses
