@@ -1671,7 +1671,7 @@ function showProductDetail(productName, source) {
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
 
-  const backMap = { groceries: ['groceries','Groceries'], toiletries: ['toiletries','Toiletries'], overview: ['overview','Overview'], items: ['items','All Items'], 'category-detail': ['overview','Overview'] };
+  const backMap = { groceries: ['groceries','Groceries'], toiletries: ['toiletries','Toiletries'], overview: ['overview','Overview'], items: ['items','All Items'], 'category-detail': ['overview','Overview'], trips: ['trips','Trips'] };
   const [backTab, backLabel] = backMap[productDetailSource] || backMap.items;
   document.getElementById("product-detail-back").onclick = () => showView(backTab);
   document.getElementById("product-detail-back").textContent = "\u2190 Back to " + backLabel;
@@ -1922,8 +1922,9 @@ function showTripDetail(tripIdx) {
           <th style="text-align:right;padding:8px 12px;font-size:11px;font-weight:700;color:var(--green);border-bottom:1px solid var(--card-border);letter-spacing:1px;text-transform:uppercase">Total</th>
         </tr></thead><tbody>`;
     items.sort((a, b) => b.t - a.t).forEach(i => {
-      g += `<tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
-        <td style="padding:10px 12px;font-weight:500">${i.n} <span style="font-size:10px;color:var(--text-muted);margin-left:4px">${i.c}</span></td>
+      var nameEsc = i.n.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      g += `<tr style="border-bottom:1px solid rgba(255,255,255,0.03);cursor:pointer" onclick="showProductDetail('${nameEsc}','trips')">
+        <td style="padding:10px 12px;font-weight:500;color:var(--green)">${i.n} <span style="font-size:10px;color:var(--text-muted);margin-left:4px">${i.c}</span></td>
         <td style="padding:10px 12px;text-align:center">${i.q}</td>
         <td style="padding:10px 12px;text-align:right;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px">${fmt(i.u)}</td>
         <td style="padding:10px 12px;text-align:right;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px;font-weight:700;color:var(--amber)">${fmt(i.t)}</td>
