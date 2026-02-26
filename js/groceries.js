@@ -3028,6 +3028,7 @@ function renderCompare() {
     const valStr = isMoney ? fmt(currVal) : currVal;
     const diffStr = isMoney ? sign + fmt(Math.abs(diff)) : sign + diff;
     return '<div class="delta-card"><div class="kpi-label">' + label + '</div>' +
+      '<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">' + curr.label + '</div>' +
       '<div class="delta-value" style="color:var(--text)">' + valStr + '</div>' +
       '<div class="delta-change ' + cls + '">' + diffStr + ' (' + (diff > 0 ? "+" : "") + pctChange + '%) vs ' + prev.label + '</div></div>';
   }
