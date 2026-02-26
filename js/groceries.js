@@ -2950,6 +2950,8 @@ function loadDataFile(event) {
 
 // ─────────── COMPARE TAB ───────────
 function renderCompare() {
+  // Destroy previous compare charts before re-rendering
+  ['compareTrend', 'compareCats', 'compareStores'].forEach(k => { if (charts[k]) { charts[k].destroy(); delete charts[k]; } });
   const months = getLoadedMonths();
   const container = document.getElementById("compare-content");
 
@@ -2987,9 +2989,29 @@ function renderCompare() {
     return;
   }
 
-  // Delta cards (compare last 2 months)
-  const curr = allMonthData[allMonthData.length - 1];
-  const prev = allMonthData[allMonthData.length - 2];
+  // Store allMonthData for re-rendering delta cards
+  window._compareMonthData = allMonthData;
+
+  // Current month = the one selected in the month selector
+  const curr = allMonthData.find(m => m.key === ctx.monthKey) || allMonthData[allMonthData.length - 1];
+  const otherMonths = allMonthData.filter(m => m.key !== curr.key);
+  // Default compare-against: the month right before current, or the first available
+  const defaultPrev = otherMonths.reduce((best, m) => m.key < curr.key && (!best || m.key > best.key) ? m : best, null) || otherMonths[0];
+  if (!window._compareAgainstKey || !otherMonths.find(m => m.key === window._compareAgainstKey)) {
+    window._compareAgainstKey = defaultPrev.key;
+  }
+  const prev = allMonthData.find(m => m.key === window._compareAgainstKey) || defaultPrev;
+
+  // Dropdown to pick compare-against month
+  let html = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">';
+  html += '<span style="font-size:14px;font-weight:600;color:var(--text)">' + curr.fullLabel + '</span>';
+  html += '<span style="font-size:13px;color:var(--text-muted)">compared to</span>';
+  html += '<select id="compare-against-select" onchange="window._compareAgainstKey=this.value;renderCompare()" style="background:var(--card);border:1px solid var(--card-border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:inherit;font-size:13px;cursor:pointer">';
+  otherMonths.forEach(m => {
+    html += '<option value="' + m.key + '"' + (m.key === prev.key ? ' selected' : '') + '>' + m.fullLabel + '</option>';
+  });
+  html += '</select></div>';
+
   function deltaHtml(label, currVal, prevVal, isMoney) {
     const diff = currVal - prevVal;
     const pctChange = prevVal > 0 ? ((diff / prevVal) * 100).toFixed(1) : "0";
@@ -3002,7 +3024,7 @@ function renderCompare() {
       '<div class="delta-change ' + cls + '">' + diffStr + ' (' + (diff > 0 ? "+" : "") + pctChange + '%) vs ' + prev.label + '</div></div>';
   }
 
-  let html = '<div class="delta-grid">';
+  html += '<div class="delta-grid">';
   html += deltaHtml("Total Spend", curr.total, prev.total, true);
   html += deltaHtml("Grocery Spend", curr.groceryTotal, prev.groceryTotal, true);
   html += deltaHtml("Toiletry Spend", curr.toiletryTotal, prev.toiletryTotal, true);
