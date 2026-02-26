@@ -1760,7 +1760,7 @@ function showProductDetail(productName, source) {
       } else {
         changeHtml = `<span style="color:var(--text-muted)">&mdash;</span>`;
       }
-      html += `<tr><td class="mono"><a href="javascript:void(0)" onclick="goToTripFromProduct('${tripKey}')" style="color:var(--green);text-decoration:none;border-bottom:1px dashed rgba(34,197,94,0.4)">${dateLabel}</a></td><td>${item.s}</td><td class="text-right mono amt">${fmt(item.u)}</td><td class="text-right">${changeHtml}</td></tr>`;
+      html += `<tr style="cursor:pointer" onclick="goToTripFromProduct('${tripKey}')"><td class="mono" style="color:var(--green)">${dateLabel}</td><td>${item.s}</td><td class="text-right mono amt">${fmt(item.u)}</td><td class="text-right">${changeHtml}</td></tr>`;
     });
     html += `</tbody></table></div></div>`;
   }
@@ -1851,8 +1851,8 @@ function showProductDetail(productName, source) {
     const dayNum = parseInt(i.d.split("/")[1]);
     const dateLabel = ctx.monthName ? ctx.monthName + " " + dayNum + ", " + ctx.year : i.d;
     const tripKey = i.d + "|" + i.s;
-    html += `<tr>
-      <td class="mono"><a href="javascript:void(0)" onclick="goToTripFromProduct('${tripKey}')" style="color:var(--green);text-decoration:none;border-bottom:1px dashed rgba(34,197,94,0.4)">${dateLabel}</a></td>
+    html += `<tr style="cursor:pointer" onclick="goToTripFromProduct('${tripKey}')">
+      <td class="mono" style="color:var(--green)">${dateLabel}</td>
       <td>${i.s}</td>
       <td class="text-center">${i.q}</td>
       <td class="text-right mono">${fmt(i.u)}</td>
