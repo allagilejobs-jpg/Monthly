@@ -2590,6 +2590,8 @@ function applyTransactionFilter(opts) {
 // RENDER: COMPARE
 // ══════════════════════════════════════════════════════════
 function renderCompare() {
+  // Destroy previous compare charts before re-rendering
+  ['compareTotals', 'compareCats'].forEach(k => { if (charts[k]) { charts[k].destroy(); delete charts[k]; } });
   const el = document.getElementById('view-compare');
   const months = loadMonths().sort();
   if (months.length < 2) {
@@ -2607,9 +2609,18 @@ function renderCompare() {
     return { key: mk, ctx: c, data, total, count: data.length, cats };
   });
 
-  // Delta between last two months
-  const curr = allMonths[allMonths.length - 1];
-  const prev = allMonths[allMonths.length - 2];
+  // Current month — default to active month, but user can change via dropdown
+  if (!window._expCompareCurrKey || !allMonths.find(m => m.key === window._expCompareCurrKey)) {
+    window._expCompareCurrKey = ctx.monthKey;
+  }
+  const curr = allMonths.find(m => m.key === window._expCompareCurrKey) || allMonths[allMonths.length - 1];
+  const otherMonths = allMonths.filter(m => m.key !== curr.key);
+  const defaultPrev = otherMonths.reduce((best, m) => m.key < curr.key && (!best || m.key > best.key) ? m : best, null) || otherMonths[0];
+  if (!window._expCompareAgainstKey || window._expCompareAgainstKey === curr.key || !otherMonths.find(m => m.key === window._expCompareAgainstKey)) {
+    window._expCompareAgainstKey = defaultPrev.key;
+  }
+  const prev = allMonths.find(m => m.key === window._expCompareAgainstKey) || defaultPrev;
+
   const spendChange = curr.total - prev.total;
   const spendPct = prev.total ? ((spendChange / prev.total) * 100).toFixed(1) : 0;
   const countChange = curr.count - prev.count;
@@ -2617,7 +2628,22 @@ function renderCompare() {
   const avgPrev = prev.count ? prev.total / prev.count : 0;
   const avgChange = avgCurr - avgPrev;
 
-  let html = '<div class="delta-grid">';
+  // Dropdowns for both months
+  var selectStyle = 'background:var(--card);border:1px solid var(--card-border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:inherit;font-size:13px;cursor:pointer';
+  let html = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">';
+  html += '<select id="exp-compare-curr" onchange="window._expCompareCurrKey=this.value;if(window._expCompareAgainstKey===this.value){window._expCompareAgainstKey=null;}renderCompare()" style="' + selectStyle + '">';
+  allMonths.forEach(m => {
+    html += '<option value="' + m.key + '"' + (m.key === curr.key ? ' selected' : '') + '>' + m.ctx.monthName + ' ' + m.ctx.year + '</option>';
+  });
+  html += '</select>';
+  html += '<span style="font-size:13px;color:var(--text-muted)">compared to</span>';
+  html += '<select id="exp-compare-against" onchange="window._expCompareAgainstKey=this.value;renderCompare()" style="' + selectStyle + '">';
+  otherMonths.forEach(m => {
+    html += '<option value="' + m.key + '"' + (m.key === prev.key ? ' selected' : '') + '>' + m.ctx.monthName + ' ' + m.ctx.year + '</option>';
+  });
+  html += '</select></div>';
+
+  html += '<div class="delta-grid">';
   html += '<div class="delta-card"><div class="kpi-label">Total Spend</div><div class="delta-value amt">' + fmt(curr.total) + '</div><div class="delta-change ' + (spendChange > 0 ? 'delta-up' : 'delta-down') + '">' + (spendChange > 0 ? '+' : '') + fmt(spendChange) + ' (' + (spendChange > 0 ? '+' : '') + spendPct + '%)</div></div>';
   html += '<div class="delta-card"><div class="kpi-label">Transactions</div><div class="delta-value">' + curr.count + '</div><div class="delta-change ' + (countChange > 0 ? 'delta-up' : 'delta-down') + '">' + (countChange > 0 ? '+' : '') + countChange + ' vs ' + prev.ctx.monthAbbr + '</div></div>';
   html += '<div class="delta-card"><div class="kpi-label">Avg / Transaction</div><div class="delta-value">' + fmt(avgCurr) + '</div><div class="delta-change ' + (avgChange > 0 ? 'delta-up' : 'delta-down') + '">' + (avgChange > 0 ? '+' : '') + fmt(avgChange) + '</div></div>';
