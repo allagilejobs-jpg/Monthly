@@ -1158,7 +1158,7 @@ function renderOverview() {
       const catIdx = ALL_CATEGORIES.indexOf(r.category);
       const catClr = PALETTE[(catIdx >= 0 ? catIdx : 0) % PALETTE.length];
       const escaped = r.name.replace(/'/g, "\\'");
-      rHtml += `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;gap:10px" onclick="showProductDetail('${escaped}','overview')">`;
+      rHtml += `<div class="clickable-row" style="display:flex;justify-content:space-between;align-items:center;padding:12px 8px;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;gap:10px" onclick="showProductDetail('${escaped}','overview')">`;
       rHtml += `<div style="flex:1;min-width:0">`;
       rHtml += `<div style="font-weight:600;font-size:14px;margin-bottom:3px">${r.name}</div>`;
       rHtml += `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">`;
