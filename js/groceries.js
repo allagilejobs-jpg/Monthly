@@ -1909,11 +1909,13 @@ function showTripDetail(tripIdx) {
     </div>`;
 
   // Build item groups
+  var groupColors = { 'tag-grocery': 'var(--green)', 'tag-toiletry': 'var(--purple)', 'tag-nongrocery': 'var(--rose)' };
   function renderGroup(label, items, tagClass, tagLabel) {
     if (items.length === 0) return "";
     const groupTotal = items.reduce((s, i) => s + i.t, 0);
+    const titleColor = groupColors[tagClass] || 'var(--text)';
     let g = `<div class="card">
-      <div class="card-title">${label} <span style="float:right;color:var(--amber)">${fmt(groupTotal)}</span></div>
+      <div class="card-title"><span style="color:${titleColor}">${label}</span> <span style="float:right;color:var(--amber)">${fmt(groupTotal)}</span></div>
       <table style="width:100%;border-collapse:collapse;font-size:13px">
         <thead><tr>
           <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:var(--green);border-bottom:1px solid var(--card-border);letter-spacing:1px;text-transform:uppercase">Product</th>
