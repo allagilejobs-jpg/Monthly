@@ -2992,21 +2992,29 @@ function renderCompare() {
   // Store allMonthData for re-rendering delta cards
   window._compareMonthData = allMonthData;
 
-  // Current month = the one selected in the month selector
-  const curr = allMonthData.find(m => m.key === ctx.monthKey) || allMonthData[allMonthData.length - 1];
+  // Current month — default to active month, but user can change via dropdown
+  if (!window._compareCurrKey || !allMonthData.find(m => m.key === window._compareCurrKey)) {
+    window._compareCurrKey = ctx.monthKey;
+  }
+  const curr = allMonthData.find(m => m.key === window._compareCurrKey) || allMonthData[allMonthData.length - 1];
   const otherMonths = allMonthData.filter(m => m.key !== curr.key);
   // Default compare-against: the month right before current, or the first available
   const defaultPrev = otherMonths.reduce((best, m) => m.key < curr.key && (!best || m.key > best.key) ? m : best, null) || otherMonths[0];
-  if (!window._compareAgainstKey || !otherMonths.find(m => m.key === window._compareAgainstKey)) {
+  if (!window._compareAgainstKey || window._compareAgainstKey === curr.key || !otherMonths.find(m => m.key === window._compareAgainstKey)) {
     window._compareAgainstKey = defaultPrev.key;
   }
   const prev = allMonthData.find(m => m.key === window._compareAgainstKey) || defaultPrev;
 
-  // Dropdown to pick compare-against month
+  // Dropdowns for both months
+  var selectStyle = 'background:var(--card);border:1px solid var(--card-border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:inherit;font-size:13px;cursor:pointer';
   let html = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">';
-  html += '<span style="font-size:14px;font-weight:600;color:var(--text)">' + curr.fullLabel + '</span>';
+  html += '<select id="compare-curr-select" onchange="window._compareCurrKey=this.value;if(window._compareAgainstKey===this.value){window._compareAgainstKey=null;}renderCompare()" style="' + selectStyle + '">';
+  allMonthData.forEach(m => {
+    html += '<option value="' + m.key + '"' + (m.key === curr.key ? ' selected' : '') + '>' + m.fullLabel + '</option>';
+  });
+  html += '</select>';
   html += '<span style="font-size:13px;color:var(--text-muted)">compared to</span>';
-  html += '<select id="compare-against-select" onchange="window._compareAgainstKey=this.value;renderCompare()" style="background:var(--card);border:1px solid var(--card-border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:inherit;font-size:13px;cursor:pointer">';
+  html += '<select id="compare-against-select" onchange="window._compareAgainstKey=this.value;renderCompare()" style="' + selectStyle + '">';
   otherMonths.forEach(m => {
     html += '<option value="' + m.key + '"' + (m.key === prev.key ? ' selected' : '') + '>' + m.fullLabel + '</option>';
   });
