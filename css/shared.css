@@ -383,8 +383,23 @@ body.light .bulk-bar {
 .bulk-bar .bulk-delete { background: rgba(239,68,68,0.15); color: #ef4444; }
 .bulk-bar .bulk-cancel { background: rgba(113,113,122,0.15); color: var(--text-muted, #71717a); margin-left: auto; }
 
-/* Checkbox styling */
+/* Checkbox styling — hidden by default, shown in select mode */
 .tx-check { width: 18px; height: 18px; cursor: pointer; accent-color: var(--blue, #3b82f6); }
+.tx-check-col { display: none; width: 0; padding: 0 !important; overflow: hidden; }
+.select-mode .tx-check-col { display: table-cell; width: 32px; padding: 8px !important; }
+
+/* Select mode toggle button */
+.btn-select-mode {
+  border: 1px solid var(--card-border, #2a2b35); border-radius: 8px;
+  background: rgba(255,255,255,0.04); color: var(--text-muted, #71717a);
+  padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+  font-family: inherit; transition: all 0.2s;
+}
+.btn-select-mode:hover { border-color: var(--blue, #3b82f6); color: var(--blue, #3b82f6); }
+.btn-select-mode.active {
+  background: rgba(59,130,246,0.12); border-color: var(--blue, #3b82f6);
+  color: var(--blue, #3b82f6);
+}
 
 @media (min-width: 481px) {
   .bulk-bar {

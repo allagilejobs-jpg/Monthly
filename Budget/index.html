@@ -186,11 +186,12 @@
               <option value="Other">Other</option>
             </select>
           </div>
+          <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn-select-mode" id="btn-select-mode" onclick="toggleBudgetSelectMode()">Select</button></div>
           <div style="overflow-x:auto">
             <table class="tbl" id="tx-table">
               <thead>
                 <tr>
-                  <th style="width:32px"><input type="checkbox" class="tx-check" onchange="toggleAllBudgetTx(this.checked)"></th>
+                  <th class="tx-check-col"><input type="checkbox" class="tx-check" onchange="toggleAllBudgetTx(this.checked)"></th>
                   <th class="sortable" style="width:90px" onclick="sortTx('date')">Date</th>
                   <th class="sortable" onclick="sortTx('category')">Category</th>
                   <th class="sortable" onclick="sortTx('description')">Description</th>
@@ -599,6 +600,19 @@
         <strong>Source</strong> &mdash; The account name you entered during import (e.g., "Chase Sapphire")<br>
         <strong>Import</strong> &mdash; How the transaction was imported (CSV, PDF, XLSX, or manual entry)<br>
         <strong>Amount</strong> &mdash; Transaction amount (negative/green for credits)
+      </div>
+    </div>
+
+    <!-- Bulk Actions -->
+    <div class="help-section">
+      <div class="help-section-title">Bulk Actions</div>
+      <div class="help-text">
+        To act on multiple transactions at once, click the <strong>"Select"</strong> button above the transaction table to enter selection mode.<br><br>
+        &#8226; Checkboxes will appear next to each row &mdash; check individual items or use the header checkbox to select all<br>
+        &#8226; A floating action bar appears at the bottom showing how many are selected<br>
+        &#8226; <strong>Change Category</strong> &mdash; Re-categorize all selected transactions at once<br>
+        &#8226; <strong>Delete</strong> &mdash; Remove all selected transactions<br><br>
+        Click <strong>"Cancel"</strong> to exit selection mode and hide the checkboxes.
       </div>
     </div>
 

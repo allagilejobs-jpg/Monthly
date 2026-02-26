@@ -2441,8 +2441,9 @@ function renderTransactions() {
   html += '<button class="btn-clear" onclick="clearTxFilters()">Clear</button>';
   html += '</div>';
 
+  html += '<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn-select-mode" id="btn-select-mode" onclick="toggleSelectMode()">Select</button></div>';
   html += '<div class="card" style="overflow-x:auto"><table id="tx-table"><thead><tr>';
-  html += '<th style="width:32px"><input type="checkbox" class="tx-check" onchange="toggleAllTx(this.checked)"></th>';
+  html += '<th class="tx-check-col"><input type="checkbox" class="tx-check" onchange="toggleAllTx(this.checked)"></th>';
   html += '<th class="sortable' + (txSortCol === 'date' ? (txSortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '') + '" onclick="sortTxTable(\'date\')">Date</th>';
   html += '<th class="sortable' + (txSortCol === 'merchant' ? (txSortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '') + '" onclick="sortTxTable(\'merchant\')">Merchant</th>';
   html += '<th class="sortable' + (txSortCol === 'category' ? (txSortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '') + '" onclick="sortTxTable(\'category\')">Category</th>';
@@ -2493,7 +2494,7 @@ function renderTxRows() {
   tbody.innerHTML = pageData.map(t => {
     const edited = edits[t.id];
     const editDot = edited ? '<span class="edit-dot" title="Edited"></span>' : '';
-    return '<tr><td><input type="checkbox" class="tx-check" data-id="' + t.id + '" onchange="updateBulkBar()"></td>' +
+    return '<tr><td class="tx-check-col"><input type="checkbox" class="tx-check" data-id="' + t.id + '" onchange="updateBulkBar()"></td>' +
       '<td class="mono">' + t.date + '</td>' +
       '<td style="font-weight:600">' + t.merchant + editDot + '</td>' +
       '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>' +
@@ -3162,6 +3163,20 @@ function detectRecurring() {
 // ══════════════════════════════════════════════════════════
 // BULK ACTIONS
 // ══════════════════════════════════════════════════════════
+var _selectMode = false;
+function toggleSelectMode() {
+  _selectMode = !_selectMode;
+  var table = document.getElementById('tx-table');
+  var btn = document.getElementById('btn-select-mode');
+  if (_selectMode) {
+    if (table) table.classList.add('select-mode');
+    if (btn) { btn.classList.add('active'); btn.textContent = 'Cancel'; }
+  } else {
+    if (table) table.classList.remove('select-mode');
+    if (btn) { btn.classList.remove('active'); btn.textContent = 'Select'; }
+    clearBulkSelection();
+  }
+}
 function getCheckedIds() {
   var checks = document.querySelectorAll('#tx-tbody .tx-check:checked');
   var ids = [];
@@ -3196,6 +3211,12 @@ function clearBulkSelection() {
   var headerCb = document.querySelector('#tx-table thead .tx-check');
   if (headerCb) headerCb.checked = false;
   updateBulkBar();
+  // Exit select mode
+  _selectMode = false;
+  var table = document.getElementById('tx-table');
+  var btn = document.getElementById('btn-select-mode');
+  if (table) table.classList.remove('select-mode');
+  if (btn) { btn.classList.remove('active'); btn.textContent = 'Select'; }
 }
 function bulkDelete() {
   var ids = getCheckedIds();

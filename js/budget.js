@@ -471,7 +471,7 @@ function renderTxTable() {
 
   body.innerHTML = pageData.map(function(tx) {
     return '<tr>'
-      + '<td><input type="checkbox" class="tx-check" data-id="'+tx.id+'" onchange="updateBudgetBulkBar()"></td>'
+      + '<td class="tx-check-col"><input type="checkbox" class="tx-check" data-id="'+tx.id+'" onchange="updateBudgetBulkBar()"></td>'
       + '<td>'+escHtml(tx.date)+'</td>'
       + '<td>'+escHtml(tx.category)+'</td>'
       + '<td>'+escHtml(tx.description)+'</td>'
@@ -1012,6 +1012,20 @@ function deleteMonth() {
 // ════════════════════════════════════════
 // BULK ACTIONS
 // ════════════════════════════════════════
+var _budgetSelectMode = false;
+function toggleBudgetSelectMode() {
+  _budgetSelectMode = !_budgetSelectMode;
+  var table = document.getElementById('tx-table');
+  var btn = document.getElementById('btn-select-mode');
+  if (_budgetSelectMode) {
+    if (table) table.classList.add('select-mode');
+    if (btn) { btn.classList.add('active'); btn.textContent = 'Cancel'; }
+  } else {
+    if (table) table.classList.remove('select-mode');
+    if (btn) { btn.classList.remove('active'); btn.textContent = 'Select'; }
+    clearBudgetBulkSelection();
+  }
+}
 function getBudgetCheckedIds() {
   var checks = document.querySelectorAll('#tx-body .tx-check:checked');
   var ids = [];
@@ -1039,6 +1053,12 @@ function clearBudgetBulkSelection() {
   var h = document.querySelector('#tx-table thead .tx-check');
   if (h) h.checked = false;
   updateBudgetBulkBar();
+  // Exit select mode
+  _budgetSelectMode = false;
+  var table = document.getElementById('tx-table');
+  var btn = document.getElementById('btn-select-mode');
+  if (table) table.classList.remove('select-mode');
+  if (btn) { btn.classList.remove('active'); btn.textContent = 'Select'; }
 }
 function bulkBudgetDelete() {
   var ids = getBudgetCheckedIds();
