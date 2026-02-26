@@ -1745,7 +1745,7 @@ function showProductDetail(productName, source) {
 
   // Price tracker (only if bought more than once)
   if (items.length > 1) {
-    html += `<div class="card"><div class="card-title">Price Tracker</div>`;
+    html += `<div class="card"><div class="card-title"><span style="color:var(--cyan)">Price Tracker</span></div>`;
     html += `<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Store</th><th class="text-right">Unit Price</th><th class="text-right">Change</th></tr></thead><tbody>`;
     items.forEach((item, idx) => {
       const dayNum = parseInt(item.d.split("/")[1]);
@@ -1812,7 +1812,7 @@ function showProductDetail(productName, source) {
 
   // Store comparison (only if bought at multiple stores)
   if (stores.length > 1) {
-    html += `<div class="card"><div class="card-title">Store Price Comparison</div>`;
+    html += `<div class="card"><div class="card-title"><span style="color:var(--blue)">Store Price Comparison</span></div>`;
     const storeStats = {};
     items.forEach(i => {
       if (!storeStats[i.s]) storeStats[i.s] = { prices: [], qty: 0, total: 0 };
@@ -1844,7 +1844,7 @@ function showProductDetail(productName, source) {
   }
 
   // Purchase history table
-  html += `<div class="card"><div class="card-title">Purchase History</div>`;
+  html += `<div class="card"><div class="card-title"><span style="color:var(--amber)">Purchase History</span></div>`;
   html += `<div style="overflow-x:auto"><table>`;
   html += `<thead><tr><th>Date</th><th>Store</th><th class="text-center">Qty</th><th class="text-right">Unit Price</th><th class="text-right">Total</th></tr></thead><tbody>`;
   items.forEach(i => {
