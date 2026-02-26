@@ -417,7 +417,10 @@
     <div class="modal-title" id="edit-modal-title">Edit Item</div>
     <div class="modal-field">
       <label class="modal-label">Product Name</label>
-      <input type="text" class="modal-input" id="edit-name">
+      <div style="position:relative">
+        <input type="text" class="modal-input" id="edit-name" autocomplete="off">
+        <div class="edit-suggestions" id="edit-name-suggestions"></div>
+      </div>
       <div class="modal-original" id="edit-original-name"></div>
     </div>
     <div class="modal-field">

@@ -301,6 +301,8 @@ function switchMonth(monthKey) {
   ctx = buildMonthContext(monthKey);
   activeData = data;
   initMonthData(activeData);
+  invalidateProductNamesCache();
+  invalidateDupeCache();
   recomputeAll();
   destroyAllCharts();
   updateHeader();
@@ -1674,9 +1676,10 @@ function showProductDetail(productName, source) {
   document.getElementById("product-detail-back").onclick = () => showView(backTab);
   document.getElementById("product-detail-back").textContent = "\u2190 Back to " + backLabel;
 
+  const editBtnHtml = `<span class="product-edit-btn" onclick="event.stopPropagation();openEditModal(${items[0]._idx},true)" title="Edit product name">&#9998;</span>`;
   let html = `<div class="trip-detail-header">
     <div>
-      <div class="trip-detail-title">${productName}</div>
+      <div class="trip-detail-title">${productName} ${editBtnHtml}</div>
       <div class="trip-detail-store">${cat} \u2022 ${stores.join(", ")}</div>
     </div>
     <div style="text-align:right">
@@ -2042,17 +2045,20 @@ function renderTable() {
   });
   html += `<th style="width:50px"></th></tr></thead><tbody>`;
 
+  const dupeMap = getDuplicateMap();
   pageData.forEach(i => {
     const typ = itemType(i);
     const tagClass = typ === "grocery" ? "tag-grocery" : typ === "toiletry" ? "tag-toiletry" : "tag-nongrocery";
     const tagLabel = typ === "grocery" ? "GROCERY" : typ === "toiletry" ? "TOILETRY" : "OTHER";
     const isEdited = i.n !== i._origName || i.c !== i._origCat || i.ng !== i._origNg;
     const editDot = isEdited ? '<span class="edit-dot" title="Edited"></span>' : '';
+    const dupeInfo = dupeMap[i.n];
+    const dupeFlag = dupeInfo ? '<span class="dupe-flag" onclick="event.stopPropagation();showDupePopover(this,' + i._idx + ')" title="Possible duplicate of: ' + dupeInfo.match.replace(/"/g, '&quot;') + '">&#9873;</span>' : '';
     const escaped = i.n.replace(/'/g, "\\'").replace(/"/g, "&quot;");
     html += `<tr onclick="showProductDetail('${escaped}','items')" style="cursor:pointer" title="View purchase history">
       <td class="mono">${i.d}</td>
       <td>${i.s}</td>
-      <td class="bold">${i.n}${editDot} <span class="tag ${tagClass}">${tagLabel}</span></td>
+      <td class="bold">${i.n}${editDot}${dupeFlag} <span class="tag ${tagClass}">${tagLabel}</span></td>
       <td style="color:var(--text-muted)">${i.c}</td>
       <td class="text-center">${i.q}</td>
       <td class="text-right mono">${fmt(i.u)}</td>
@@ -2104,9 +2110,283 @@ function sortTable(col) {
 
 // ─────────── EDIT MODAL ───────────
 let editIdx = null;
+let editFromProductDetail = false;
+let _productNamesCache = null;
+let _productNamesCacheMonth = null;
+let _acSuggIdx = -1;
 
-function openEditModal(idx) {
+function getAllProductNames() {
+  if (_productNamesCache && _productNamesCacheMonth === ctx.monthKey) return _productNamesCache;
+  const names = new Set();
+  activeData.forEach(function(i) { names.add(i.n); });
+  getLoadedMonths().forEach(function(mk) {
+    if (mk === ctx.monthKey) return;
+    var data = loadMonthData(mk);
+    if (data) data.forEach(function(i) { names.add(i.n); });
+  });
+  _productNamesCache = Array.from(names).sort(function(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+  _productNamesCacheMonth = ctx.monthKey;
+  return _productNamesCache;
+}
+
+function invalidateProductNamesCache() { _productNamesCache = null; _productNamesCacheMonth = null; }
+
+// ─────────── DUPLICATE DETECTION ───────────
+var _dupeMapCache = null;
+var _dupeMapCacheMonth = null;
+
+function _bigrams(s) {
+  s = s.toUpperCase();
+  var b = [];
+  for (var i = 0; i < s.length - 1; i++) b.push(s.slice(i, i + 2));
+  return b;
+}
+function _diceCoeff(a, b) {
+  var ba = _bigrams(a), bb = _bigrams(b);
+  if (!ba.length && !bb.length) return 1;
+  if (!ba.length || !bb.length) return 0;
+  var setB = {};
+  bb.forEach(function(bg) { setB[bg] = true; });
+  var matches = 0;
+  ba.forEach(function(bg) { if (setB[bg]) matches++; });
+  return (2 * matches) / (ba.length + bb.length);
+}
+
+function _makePairKey(a, b) {
+  return a < b ? a + "|||" + b : b + "|||" + a;
+}
+
+function loadDupeDismissals() {
+  var _isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
+  var raw = _isDemo ? demoGet("dupeDismissed_" + ctx.monthKey) : localStorage.getItem("dupeDismissed_" + ctx.monthKey);
+  return raw ? JSON.parse(raw) : [];
+}
+
+function saveDupeDismissals(arr) {
+  var _isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
+  var key = "dupeDismissed_" + ctx.monthKey;
+  if (_isDemo) demoSet(key, JSON.stringify(arr));
+  else localStorage.setItem(key, JSON.stringify(arr));
+}
+
+function getDuplicateMap() {
+  if (_dupeMapCache && _dupeMapCacheMonth === ctx.monthKey) return _dupeMapCache;
+  var dismissed = new Set(loadDupeDismissals());
+  var currentNames = [];
+  var seen = {};
+  activeData.forEach(function(i) {
+    if (!seen[i.n]) { seen[i.n] = true; currentNames.push(i.n); }
+  });
+  var allNames = getAllProductNames();
+  var pool = [];
+  var poolSet = {};
+  allNames.forEach(function(name) { if (!poolSet[name]) { poolSet[name] = true; pool.push(name); } });
+  currentNames.forEach(function(name) { if (!poolSet[name]) { poolSet[name] = true; pool.push(name); } });
+
+  var dupeMap = {};
+  currentNames.forEach(function(name) {
+    var bestMatch = null, bestScore = 0;
+    pool.forEach(function(other) {
+      if (other === name) return;
+      var pairKey = _makePairKey(name, other);
+      if (dismissed.has(pairKey)) return;
+      var score = _diceCoeff(name, other);
+      // Also check substring containment for longer names
+      var shorter = name.length <= other.length ? name : other;
+      var longer = name.length > other.length ? name : other;
+      if (shorter.length >= 8 && longer.toLowerCase().indexOf(shorter.toLowerCase()) >= 0) {
+        score = Math.max(score, 0.80);
+      }
+      if (score >= 0.72 && score > bestScore) {
+        bestScore = score;
+        bestMatch = other;
+      }
+    });
+    if (bestMatch) {
+      dupeMap[name] = { match: bestMatch, score: bestScore };
+    }
+  });
+  _dupeMapCache = dupeMap;
+  _dupeMapCacheMonth = ctx.monthKey;
+  return _dupeMapCache;
+}
+
+function invalidateDupeCache() { _dupeMapCache = null; _dupeMapCacheMonth = null; }
+
+function showDupePopover(flagEl, idx) {
+  var item = activeData[idx];
+  if (!item) return;
+  var dupeMap = getDuplicateMap();
+  var info = dupeMap[item.n];
+  if (!info) return;
+
+  var popover = document.getElementById("dupe-popover");
+  if (!popover) {
+    popover = document.createElement("div");
+    popover.id = "dupe-popover";
+    popover.className = "dupe-popover";
+    document.body.appendChild(popover);
+  }
+
+  var matchEsc = info.match.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+  popover.innerHTML =
+    '<div class="dupe-popover-label">Similar to:</div>' +
+    '<div class="dupe-popover-match">"' + info.match + '"</div>' +
+    '<div class="dupe-popover-actions">' +
+      '<button class="dupe-popover-btn rename" onclick="renameToDupeMatch(' + idx + ',\'' + matchEsc + '\')">Rename to Match</button>' +
+      '<button class="dupe-popover-btn dismiss" onclick="dismissDupe(\'' + item.n.replace(/'/g, "\\'") + '\')">Not a Duplicate</button>' +
+    '</div>';
+
+  // Position near the flag
+  var rect = flagEl.getBoundingClientRect();
+  var isMobile = window.innerWidth <= 480;
+  if (isMobile) {
+    popover.style.left = "8px";
+    popover.style.right = "8px";
+    popover.style.bottom = "12px";
+    popover.style.top = "auto";
+    popover.style.maxWidth = "none";
+  } else {
+    var top = rect.bottom + 6;
+    var left = rect.left;
+    if (left + 320 > window.innerWidth) left = window.innerWidth - 330;
+    if (left < 10) left = 10;
+    if (top + 120 > window.innerHeight) top = rect.top - 120;
+    popover.style.top = top + "px";
+    popover.style.left = left + "px";
+    popover.style.bottom = "auto";
+    popover.style.right = "auto";
+    popover.style.maxWidth = "320px";
+  }
+
+  popover.classList.add("open");
+
+  // Close on outside click
+  setTimeout(function() {
+    document.addEventListener("click", _closeDupePopoverOutside);
+    document.addEventListener("keydown", _closeDupePopoverEsc);
+  }, 10);
+}
+
+function _closeDupePopoverOutside(e) {
+  var popover = document.getElementById("dupe-popover");
+  if (popover && !popover.contains(e.target) && !e.target.classList.contains("dupe-flag")) {
+    hideDupePopover();
+  }
+}
+function _closeDupePopoverEsc(e) {
+  if (e.key === "Escape") hideDupePopover();
+}
+
+function hideDupePopover() {
+  var popover = document.getElementById("dupe-popover");
+  if (popover) popover.classList.remove("open");
+  document.removeEventListener("click", _closeDupePopoverOutside);
+  document.removeEventListener("keydown", _closeDupePopoverEsc);
+}
+
+function dismissDupe(itemName) {
+  var dupeMap = getDuplicateMap();
+  var info = dupeMap[itemName];
+  if (!info) { hideDupePopover(); return; }
+  var pairKey = _makePairKey(itemName, info.match);
+  var dismissed = loadDupeDismissals();
+  if (dismissed.indexOf(pairKey) === -1) dismissed.push(pairKey);
+  saveDupeDismissals(dismissed);
+  invalidateDupeCache();
+  hideDupePopover();
+  renderTable();
+}
+
+function renameToDupeMatch(idx, matchName) {
+  hideDupePopover();
+  openEditModal(idx);
+  // Pre-fill the name input with the matched name
+  var nameInput = document.getElementById("edit-name");
+  if (nameInput) nameInput.value = matchName;
+}
+
+function showAutocompleteSuggestions(query, currentName) {
+  var box = document.getElementById("edit-name-suggestions");
+  if (!box) return;
+  _acSuggIdx = -1;
+  if (!query || query.length < 2) { box.classList.remove("open"); box.innerHTML = ""; return; }
+  var all = getAllProductNames();
+  var q = query.toLowerCase();
+  var prefix = [], contains = [];
+  all.forEach(function(name) {
+    if (name === currentName) return;
+    var low = name.toLowerCase();
+    if (low === q) return;
+    if (low.indexOf(q) === 0) prefix.push(name);
+    else if (low.indexOf(q) > 0) contains.push(name);
+  });
+  var matches = prefix.concat(contains).slice(0, 8);
+  if (!matches.length) { box.classList.remove("open"); box.innerHTML = ""; return; }
+  box.innerHTML = matches.map(function(name, idx) {
+    var low = name.toLowerCase();
+    var qIdx = low.indexOf(q);
+    var highlighted = name.substring(0, qIdx) + "<mark>" + name.substring(qIdx, qIdx + query.length) + "</mark>" + name.substring(qIdx + query.length);
+    return '<div class="edit-suggestion" data-idx="' + idx + '" data-name="' + name.replace(/"/g, '&quot;') + '">' + highlighted + '</div>';
+  }).join("");
+  box.classList.add("open");
+}
+
+function selectSuggestion(name) {
+  var input = document.getElementById("edit-name");
+  if (input) input.value = name;
+  var box = document.getElementById("edit-name-suggestions");
+  if (box) { box.classList.remove("open"); box.innerHTML = ""; }
+  _acSuggIdx = -1;
+}
+
+function setupAutocomplete() {
+  var input = document.getElementById("edit-name");
+  var box = document.getElementById("edit-name-suggestions");
+  if (!input || !box) return;
+  var currentItemName = editIdx !== null ? activeData[editIdx].n : "";
+
+  input.addEventListener("input", function() {
+    showAutocompleteSuggestions(this.value.trim(), currentItemName);
+  });
+
+  input.addEventListener("keydown", function(e) {
+    var items = box.querySelectorAll(".edit-suggestion");
+    if (!items.length || !box.classList.contains("open")) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      _acSuggIdx = Math.min(_acSuggIdx + 1, items.length - 1);
+      items.forEach(function(el, i) { el.classList.toggle("active", i === _acSuggIdx); });
+      if (items[_acSuggIdx]) items[_acSuggIdx].scrollIntoView({ block: "nearest" });
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      _acSuggIdx = Math.max(_acSuggIdx - 1, 0);
+      items.forEach(function(el, i) { el.classList.toggle("active", i === _acSuggIdx); });
+      if (items[_acSuggIdx]) items[_acSuggIdx].scrollIntoView({ block: "nearest" });
+    } else if (e.key === "Enter" && _acSuggIdx >= 0 && items[_acSuggIdx]) {
+      e.preventDefault();
+      selectSuggestion(items[_acSuggIdx].getAttribute("data-name"));
+    } else if (e.key === "Escape") {
+      box.classList.remove("open"); box.innerHTML = ""; _acSuggIdx = -1;
+    }
+  });
+
+  box.addEventListener("mousedown", function(e) {
+    var target = e.target.closest(".edit-suggestion");
+    if (target) {
+      e.preventDefault();
+      selectSuggestion(target.getAttribute("data-name"));
+    }
+  });
+
+  input.addEventListener("blur", function() {
+    setTimeout(function() { box.classList.remove("open"); box.innerHTML = ""; _acSuggIdx = -1; }, 150);
+  });
+}
+
+function openEditModal(idx, fromProductDetail) {
   editIdx = idx;
+  editFromProductDetail = !!fromProductDetail;
   const item = activeData[idx];
   document.getElementById("edit-modal-title").textContent = `Edit: ${item.r}`;
   document.getElementById("edit-name").value = item.n;
@@ -2127,13 +2407,26 @@ function openEditModal(idx) {
   const hasAnyEdit = hasNameEdit || hasCatEdit || item.ng !== item._origNg;
   document.getElementById("edit-reset-btn").style.display = hasAnyEdit ? "" : "none";
 
+  // Clear old autocomplete state and re-attach
+  var box = document.getElementById("edit-name-suggestions");
+  if (box) { box.classList.remove("open"); box.innerHTML = ""; }
+  _acSuggIdx = -1;
+  var nameInput = document.getElementById("edit-name");
+  var fresh = nameInput.cloneNode(true);
+  nameInput.parentNode.replaceChild(fresh, nameInput);
+
   document.getElementById("edit-modal").classList.add("open");
   document.getElementById("edit-name").focus();
+  setupAutocomplete();
 }
 
 function closeEditModal() {
   document.getElementById("edit-modal").classList.remove("open");
+  var box = document.getElementById("edit-name-suggestions");
+  if (box) { box.classList.remove("open"); box.innerHTML = ""; }
   editIdx = null;
+  editFromProductDetail = false;
+  _acSuggIdx = -1;
 }
 
 function saveEdit() {
@@ -2161,8 +2454,15 @@ function saveEdit() {
   if (_isDemo) demoSet(ctx.editsKey, JSON.stringify(edits));
   else localStorage.setItem(ctx.editsKey, JSON.stringify(edits));
 
+  // Invalidate caches since names changed
+  invalidateProductNamesCache();
+  invalidateDupeCache();
+
+  const wasFromProductDetail = editFromProductDetail;
+  const savedSource = productDetailSource;
   closeEditModal();
   renderTable();
+  if (wasFromProductDetail) showProductDetail(newName, savedSource);
   if (!_isDemo && typeof syncToCloud === 'function') syncToCloud();
 }
 
@@ -2179,8 +2479,14 @@ function resetEdit() {
   if (_isDemo) demoSet(ctx.editsKey, JSON.stringify(edits));
   else localStorage.setItem(ctx.editsKey, JSON.stringify(edits));
 
+  invalidateProductNamesCache();
+  invalidateDupeCache();
+
+  const wasFromProductDetail = editFromProductDetail;
+  const savedSource = productDetailSource;
   closeEditModal();
   renderTable();
+  if (wasFromProductDetail) showProductDetail(item._origName, savedSource);
   if (!_isDemo && typeof syncToCloud === 'function') syncToCloud();
 }
 
