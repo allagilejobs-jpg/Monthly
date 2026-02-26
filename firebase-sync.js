@@ -273,6 +273,7 @@ function showAuthError(msg) {
   const el = document.getElementById('fb-auth-error');
   el.textContent = msg;
   el.style.display = 'block';
+  el.style.color = '#ef4444';
 }
 
 async function submitAuth() {
