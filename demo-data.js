@@ -14,7 +14,7 @@ function demoGet(key) { return _demoStore[key] || null; }
 function demoSet(key, value) { _demoStore[key] = value; }
 function demoRemove(key) { delete _demoStore[key]; }
 
-// ── Grocery Demo Data: 3 months ──
+// ── Grocery Demo Data: 5 months ──
 const DEMO_GROCERY_DATA = {
   "2025_11": [
     // ── Nov 3 — Publix trip ──
@@ -202,6 +202,155 @@ const DEMO_GROCERY_DATA = {
     { d:"12/28", s:"Aldi", r:"GARLIC 3PK", n:"Garlic 3-Pack", c:"Produce", q:1, u:1.49, t:1.49, ng:false },
     { d:"12/28", s:"Aldi", r:"PRETZELS", n:"Mini Pretzels Bag", c:"Snacks", q:1, u:1.49, t:1.49, ng:false },
     { d:"12/28", s:"Aldi", r:"BODY WASH", n:"Dove Body Wash", c:"Personal Care", q:1, u:4.49, t:4.49, ng:true }
+  ],
+  "2026_01": [
+    // ── Jan 3 — Publix trip (post-holiday reset) ──
+    { d:"01/03", s:"Publix", r:"BNLS CHKN BRST", n:"Boneless Chicken Breast", c:"Proteins", q:2, u:6.29, t:12.58, ng:false },
+    { d:"01/03", s:"Publix", r:"LRG EGGS 18CT", n:"Large Eggs 18ct", c:"Dairy", q:1, u:4.49, t:4.49, ng:false },
+    { d:"01/03", s:"Publix", r:"2% MILK GAL", n:"2% Milk Gallon", c:"Dairy", q:1, u:3.89, t:3.89, ng:false },
+    { d:"01/03", s:"Publix", r:"BANANA LB", n:"Bananas", c:"Produce", q:3, u:0.69, t:2.07, ng:false },
+    { d:"01/03", s:"Publix", r:"BROCLI CROWNS", n:"Broccoli Crowns", c:"Produce", q:1, u:2.49, t:2.49, ng:false },
+    { d:"01/03", s:"Publix", r:"WHT BREAD", n:"White Bread Loaf", c:"Grains & Bread", q:1, u:3.29, t:3.29, ng:false },
+    { d:"01/03", s:"Publix", r:"CHEERIOS 18OZ", n:"Cheerios Cereal 18oz", c:"Grains & Bread", q:1, u:5.09, t:5.09, ng:false },
+    { d:"01/03", s:"Publix", r:"COFFEE GRND", n:"Folgers Ground Coffee", c:"Beverages", q:1, u:9.19, t:9.19, ng:false },
+    { d:"01/03", s:"Publix", r:"PAPER TOWEL 6P", n:"Paper Towels 6-Pack", c:"Household", q:1, u:9.19, t:9.19, ng:true },
+    // ── Jan 5 — Walmart trip ──
+    { d:"01/05", s:"Walmart", r:"GRD TURKEY", n:"Ground Turkey 1lb", c:"Proteins", q:1, u:4.97, t:4.97, ng:false },
+    { d:"01/05", s:"Walmart", r:"ORNG JUICE 52OZ", n:"Orange Juice 52oz", c:"Beverages", q:1, u:4.08, t:4.08, ng:false },
+    { d:"01/05", s:"Walmart", r:"SPGHTTI 1LB", n:"Spaghetti Pasta 1lb", c:"Grains & Bread", q:2, u:1.28, t:2.56, ng:false },
+    { d:"01/05", s:"Walmart", r:"MRNRA SAUCE", n:"Marinara Sauce Jar", c:"Canned Goods", q:1, u:2.58, t:2.58, ng:false },
+    { d:"01/05", s:"Walmart", r:"PNTR BTTR", n:"Peanut Butter 16oz", c:"Condiments", q:1, u:3.58, t:3.58, ng:false },
+    { d:"01/05", s:"Walmart", r:"CARROTS 2LB", n:"Baby Carrots 2lb", c:"Produce", q:1, u:2.47, t:2.47, ng:false },
+    { d:"01/05", s:"Walmart", r:"FROZ PIZZA", n:"Frozen Pizza DiGiorno", c:"Frozen", q:1, u:5.98, t:5.98, ng:false },
+    { d:"01/05", s:"Walmart", r:"CHIPS LAYS", n:"Lays Potato Chips", c:"Snacks", q:1, u:4.38, t:4.38, ng:false },
+    { d:"01/05", s:"Walmart", r:"TOOTHPASTE", n:"Colgate Toothpaste", c:"Personal Care", q:1, u:3.57, t:3.57, ng:true },
+    // ── Jan 8 — Costco trip ──
+    { d:"01/08", s:"Costco", r:"RTSRE CHKN", n:"Rotisserie Chicken", c:"Proteins", q:1, u:4.99, t:4.99, ng:false },
+    { d:"01/08", s:"Costco", r:"SHRDD CHEESE 5LB", n:"Shredded Cheese 5lb", c:"Dairy", q:1, u:12.99, t:12.99, ng:false },
+    { d:"01/08", s:"Costco", r:"GREEK YOGURT", n:"Greek Yogurt 32oz", c:"Dairy", q:2, u:6.09, t:12.18, ng:false },
+    { d:"01/08", s:"Costco", r:"MIXED BERRIES", n:"Mixed Berries Frozen 3lb", c:"Frozen", q:1, u:10.19, t:10.19, ng:false },
+    { d:"01/08", s:"Costco", r:"OLIVE OIL 1L", n:"Extra Virgin Olive Oil 1L", c:"Condiments", q:1, u:9.69, t:9.69, ng:false },
+    { d:"01/08", s:"Costco", r:"PAPR TOWL 12PK", n:"Paper Towels 12-Pack", c:"Household", q:1, u:19.29, t:19.29, ng:true },
+    { d:"01/08", s:"Costco", r:"TRASH BAGS 200", n:"Trash Bags 200ct", c:"Cleaning", q:1, u:16.29, t:16.29, ng:true },
+    { d:"01/08", s:"Costco", r:"ALMOND BUTTER", n:"Almond Butter 26oz", c:"Condiments", q:1, u:7.99, t:7.99, ng:false },
+    // ── Jan 11 — Target trip ──
+    { d:"01/11", s:"Target", r:"ALMD MILK", n:"Almond Milk 64oz", c:"Dairy", q:1, u:3.59, t:3.59, ng:false },
+    { d:"01/11", s:"Target", r:"GRANOLA BARS", n:"Nature Valley Granola Bars", c:"Snacks", q:1, u:4.09, t:4.09, ng:false },
+    { d:"01/11", s:"Target", r:"APPLES 3LB", n:"Gala Apples 3lb Bag", c:"Produce", q:1, u:5.09, t:5.09, ng:false },
+    { d:"01/11", s:"Target", r:"RICE 5LB", n:"Jasmine Rice 5lb", c:"Grains & Bread", q:1, u:6.59, t:6.59, ng:false },
+    { d:"01/11", s:"Target", r:"CANNED TUNA 4P", n:"Canned Tuna 4-Pack", c:"Canned Goods", q:1, u:5.39, t:5.39, ng:false },
+    { d:"01/11", s:"Target", r:"GOLDFISH SNCK", n:"Goldfish Crackers", c:"Snacks", q:1, u:3.09, t:3.09, ng:false },
+    { d:"01/11", s:"Target", r:"BABY FOOD 8PK", n:"Baby Food Variety 8-Pack", c:"Baby", q:1, u:9.09, t:9.09, ng:true },
+    { d:"01/11", s:"Target", r:"SHAMPOO", n:"Pantene Shampoo", c:"Personal Care", q:1, u:7.09, t:7.09, ng:true },
+    // ── Jan 14 — Aldi trip ──
+    { d:"01/14", s:"Aldi", r:"WHOLE CHKN", n:"Whole Chicken", c:"Proteins", q:1, u:5.59, t:5.59, ng:false },
+    { d:"01/14", s:"Aldi", r:"BELL PEPPERS", n:"Bell Peppers 3-Pack", c:"Produce", q:1, u:2.79, t:2.79, ng:false },
+    { d:"01/14", s:"Aldi", r:"ONION 3LB", n:"Yellow Onions 3lb", c:"Produce", q:1, u:2.09, t:2.09, ng:false },
+    { d:"01/14", s:"Aldi", r:"BUTTER", n:"Unsalted Butter 1lb", c:"Dairy", q:1, u:3.59, t:3.59, ng:false },
+    { d:"01/14", s:"Aldi", r:"TOMATO SOUP", n:"Tomato Soup Can", c:"Canned Goods", q:2, u:1.05, t:2.10, ng:false },
+    { d:"01/14", s:"Aldi", r:"TORTILLA CHIPS", n:"Tortilla Chips", c:"Snacks", q:1, u:1.95, t:1.95, ng:false },
+    { d:"01/14", s:"Aldi", r:"CHOC CHIP COOK", n:"Chocolate Chip Cookies", c:"Snacks", q:1, u:2.59, t:2.59, ng:false },
+    { d:"01/14", s:"Aldi", r:"LAUNDRY DET", n:"Laundry Detergent", c:"Cleaning", q:1, u:6.09, t:6.09, ng:true },
+    // ── Jan 18 — Trader Joe's trip ──
+    { d:"01/18", s:"Trader Joe's", r:"ORG EGGS", n:"Organic Free Range Eggs", c:"Dairy", q:1, u:5.59, t:5.59, ng:false },
+    { d:"01/18", s:"Trader Joe's", r:"CAULIFLWR RICE", n:"Cauliflower Rice Frozen", c:"Frozen", q:1, u:2.99, t:2.99, ng:false },
+    { d:"01/18", s:"Trader Joe's", r:"MNDARIN ORNGS", n:"Mandarin Oranges Bag", c:"Produce", q:1, u:3.59, t:3.59, ng:false },
+    { d:"01/18", s:"Trader Joe's", r:"HUMMUS", n:"Classic Hummus", c:"Condiments", q:1, u:2.99, t:2.99, ng:false },
+    { d:"01/18", s:"Trader Joe's", r:"TRKY BURGER", n:"Turkey Burgers Frozen", c:"Proteins", q:1, u:5.09, t:5.09, ng:false },
+    { d:"01/18", s:"Trader Joe's", r:"DARK CHOC BAR", n:"Dark Chocolate Bar 72%", c:"Snacks", q:1, u:1.99, t:1.99, ng:false },
+    { d:"01/18", s:"Trader Joe's", r:"EVERYTHING BAGEL", n:"Everything Bagels 6-Pack", c:"Grains & Bread", q:1, u:3.49, t:3.49, ng:false },
+    { d:"01/18", s:"Trader Joe's", r:"GREEN PLANT MILK", n:"Oat Milk 64oz", c:"Dairy", q:1, u:3.79, t:3.79, ng:false },
+    // ── Jan 22 — Walmart trip ──
+    { d:"01/22", s:"Walmart", r:"PORK CHOPS", n:"Pork Chops Bone-In", c:"Proteins", q:1, u:6.07, t:6.07, ng:false },
+    { d:"01/22", s:"Walmart", r:"CHEDDR CHEESE", n:"Cheddar Cheese Block", c:"Dairy", q:1, u:4.08, t:4.08, ng:false },
+    { d:"01/22", s:"Walmart", r:"POTATOES 5LB", n:"Russet Potatoes 5lb", c:"Produce", q:1, u:3.97, t:3.97, ng:false },
+    { d:"01/22", s:"Walmart", r:"MAC N CHEESE", n:"Kraft Mac & Cheese 3-Pack", c:"Grains & Bread", q:1, u:3.88, t:3.88, ng:false },
+    { d:"01/22", s:"Walmart", r:"APPLE JUICE", n:"Apple Juice 64oz", c:"Beverages", q:1, u:2.98, t:2.98, ng:false },
+    { d:"01/22", s:"Walmart", r:"BABY WIPES 80CT", n:"Baby Wipes 80ct", c:"Baby", q:1, u:3.07, t:3.07, ng:true },
+    { d:"01/22", s:"Walmart", r:"HAND SOAP 3PK", n:"Hand Soap 3-Pack", c:"Cleaning", q:1, u:4.57, t:4.57, ng:true },
+    { d:"01/22", s:"Walmart", r:"BODY WASH", n:"Dove Body Wash", c:"Personal Care", q:1, u:6.07, t:6.07, ng:true }
+  ],
+  "2026_02": [
+    // ── Feb 1 — Publix trip ──
+    { d:"02/01", s:"Publix", r:"BNLS CHKN BRST", n:"Boneless Chicken Breast", c:"Proteins", q:2, u:6.39, t:12.78, ng:false },
+    { d:"02/01", s:"Publix", r:"GRD BEEF 80/20", n:"Ground Beef 80/20", c:"Proteins", q:1, u:6.79, t:6.79, ng:false },
+    { d:"02/01", s:"Publix", r:"LRG EGGS 18CT", n:"Large Eggs 18ct", c:"Dairy", q:1, u:4.59, t:4.59, ng:false },
+    { d:"02/01", s:"Publix", r:"2% MILK GAL", n:"2% Milk Gallon", c:"Dairy", q:2, u:3.95, t:7.90, ng:false },
+    { d:"02/01", s:"Publix", r:"BANANA LB", n:"Bananas", c:"Produce", q:3, u:0.71, t:2.13, ng:false },
+    { d:"02/01", s:"Publix", r:"BROCLI CROWNS", n:"Broccoli Crowns", c:"Produce", q:2, u:2.59, t:5.18, ng:false },
+    { d:"02/01", s:"Publix", r:"WHT BREAD", n:"White Bread Loaf", c:"Grains & Bread", q:1, u:3.39, t:3.39, ng:false },
+    { d:"02/01", s:"Publix", r:"CHEERIOS 18OZ", n:"Cheerios Cereal 18oz", c:"Grains & Bread", q:1, u:5.19, t:5.19, ng:false },
+    { d:"02/01", s:"Publix", r:"COFFEE GRND", n:"Folgers Ground Coffee", c:"Beverages", q:1, u:9.29, t:9.29, ng:false },
+    { d:"02/01", s:"Publix", r:"PAPER TOWEL 6P", n:"Paper Towels 6-Pack", c:"Household", q:1, u:9.29, t:9.29, ng:true },
+    { d:"02/01", s:"Publix", r:"DISH SOAP", n:"Dawn Dish Soap", c:"Cleaning", q:1, u:3.69, t:3.69, ng:true },
+    // ── Feb 4 — Walmart trip ──
+    { d:"02/04", s:"Walmart", r:"ORNG JUICE 52OZ", n:"Orange Juice 52oz", c:"Beverages", q:1, u:4.18, t:4.18, ng:false },
+    { d:"02/04", s:"Walmart", r:"SPGHTTI 1LB", n:"Spaghetti Pasta 1lb", c:"Grains & Bread", q:2, u:1.32, t:2.64, ng:false },
+    { d:"02/04", s:"Walmart", r:"MRNRA SAUCE", n:"Marinara Sauce Jar", c:"Canned Goods", q:1, u:2.58, t:2.58, ng:false },
+    { d:"02/04", s:"Walmart", r:"PNTR BTTR", n:"Peanut Butter 16oz", c:"Condiments", q:1, u:3.58, t:3.58, ng:false },
+    { d:"02/04", s:"Walmart", r:"STRAWBERRIES", n:"Strawberries 1lb", c:"Produce", q:1, u:3.97, t:3.97, ng:false },
+    { d:"02/04", s:"Walmart", r:"FROZ PIZZA", n:"Frozen Pizza DiGiorno", c:"Frozen", q:2, u:6.08, t:12.16, ng:false },
+    { d:"02/04", s:"Walmart", r:"ICE CREAM PT", n:"Ice Cream Pint", c:"Frozen", q:1, u:4.58, t:4.58, ng:false },
+    { d:"02/04", s:"Walmart", r:"CHIPS LAYS", n:"Lays Potato Chips", c:"Snacks", q:1, u:4.38, t:4.38, ng:false },
+    { d:"02/04", s:"Walmart", r:"TOOTHPASTE", n:"Colgate Toothpaste", c:"Personal Care", q:1, u:3.57, t:3.57, ng:true },
+    { d:"02/04", s:"Walmart", r:"BABY WIPES 80CT", n:"Baby Wipes 80ct", c:"Baby", q:1, u:3.07, t:3.07, ng:true },
+    // ── Feb 7 — Costco trip ──
+    { d:"02/07", s:"Costco", r:"RTSRE CHKN", n:"Rotisserie Chicken", c:"Proteins", q:1, u:4.99, t:4.99, ng:false },
+    { d:"02/07", s:"Costco", r:"SALMON FILLET", n:"Atlantic Salmon Fillet 2lb", c:"Proteins", q:1, u:15.49, t:15.49, ng:false },
+    { d:"02/07", s:"Costco", r:"SHRDD CHEESE 5LB", n:"Shredded Cheese 5lb", c:"Dairy", q:1, u:13.29, t:13.29, ng:false },
+    { d:"02/07", s:"Costco", r:"GREEK YOGURT", n:"Greek Yogurt 32oz", c:"Dairy", q:2, u:6.19, t:12.38, ng:false },
+    { d:"02/07", s:"Costco", r:"AVOCADOS 6PK", n:"Avocados 6-Pack", c:"Produce", q:1, u:7.29, t:7.29, ng:false },
+    { d:"02/07", s:"Costco", r:"MIXED BERRIES", n:"Mixed Berries Frozen 3lb", c:"Frozen", q:1, u:10.29, t:10.29, ng:false },
+    { d:"02/07", s:"Costco", r:"OLIVE OIL 1L", n:"Extra Virgin Olive Oil 1L", c:"Condiments", q:1, u:9.79, t:9.79, ng:false },
+    { d:"02/07", s:"Costco", r:"PAPR TOWL 12PK", n:"Paper Towels 12-Pack", c:"Household", q:1, u:19.29, t:19.29, ng:true },
+    { d:"02/07", s:"Costco", r:"TRASH BAGS 200", n:"Trash Bags 200ct", c:"Cleaning", q:1, u:16.29, t:16.29, ng:true },
+    // ── Feb 10 — Target trip ──
+    { d:"02/10", s:"Target", r:"ALMD MILK", n:"Almond Milk 64oz", c:"Dairy", q:1, u:3.59, t:3.59, ng:false },
+    { d:"02/10", s:"Target", r:"GRANOLA BARS", n:"Nature Valley Granola Bars", c:"Snacks", q:2, u:4.09, t:8.18, ng:false },
+    { d:"02/10", s:"Target", r:"APPLES 3LB", n:"Gala Apples 3lb Bag", c:"Produce", q:1, u:5.19, t:5.19, ng:false },
+    { d:"02/10", s:"Target", r:"RICE 5LB", n:"Jasmine Rice 5lb", c:"Grains & Bread", q:1, u:6.69, t:6.69, ng:false },
+    { d:"02/10", s:"Target", r:"CANNED TUNA 4P", n:"Canned Tuna 4-Pack", c:"Canned Goods", q:1, u:5.39, t:5.39, ng:false },
+    { d:"02/10", s:"Target", r:"GOLDFISH SNCK", n:"Goldfish Crackers", c:"Snacks", q:1, u:3.09, t:3.09, ng:false },
+    { d:"02/10", s:"Target", r:"BABY FOOD 8PK", n:"Baby Food Variety 8-Pack", c:"Baby", q:1, u:9.19, t:9.19, ng:true },
+    { d:"02/10", s:"Target", r:"SHAMPOO", n:"Pantene Shampoo", c:"Personal Care", q:1, u:7.19, t:7.19, ng:true },
+    // ── Feb 13 — Trader Joe's trip (Valentine's week) ──
+    { d:"02/13", s:"Trader Joe's", r:"ORG EGGS", n:"Organic Free Range Eggs", c:"Dairy", q:1, u:5.69, t:5.69, ng:false },
+    { d:"02/13", s:"Trader Joe's", r:"CAULIFLWR RICE", n:"Cauliflower Rice Frozen", c:"Frozen", q:1, u:3.09, t:3.09, ng:false },
+    { d:"02/13", s:"Trader Joe's", r:"MNDARIN ORNGS", n:"Mandarin Oranges Bag", c:"Produce", q:1, u:3.59, t:3.59, ng:false },
+    { d:"02/13", s:"Trader Joe's", r:"HUMMUS", n:"Classic Hummus", c:"Condiments", q:1, u:2.99, t:2.99, ng:false },
+    { d:"02/13", s:"Trader Joe's", r:"TRKY BURGER", n:"Turkey Burgers Frozen", c:"Proteins", q:1, u:5.09, t:5.09, ng:false },
+    { d:"02/13", s:"Trader Joe's", r:"DARK CHOC BAR", n:"Dark Chocolate Bar 72%", c:"Snacks", q:3, u:1.99, t:5.97, ng:false },
+    { d:"02/13", s:"Trader Joe's", r:"SOURDOUGH", n:"Sourdough Bread Loaf", c:"Grains & Bread", q:1, u:4.09, t:4.09, ng:false },
+    { d:"02/13", s:"Trader Joe's", r:"SPARKLING WATER", n:"Sparkling Water 12-Pack", c:"Beverages", q:1, u:4.59, t:4.59, ng:false },
+    { d:"02/13", s:"Trader Joe's", r:"FLOWERS BOUQT", n:"Fresh Flower Bouquet", c:"Household", q:1, u:5.99, t:5.99, ng:true },
+    // ── Feb 16 — Aldi trip ──
+    { d:"02/16", s:"Aldi", r:"WHOLE CHKN", n:"Whole Chicken", c:"Proteins", q:1, u:5.59, t:5.59, ng:false },
+    { d:"02/16", s:"Aldi", r:"BELL PEPPERS", n:"Bell Peppers 3-Pack", c:"Produce", q:1, u:2.79, t:2.79, ng:false },
+    { d:"02/16", s:"Aldi", r:"ONION 3LB", n:"Yellow Onions 3lb", c:"Produce", q:1, u:2.09, t:2.09, ng:false },
+    { d:"02/16", s:"Aldi", r:"BUTTER", n:"Unsalted Butter 1lb", c:"Dairy", q:1, u:3.59, t:3.59, ng:false },
+    { d:"02/16", s:"Aldi", r:"TOMATO SOUP", n:"Tomato Soup Can", c:"Canned Goods", q:3, u:1.05, t:3.15, ng:false },
+    { d:"02/16", s:"Aldi", r:"TORTILLA CHIPS", n:"Tortilla Chips", c:"Snacks", q:1, u:1.95, t:1.95, ng:false },
+    { d:"02/16", s:"Aldi", r:"CHOC CHIP COOK", n:"Chocolate Chip Cookies", c:"Snacks", q:1, u:2.59, t:2.59, ng:false },
+    { d:"02/16", s:"Aldi", r:"LAUNDRY DET", n:"Laundry Detergent", c:"Cleaning", q:1, u:6.19, t:6.19, ng:true },
+    // ── Feb 19 — Publix trip ──
+    { d:"02/19", s:"Publix", r:"TILAPIA FILLET", n:"Tilapia Fillet 1lb", c:"Proteins", q:1, u:8.29, t:8.29, ng:false },
+    { d:"02/19", s:"Publix", r:"SOUR CREAM", n:"Sour Cream 16oz", c:"Dairy", q:1, u:2.89, t:2.89, ng:false },
+    { d:"02/19", s:"Publix", r:"SPINACH BAG", n:"Baby Spinach 5oz", c:"Produce", q:2, u:3.09, t:6.18, ng:false },
+    { d:"02/19", s:"Publix", r:"TOMATOES ROMA", n:"Roma Tomatoes 1lb", c:"Produce", q:1, u:2.09, t:2.09, ng:false },
+    { d:"02/19", s:"Publix", r:"CRCKRS RITZ", n:"Ritz Crackers", c:"Snacks", q:1, u:4.09, t:4.09, ng:false },
+    { d:"02/19", s:"Publix", r:"WATER 24PK", n:"Bottled Water 24-Pack", c:"Beverages", q:1, u:4.19, t:4.19, ng:false },
+    { d:"02/19", s:"Publix", r:"BAKING SODA", n:"Baking Soda 1lb", c:"Baking", q:1, u:1.09, t:1.09, ng:false },
+    { d:"02/19", s:"Publix", r:"NAPKINS 200CT", n:"Paper Napkins 200ct", c:"Household", q:1, u:3.59, t:3.59, ng:true },
+    // ── Feb 22 — Walmart trip ──
+    { d:"02/22", s:"Walmart", r:"PORK CHOPS", n:"Pork Chops Bone-In", c:"Proteins", q:1, u:6.17, t:6.17, ng:false },
+    { d:"02/22", s:"Walmart", r:"CHEDDR CHEESE", n:"Cheddar Cheese Block", c:"Dairy", q:1, u:4.08, t:4.08, ng:false },
+    { d:"02/22", s:"Walmart", r:"POTATOES 5LB", n:"Russet Potatoes 5lb", c:"Produce", q:1, u:4.07, t:4.07, ng:false },
+    { d:"02/22", s:"Walmart", r:"MAC N CHEESE", n:"Kraft Mac & Cheese 3-Pack", c:"Grains & Bread", q:1, u:3.88, t:3.88, ng:false },
+    { d:"02/22", s:"Walmart", r:"APPLE JUICE", n:"Apple Juice 64oz", c:"Beverages", q:1, u:3.08, t:3.08, ng:false },
+    { d:"02/22", s:"Walmart", r:"FLOUR 5LB", n:"All Purpose Flour 5lb", c:"Baking", q:1, u:2.88, t:2.88, ng:false },
+    { d:"02/22", s:"Walmart", r:"SUGAR 4LB", n:"Granulated Sugar 4lb", c:"Baking", q:1, u:3.08, t:3.08, ng:false },
+    { d:"02/22", s:"Walmart", r:"HAND SOAP 3PK", n:"Hand Soap 3-Pack", c:"Cleaning", q:1, u:4.57, t:4.57, ng:true },
+    { d:"02/22", s:"Walmart", r:"DIAPER SZ3 36", n:"Diapers Size 3 36ct", c:"Baby", q:1, u:6.97, t:6.97, ng:true }
   ],
   "2026_03": [
     // ── Mar 1 — Publix trip ──
@@ -420,6 +569,105 @@ const DEMO_EXPENSES_DATA = {
     // Misc
     { id:"d-147", date:"2025-12-05", description:"USPS PO 0519281234", merchant:"USPS", category:"Misc", amount:14.20, source:"csv", bank:"Chase", _origCategory:"Misc", _manualCategory:false },
     { id:"d-148", date:"2025-12-19", description:"DRY CLEAN SUPER CENTER", merchant:"Dry Cleaners", category:"Misc", amount:24.00, source:"csv", bank:"BoA", _origCategory:"Misc", _manualCategory:false }
+  ],
+  "2026_01": [
+    // Housing & Utilities
+    { id:"d-301", date:"2026-01-01", description:"RENT PAYMENT - JANUARY", merchant:"Apartment Rent", category:"Housing", amount:1850.00, source:"csv", bank:"Chase", _origCategory:"Housing", _manualCategory:false },
+    { id:"d-302", date:"2026-01-05", description:"GEORGIA POWER BILL", merchant:"Georgia Power", category:"Utilities", amount:158.40, source:"csv", bank:"Chase", _origCategory:"Utilities", _manualCategory:false },
+    { id:"d-303", date:"2026-01-06", description:"SPECTRUM INTERNET JAN", merchant:"Spectrum", category:"Utilities", amount:79.99, source:"csv", bank:"Chase", _origCategory:"Utilities", _manualCategory:false },
+    { id:"d-304", date:"2026-01-09", description:"ATLANTA WATERSHED MGMT", merchant:"Atlanta Water", category:"Utilities", amount:66.80, source:"csv", bank:"Chase", _origCategory:"Utilities", _manualCategory:false },
+    // Subscriptions
+    { id:"d-305", date:"2026-01-01", description:"NETFLIX.COM", merchant:"Netflix", category:"Subscriptions", amount:15.49, source:"csv", bank:"Chase", _origCategory:"Subscriptions", _manualCategory:false },
+    { id:"d-306", date:"2026-01-01", description:"SPOTIFY USA", merchant:"Spotify", category:"Subscriptions", amount:10.99, source:"csv", bank:"Chase", _origCategory:"Subscriptions", _manualCategory:false },
+    { id:"d-307", date:"2026-01-03", description:"PLANET FITNESS MONTHLY", merchant:"Planet Fitness", category:"Subscriptions", amount:24.99, source:"csv", bank:"Chase", _origCategory:"Subscriptions", _manualCategory:false },
+    { id:"d-308", date:"2026-01-05", description:"APPLE.COM/BILL ICLOUD", merchant:"Apple iCloud", category:"Subscriptions", amount:2.99, source:"csv", bank:"Chase", _origCategory:"Subscriptions", _manualCategory:false },
+    { id:"d-309", date:"2026-01-10", description:"AMAZON PRIME MEMBER", merchant:"Amazon Prime", category:"Subscriptions", amount:14.99, source:"csv", bank:"Chase", _origCategory:"Subscriptions", _manualCategory:false },
+    // Transportation & Gas
+    { id:"d-310", date:"2026-01-04", description:"SHELL OIL 57442 ATLANTA GA", merchant:"Shell", category:"Gas & Fuel", amount:44.20, source:"csv", bank:"BoA", _origCategory:"Gas & Fuel", _manualCategory:false },
+    { id:"d-311", date:"2026-01-15", description:"QT 5289 DECATUR GA", merchant:"QuikTrip", category:"Gas & Fuel", amount:41.85, source:"csv", bank:"BoA", _origCategory:"Gas & Fuel", _manualCategory:false },
+    { id:"d-312", date:"2026-01-26", description:"BP #891024 ATLANTA GA", merchant:"BP", category:"Gas & Fuel", amount:46.30, source:"csv", bank:"BoA", _origCategory:"Gas & Fuel", _manualCategory:false },
+    { id:"d-313", date:"2026-01-06", description:"MARTA BREEZE CARD RELOAD", merchant:"MARTA Transit", category:"Transportation", amount:45.00, source:"csv", bank:"Chase", _origCategory:"Transportation", _manualCategory:false },
+    // Dining (slightly fewer — post-holiday belt-tightening)
+    { id:"d-314", date:"2026-01-02", description:"STARBUCKS #12345 ATLANTA GA", merchant:"Starbucks", category:"Dining", amount:5.85, source:"csv", bank:"Chase", _origCategory:"Dining", _manualCategory:false },
+    { id:"d-315", date:"2026-01-05", description:"CHICK-FIL-A #2198", merchant:"Chick-fil-A", category:"Dining", amount:10.80, source:"csv", bank:"Chase", _origCategory:"Dining", _manualCategory:false },
+    { id:"d-316", date:"2026-01-08", description:"WAFFLE HOUSE #1052", merchant:"Waffle House", category:"Dining", amount:16.40, source:"csv", bank:"BoA", _origCategory:"Dining", _manualCategory:false },
+    { id:"d-317", date:"2026-01-11", description:"STARBUCKS #12345 ATLANTA GA", merchant:"Starbucks", category:"Dining", amount:6.20, source:"csv", bank:"Chase", _origCategory:"Dining", _manualCategory:false },
+    { id:"d-318", date:"2026-01-14", description:"CHIPOTLE ONLINE 3847", merchant:"Chipotle", category:"Dining", amount:14.25, source:"csv", bank:"Chase", _origCategory:"Dining", _manualCategory:false },
+    { id:"d-319", date:"2026-01-18", description:"PANDA EXPRESS 0482", merchant:"Panda Express", category:"Dining", amount:12.40, source:"csv", bank:"BoA", _origCategory:"Dining", _manualCategory:false },
+    { id:"d-320", date:"2026-01-22", description:"STARBUCKS #12345 ATLANTA GA", merchant:"Starbucks", category:"Dining", amount:7.10, source:"csv", bank:"Chase", _origCategory:"Dining", _manualCategory:false },
+    { id:"d-321", date:"2026-01-27", description:"ZAXBYS #10842", merchant:"Zaxby's", category:"Dining", amount:13.90, source:"csv", bank:"BoA", _origCategory:"Dining", _manualCategory:false },
+    // Groceries (conservative — post-holiday)
+    { id:"d-322", date:"2026-01-03", description:"PUBLIX #1247 ATLANTA GA", merchant:"Publix", category:"Groceries", amount:78.50, source:"csv", bank:"Chase", _origCategory:"Groceries", _manualCategory:false },
+    { id:"d-323", date:"2026-01-07", description:"ALDI 35017 DECATUR GA", merchant:"Aldi", category:"Groceries", amount:38.20, source:"csv", bank:"Chase", _origCategory:"Groceries", _manualCategory:false },
+    { id:"d-324", date:"2026-01-12", description:"WALMART SUPERCENTER 2841", merchant:"Walmart", category:"Groceries", amount:62.40, source:"csv", bank:"BoA", _origCategory:"Groceries", _manualCategory:false },
+    { id:"d-325", date:"2026-01-18", description:"TRADER JOE'S #128", merchant:"Trader Joe's", category:"Groceries", amount:48.90, source:"csv", bank:"Chase", _origCategory:"Groceries", _manualCategory:false },
+    { id:"d-326", date:"2026-01-24", description:"PUBLIX #1247 ATLANTA GA", merchant:"Publix", category:"Groceries", amount:85.60, source:"csv", bank:"Chase", _origCategory:"Groceries", _manualCategory:false },
+    { id:"d-327", date:"2026-01-29", description:"COSTCO WHSE #1182", merchant:"Costco", category:"Groceries", amount:118.40, source:"csv", bank:"Chase", _origCategory:"Groceries", _manualCategory:false },
+    // Shopping (minimal — post-holiday)
+    { id:"d-328", date:"2026-01-08", description:"AMAZON.COM*1R4KN7PL3", merchant:"Amazon", category:"Shopping", amount:18.99, source:"csv", bank:"Chase", _origCategory:"Shopping", _manualCategory:false },
+    { id:"d-329", date:"2026-01-20", description:"TARGET T-2145 ATLANTA GA", merchant:"Target", category:"Shopping", amount:32.50, source:"csv", bank:"Chase", _origCategory:"Shopping", _manualCategory:false },
+    // Entertainment (light month)
+    { id:"d-330", date:"2026-01-17", description:"AMC THEATRES #2841", merchant:"AMC Theatres", category:"Entertainment", amount:28.00, source:"csv", bank:"Chase", _origCategory:"Entertainment", _manualCategory:false },
+    // Healthcare & Insurance
+    { id:"d-331", date:"2026-01-07", description:"CVS/PHARMACY #4182", merchant:"CVS Pharmacy", category:"Healthcare", amount:12.80, source:"csv", bank:"Chase", _origCategory:"Healthcare", _manualCategory:false },
+    { id:"d-332", date:"2026-01-15", description:"STATE FARM INSURANCE", merchant:"State Farm", category:"Insurance", amount:156.00, source:"csv", bank:"Chase", _origCategory:"Insurance", _manualCategory:false },
+    // Personal Care
+    { id:"d-333", date:"2026-01-10", description:"GREAT CLIPS #7291", merchant:"Great Clips", category:"Personal Care", amount:22.00, source:"csv", bank:"Chase", _origCategory:"Personal Care", _manualCategory:false },
+    // Misc
+    { id:"d-334", date:"2026-01-13", description:"USPS PO 0519281234", merchant:"USPS", category:"Misc", amount:9.80, source:"csv", bank:"Chase", _origCategory:"Misc", _manualCategory:false },
+    { id:"d-335", date:"2026-01-21", description:"DRY CLEAN SUPER CENTER", merchant:"Dry Cleaners", category:"Misc", amount:18.00, source:"csv", bank:"BoA", _origCategory:"Misc", _manualCategory:false }
+  ],
+  "2026_02": [
+    // Housing & Utilities
+    { id:"d-401", date:"2026-02-01", description:"RENT PAYMENT - FEBRUARY", merchant:"Apartment Rent", category:"Housing", amount:1850.00, source:"csv", bank:"Chase", _origCategory:"Housing", _manualCategory:false },
+    { id:"d-402", date:"2026-02-04", description:"GEORGIA POWER BILL", merchant:"Georgia Power", category:"Utilities", amount:148.60, source:"csv", bank:"Chase", _origCategory:"Utilities", _manualCategory:false },
+    { id:"d-403", date:"2026-02-05", description:"SPECTRUM INTERNET FEB", merchant:"Spectrum", category:"Utilities", amount:79.99, source:"csv", bank:"Chase", _origCategory:"Utilities", _manualCategory:false },
+    { id:"d-404", date:"2026-02-08", description:"ATLANTA WATERSHED MGMT", merchant:"Atlanta Water", category:"Utilities", amount:67.50, source:"csv", bank:"Chase", _origCategory:"Utilities", _manualCategory:false },
+    // Subscriptions
+    { id:"d-405", date:"2026-02-01", description:"NETFLIX.COM", merchant:"Netflix", category:"Subscriptions", amount:15.49, source:"csv", bank:"Chase", _origCategory:"Subscriptions", _manualCategory:false },
+    { id:"d-406", date:"2026-02-01", description:"SPOTIFY USA", merchant:"Spotify", category:"Subscriptions", amount:10.99, source:"csv", bank:"Chase", _origCategory:"Subscriptions", _manualCategory:false },
+    { id:"d-407", date:"2026-02-03", description:"PLANET FITNESS MONTHLY", merchant:"Planet Fitness", category:"Subscriptions", amount:24.99, source:"csv", bank:"Chase", _origCategory:"Subscriptions", _manualCategory:false },
+    { id:"d-408", date:"2026-02-05", description:"APPLE.COM/BILL ICLOUD", merchant:"Apple iCloud", category:"Subscriptions", amount:2.99, source:"csv", bank:"Chase", _origCategory:"Subscriptions", _manualCategory:false },
+    { id:"d-409", date:"2026-02-10", description:"AMAZON PRIME MEMBER", merchant:"Amazon Prime", category:"Subscriptions", amount:14.99, source:"csv", bank:"Chase", _origCategory:"Subscriptions", _manualCategory:false },
+    // Transportation & Gas
+    { id:"d-410", date:"2026-02-03", description:"SHELL OIL 57442 ATLANTA GA", merchant:"Shell", category:"Gas & Fuel", amount:47.60, source:"csv", bank:"BoA", _origCategory:"Gas & Fuel", _manualCategory:false },
+    { id:"d-411", date:"2026-02-13", description:"QT 5289 DECATUR GA", merchant:"QuikTrip", category:"Gas & Fuel", amount:43.25, source:"csv", bank:"BoA", _origCategory:"Gas & Fuel", _manualCategory:false },
+    { id:"d-412", date:"2026-02-23", description:"SHELL OIL 57442 ATLANTA GA", merchant:"Shell", category:"Gas & Fuel", amount:49.80, source:"csv", bank:"BoA", _origCategory:"Gas & Fuel", _manualCategory:false },
+    { id:"d-413", date:"2026-02-06", description:"MARTA BREEZE CARD RELOAD", merchant:"MARTA Transit", category:"Transportation", amount:45.00, source:"csv", bank:"Chase", _origCategory:"Transportation", _manualCategory:false },
+    // Dining
+    { id:"d-414", date:"2026-02-01", description:"STARBUCKS #12345 ATLANTA GA", merchant:"Starbucks", category:"Dining", amount:6.45, source:"csv", bank:"Chase", _origCategory:"Dining", _manualCategory:false },
+    { id:"d-415", date:"2026-02-03", description:"CHICK-FIL-A #2198", merchant:"Chick-fil-A", category:"Dining", amount:11.80, source:"csv", bank:"Chase", _origCategory:"Dining", _manualCategory:false },
+    { id:"d-416", date:"2026-02-06", description:"CHIPOTLE ONLINE 3847", merchant:"Chipotle", category:"Dining", amount:15.60, source:"csv", bank:"Chase", _origCategory:"Dining", _manualCategory:false },
+    { id:"d-417", date:"2026-02-08", description:"WAFFLE HOUSE #1052", merchant:"Waffle House", category:"Dining", amount:17.90, source:"csv", bank:"BoA", _origCategory:"Dining", _manualCategory:false },
+    { id:"d-418", date:"2026-02-10", description:"STARBUCKS #12345 ATLANTA GA", merchant:"Starbucks", category:"Dining", amount:5.95, source:"csv", bank:"Chase", _origCategory:"Dining", _manualCategory:false },
+    { id:"d-419", date:"2026-02-13", description:"OLIVE GARDEN #1284", merchant:"Olive Garden", category:"Dining", amount:48.60, source:"csv", bank:"Chase", _origCategory:"Dining", _manualCategory:false },
+    { id:"d-420", date:"2026-02-14", description:"THE CHEESECAKE FACTORY", merchant:"Cheesecake Factory", category:"Dining", amount:72.80, source:"csv", bank:"Chase", _origCategory:"Dining", _manualCategory:false },
+    { id:"d-421", date:"2026-02-17", description:"STARBUCKS #12345 ATLANTA GA", merchant:"Starbucks", category:"Dining", amount:7.30, source:"csv", bank:"Chase", _origCategory:"Dining", _manualCategory:false },
+    { id:"d-422", date:"2026-02-21", description:"PANDA EXPRESS 0482", merchant:"Panda Express", category:"Dining", amount:13.40, source:"csv", bank:"BoA", _origCategory:"Dining", _manualCategory:false },
+    { id:"d-423", date:"2026-02-25", description:"IHOP #8291 ATLANTA GA", merchant:"IHOP", category:"Dining", amount:24.50, source:"csv", bank:"BoA", _origCategory:"Dining", _manualCategory:false },
+    // Groceries
+    { id:"d-424", date:"2026-02-01", description:"PUBLIX #1247 ATLANTA GA", merchant:"Publix", category:"Groceries", amount:84.20, source:"csv", bank:"Chase", _origCategory:"Groceries", _manualCategory:false },
+    { id:"d-425", date:"2026-02-05", description:"WALMART SUPERCENTER 2841", merchant:"Walmart", category:"Groceries", amount:68.90, source:"csv", bank:"BoA", _origCategory:"Groceries", _manualCategory:false },
+    { id:"d-426", date:"2026-02-09", description:"COSTCO WHSE #1182", merchant:"Costco", category:"Groceries", amount:138.50, source:"csv", bank:"Chase", _origCategory:"Groceries", _manualCategory:false },
+    { id:"d-427", date:"2026-02-14", description:"ALDI 35017 DECATUR GA", merchant:"Aldi", category:"Groceries", amount:42.30, source:"csv", bank:"Chase", _origCategory:"Groceries", _manualCategory:false },
+    { id:"d-428", date:"2026-02-19", description:"TRADER JOE'S #128", merchant:"Trader Joe's", category:"Groceries", amount:52.60, source:"csv", bank:"Chase", _origCategory:"Groceries", _manualCategory:false },
+    { id:"d-429", date:"2026-02-25", description:"PUBLIX #1247 ATLANTA GA", merchant:"Publix", category:"Groceries", amount:91.40, source:"csv", bank:"Chase", _origCategory:"Groceries", _manualCategory:false },
+    // Shopping
+    { id:"d-430", date:"2026-02-07", description:"AMAZON.COM*3K7NP4ML2", merchant:"Amazon", category:"Shopping", amount:42.99, source:"csv", bank:"Chase", _origCategory:"Shopping", _manualCategory:false },
+    { id:"d-431", date:"2026-02-12", description:"TARGET T-2145 ATLANTA GA", merchant:"Target", category:"Shopping", amount:56.80, source:"csv", bank:"Chase", _origCategory:"Shopping", _manualCategory:false },
+    { id:"d-432", date:"2026-02-20", description:"AMAZON.COM*8M2KL5QR9", merchant:"Amazon", category:"Shopping", amount:34.50, source:"csv", bank:"Chase", _origCategory:"Shopping", _manualCategory:false },
+    // Entertainment
+    { id:"d-433", date:"2026-02-07", description:"AMC THEATRES #2841", merchant:"AMC Theatres", category:"Entertainment", amount:30.00, source:"csv", bank:"Chase", _origCategory:"Entertainment", _manualCategory:false },
+    { id:"d-434", date:"2026-02-21", description:"DAVE & BUSTERS 1028", merchant:"Dave & Busters", category:"Entertainment", amount:52.00, source:"csv", bank:"BoA", _origCategory:"Entertainment", _manualCategory:false },
+    // Healthcare & Insurance
+    { id:"d-435", date:"2026-02-04", description:"CVS/PHARMACY #4182", merchant:"CVS Pharmacy", category:"Healthcare", amount:22.40, source:"csv", bank:"Chase", _origCategory:"Healthcare", _manualCategory:false },
+    { id:"d-436", date:"2026-02-15", description:"STATE FARM INSURANCE", merchant:"State Farm", category:"Insurance", amount:156.00, source:"csv", bank:"Chase", _origCategory:"Insurance", _manualCategory:false },
+    { id:"d-437", date:"2026-02-18", description:"KAISER PERMANENTE COPAY", merchant:"Kaiser Permanente", category:"Healthcare", amount:30.00, source:"csv", bank:"Chase", _origCategory:"Healthcare", _manualCategory:false },
+    // Personal Care
+    { id:"d-438", date:"2026-02-10", description:"GREAT CLIPS #7291", merchant:"Great Clips", category:"Personal Care", amount:22.00, source:"csv", bank:"Chase", _origCategory:"Personal Care", _manualCategory:false },
+    // Misc
+    { id:"d-439", date:"2026-02-11", description:"USPS PO 0519281234", merchant:"USPS", category:"Misc", amount:11.40, source:"csv", bank:"Chase", _origCategory:"Misc", _manualCategory:false },
+    { id:"d-440", date:"2026-02-22", description:"DRY CLEAN SUPER CENTER", merchant:"Dry Cleaners", category:"Misc", amount:18.00, source:"csv", bank:"BoA", _origCategory:"Misc", _manualCategory:false }
   ],
   "2026_03": [
     // Housing & Utilities
