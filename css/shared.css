@@ -228,49 +228,75 @@ body.light .tbl tbody tr:nth-child(even) td { background: rgba(0,0,0,0.02); }
   font-family: inherit; white-space: nowrap;
 }
 
-/* ── Mobile: Header + Auth responsive ── */
+/* ── Mobile: Header + Controls responsive ── */
 @media (max-width: 480px) {
-  /* Header nav wraps, compact pills */
+
+  /* ── Header nav: full-width, wrap into sub-rows via order ── */
   .header-nav {
-    gap: 6px; justify-content: flex-end;
-  }
-  .nav-pill {
-    font-size: 11px; padding: 5px 10px;
-  }
-
-  /* Auth container: own row, centered */
-  .fb-auth-container {
-    width: 100%; justify-content: center; order: 99;
-    padding-top: 6px; margin-top: 2px;
+    width: 100%; display: flex; flex-wrap: wrap;
+    justify-content: center; gap: 6px;
     border-top: 1px solid var(--card-border, #2a2b35);
-  }
-  .fb-auth-btn {
-    font-size: 11px; padding: 5px 12px;
-  }
-  .fb-user-info {
-    font-size: 11px;
-  }
-  .fb-user-email {
-    max-width: 150px; font-size: 11px;
-  }
-  .fb-signout-btn {
-    font-size: 10px;
+    padding-top: 8px; margin-top: 4px;
   }
 
-  /* Scanner header-links wrap */
-  .header-links {
-    flex-wrap: wrap; gap: 8px;
+  /* Theme toggle: compact, first sub-row */
+  .theme-toggle { order: 0; font-size: 14px; padding: 5px 8px; }
+
+  /* Auth: same sub-row as theme toggle */
+  .fb-auth-container {
+    order: 1; width: auto !important;
+    justify-content: center !important;
+    padding-top: 0 !important; margin-top: 0 !important;
+    border-top: none !important;
   }
-  .header-links a {
-    font-size: 11px;
+  .fb-auth-btn { font-size: 10px; padding: 4px 10px; }
+  .fb-user-info { font-size: 10px; }
+  .fb-user-email { max-width: 120px; font-size: 10px; }
+  .fb-signout-btn { font-size: 9px; }
+
+  /* Invisible flex line break between auth-row and pills-row */
+  .header-nav::after {
+    content: ''; flex-basis: 100%; height: 0; order: 5;
   }
 
-  /* Budget header-right: don't use absolute when auth is present */
+  /* Nav pills: second sub-row */
+  .nav-pill { order: 10; font-size: 11px; padding: 5px 10px; }
+
+  /* ── Month nav: stacked, full-width select + equal buttons ── */
+  .month-nav { flex-wrap: wrap; gap: 8px; }
+  .month-nav select {
+    width: 100%; font-size: 14px; padding: 10px 14px; order: -1;
+  }
+  .month-nav-btn {
+    flex: 1 1 0; text-align: center;
+    font-size: 11px; padding: 8px 6px; min-height: 36px; white-space: nowrap;
+  }
+
+  /* ── Tabs: horizontal scroll strip ── */
+  .tabs {
+    display: flex !important; grid-template-columns: unset !important;
+    overflow-x: auto !important; -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    flex-wrap: nowrap !important; width: 100% !important; gap: 4px !important;
+    padding: 4px !important;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 0 0 auto !important; padding: 8px 14px !important;
+    font-size: 11px !important; white-space: nowrap !important;
+    scroll-snap-align: start; text-align: center;
+  }
+
+  /* ── Budget header-right: centered row ── */
   .header-right {
     position: static !important;
     width: 100%; display: flex; justify-content: center;
     flex-wrap: wrap; gap: 6px;
   }
+
+  /* Scanner header-links wrap */
+  .header-links { flex-wrap: wrap; gap: 8px; }
+  .header-links a { font-size: 11px; }
 }
 
 /* ── Tablet+ ── */
