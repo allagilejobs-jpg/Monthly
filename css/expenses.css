@@ -558,7 +558,7 @@
   }
   @media (max-width: 480px) {
     .container { padding: 10px; }
-    .header h1 { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+    .header h1 { font-size: 17px; }
     .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
     .kpi-value { font-size: 18px; }
     .kpi-card { padding: 12px 14px; }
