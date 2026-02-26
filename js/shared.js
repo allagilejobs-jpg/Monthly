@@ -138,3 +138,73 @@ function fadeInView(viewId) {
     });
   });
 }
+
+// ═══════════════════════════════════════════════════
+// UNDO SYSTEM — Shared across all dashboards
+// ═══════════════════════════════════════════════════
+
+var _undoStack = [];
+var _undoTimer = null;
+var UNDO_MAX = 5;
+var UNDO_TIMEOUT = 6000; // 6 seconds to undo
+
+function pushUndo(label, restoreFn) {
+  _undoStack.push({ label: label, restoreFn: restoreFn, ts: Date.now() });
+  if (_undoStack.length > UNDO_MAX) _undoStack.shift();
+  showUndoToast(label);
+}
+
+function doUndo() {
+  var item = _undoStack.pop();
+  if (!item) return;
+  hideUndoToast();
+  item.restoreFn();
+  showToast('Undone: ' + item.label, 'success');
+}
+
+function showUndoToast(label) {
+  hideUndoToast();
+  var existing = document.getElementById('undo-toast');
+  if (existing) existing.parentNode.removeChild(existing);
+
+  var toast = document.createElement('div');
+  toast.id = 'undo-toast';
+  toast.className = 'undo-toast';
+  toast.innerHTML =
+    '<span class="undo-toast-icon">\uD83D\uDDD1\uFE0F</span>' +
+    '<span class="undo-toast-msg">' + label + '</span>' +
+    '<button class="undo-btn" onclick="doUndo()">Undo</button>' +
+    '<button class="undo-toast-close" onclick="hideUndoToast()">\u00D7</button>';
+  document.body.appendChild(toast);
+
+  // Animate in
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      toast.classList.add('visible');
+    });
+  });
+
+  // Progress bar countdown
+  var bar = document.createElement('div');
+  bar.className = 'undo-progress';
+  toast.appendChild(bar);
+  requestAnimationFrame(function() {
+    bar.style.width = '0%';
+  });
+
+  _undoTimer = setTimeout(function() {
+    hideUndoToast();
+  }, UNDO_TIMEOUT);
+}
+
+function hideUndoToast() {
+  clearTimeout(_undoTimer);
+  _undoTimer = null;
+  var toast = document.getElementById('undo-toast');
+  if (!toast) return;
+  toast.classList.remove('visible');
+  toast.classList.add('hiding');
+  setTimeout(function() {
+    if (toast.parentNode) toast.parentNode.removeChild(toast);
+  }, 250);
+}

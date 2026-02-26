@@ -787,6 +787,39 @@ function detectAnomalies() {
 }
 
 // ─────────── REGULAR PURCHASE DETECTION ───────────
+function detectPriceChanges() {
+  var months = getLoadedMonths().sort();
+  if (months.length < 2) return [];
+  var currentMk = ctx.monthKey;
+  // Build product→price map for all previous months
+  var prevPrices = {};
+  months.forEach(function(mk) {
+    if (mk === currentMk) return;
+    var data = loadMonthData(mk);
+    if (!data) return;
+    data.forEach(function(item) {
+      if (!prevPrices[item.n]) prevPrices[item.n] = [];
+      prevPrices[item.n].push({ month: mk, unitPrice: item.u, store: item.s });
+    });
+  });
+  // Compare current month prices to historical average
+  var changes = [];
+  var seen = {};
+  activeData.forEach(function(item) {
+    if (seen[item.n]) return;
+    seen[item.n] = true;
+    var prev = prevPrices[item.n];
+    if (!prev || prev.length === 0) return;
+    var avgPrev = prev.reduce(function(s, p) { return s + p.unitPrice; }, 0) / prev.length;
+    if (avgPrev === 0) return;
+    var pctChange = ((item.u - avgPrev) / avgPrev) * 100;
+    if (Math.abs(pctChange) >= 10) {
+      changes.push({ name: item.n, currentPrice: item.u, prevAvg: avgPrev, pctChange: pctChange, category: item.c, store: item.s });
+    }
+  });
+  return changes.sort(function(a, b) { return Math.abs(b.pctChange) - Math.abs(a.pctChange); });
+}
+
 function detectRegularPurchases() {
   const results = [];
   const seen = new Set();
@@ -1082,6 +1115,35 @@ function renderOverview() {
   document.getElementById("insights").innerHTML = insights.map(ins =>
     `<div class="insight" onclick="${ins.action}" style="cursor:pointer"><div class="insight-title">${ins.title}</div><div class="insight-text">${ins.text}</div></div>`
   ).join("");
+
+  // Price Inflation Tracking
+  var priceChanges = detectPriceChanges();
+  var priceEl = document.getElementById("price-changes-card");
+  if (priceEl) {
+    if (priceChanges.length > 0) {
+      var pcHtml = '<div class="card" style="border-color:rgba(249,115,22,0.2)"><div class="card-title" style="color:var(--amber)">Price Changes vs Previous Months</div>';
+      priceChanges.slice(0, 8).forEach(function(pc) {
+        var isUp = pc.pctChange > 0;
+        var arrow = isUp ? '<span style="color:var(--rose)">&#9650;</span>' : '<span style="color:var(--green)">&#9660;</span>';
+        var pctColor = isUp ? 'var(--rose)' : 'var(--green)';
+        var escaped = pc.name.replace(/'/g, "\\'");
+        pcHtml += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;gap:10px" onclick="showProductDetail(\'' + escaped + '\',\'overview\')">';
+        pcHtml += '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">' + pc.name + '</div>';
+        pcHtml += '<div style="font-size:11px;color:var(--text-muted)">' + pc.category + ' &bull; ' + pc.store + '</div></div>';
+        pcHtml += '<div style="text-align:right;white-space:nowrap">';
+        pcHtml += '<div style="font-size:13px">' + fmt(pc.prevAvg) + ' &rarr; ' + fmt(pc.currentPrice) + '</div>';
+        pcHtml += '<div style="font-size:12px;font-weight:700;color:' + pctColor + '">' + arrow + ' ' + (isUp ? '+' : '') + pc.pctChange.toFixed(1) + '%</div>';
+        pcHtml += '</div></div>';
+      });
+      if (priceChanges.length > 8) {
+        pcHtml += '<div style="text-align:center;padding:8px;font-size:11px;color:var(--text-muted)">and ' + (priceChanges.length - 8) + ' more items with price changes</div>';
+      }
+      pcHtml += '</div>';
+      priceEl.innerHTML = pcHtml;
+    } else {
+      priceEl.innerHTML = '';
+    }
+  }
 
   // Recurring / Regular Purchases
   const recurring = detectRegularPurchases();
@@ -1699,6 +1761,51 @@ function showProductDetail(productName, source) {
     html += `</tbody></table></div></div>`;
   }
 
+  // Cross-month price history
+  var allMonths = getLoadedMonths().sort();
+  if (allMonths.length >= 2) {
+    var monthPriceData = [];
+    allMonths.forEach(function(mk) {
+      var mData = loadMonthData(mk);
+      if (!mData) return;
+      var matching = mData.filter(function(i) { return i.n === productName; });
+      if (matching.length === 0) return;
+      var avgP = matching.reduce(function(s, i) { return s + i.u; }, 0) / matching.length;
+      var mkParts = mk.split('_');
+      var mLabel = MONTH_ABBR[parseInt(mkParts[1]) - 1] + ' ' + mkParts[0];
+      monthPriceData.push({ mk: mk, label: mLabel, avgPrice: avgP, count: matching.length, isCurrent: mk === ctx.monthKey });
+    });
+    if (monthPriceData.length >= 2) {
+      var allHistPrices = monthPriceData.map(function(d) { return d.avgPrice; });
+      var overallAvg = allHistPrices.reduce(function(s, v) { return s + v; }, 0) / allHistPrices.length;
+      var latestPrice = monthPriceData[monthPriceData.length - 1].avgPrice;
+      var firstPrice = monthPriceData[0].avgPrice;
+      var trendPct = firstPrice > 0 ? ((latestPrice - firstPrice) / firstPrice * 100) : 0;
+      var trendDir = trendPct > 0 ? '&#9650;' : trendPct < 0 ? '&#9660;' : '&#9679;';
+      var trendColor = trendPct > 5 ? 'var(--rose)' : trendPct < -5 ? 'var(--green)' : 'var(--text-muted)';
+
+      html += '<div class="card"><div class="card-title">Price History Across Months</div>';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+      html += '<span style="font-size:13px;color:var(--text-muted)">Average unit price per month</span>';
+      html += '<span style="font-size:13px;font-weight:700;color:' + trendColor + '">' + trendDir + ' ' + (trendPct > 0 ? '+' : '') + trendPct.toFixed(1) + '% overall</span>';
+      html += '</div>';
+
+      // Bar chart visualization
+      var maxP = Math.max.apply(null, allHistPrices);
+      monthPriceData.forEach(function(d) {
+        var pct = maxP > 0 ? (d.avgPrice / maxP * 100) : 0;
+        var barColor = d.isCurrent ? 'var(--blue)' : 'rgba(59,130,246,0.3)';
+        html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">';
+        html += '<span style="font-size:11px;width:60px;text-align:right;color:var(--text-muted);flex-shrink:0">' + d.label + '</span>';
+        html += '<div style="flex:1;height:20px;background:rgba(255,255,255,0.04);border-radius:4px;overflow:hidden">';
+        html += '<div style="width:' + pct.toFixed(1) + '%;height:100%;background:' + barColor + ';border-radius:4px;transition:width 0.5s"></div></div>';
+        html += '<span style="font-size:12px;font-weight:600;width:55px;text-align:right;flex-shrink:0">' + fmt(d.avgPrice) + '</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+  }
+
   // Store comparison (only if bought at multiple stores)
   if (stores.length > 1) {
     html += `<div class="card"><div class="card-title">Store Price Comparison</div>`;
@@ -2219,17 +2326,57 @@ function showUploadPreview(data, monthKey, sheetName) {
   document.getElementById("upload-month-label").textContent = label + (existing ? " (will replace existing data)" : "");
   document.getElementById("upload-stats").innerHTML = `Sheet: ${sheetName} | ${data.length} items | ${stores} stores | ${trips} trips | ${fmt(total)} total`;
 
-  let sampleHtml = '<table style="width:100%;font-size:11px"><thead><tr><th>Date</th><th>Store</th><th>Product</th><th>Category</th><th>Qty</th><th>Total</th></tr></thead><tbody>';
+  // Validation warnings
+  var warnings = [];
+  var noCat = data.filter(i => !i.c || i.c === 'Uncategorized').length;
+  var zeroTotal = data.filter(i => !i.t || i.t === 0).length;
+  var noStore = data.filter(i => !i.s || i.s === 'Unknown').length;
+  var highPrice = data.filter(i => i.u > 100).length;
+  if (noCat) warnings.push('<span style="color:#f59e0b">&#9888; ' + noCat + ' item' + (noCat>1?'s':'') + ' missing category</span>');
+  if (zeroTotal) warnings.push('<span style="color:#f59e0b">&#9888; ' + zeroTotal + ' item' + (zeroTotal>1?'s':'') + ' with $0 total</span>');
+  if (noStore) warnings.push('<span style="color:#f59e0b">&#9888; ' + noStore + ' item' + (noStore>1?'s':'') + ' missing store</span>');
+  if (highPrice) warnings.push('<span style="color:#f97316">&#9888; ' + highPrice + ' item' + (highPrice>1?'s':'') + ' with unit price > $100</span>');
+
+  var warningHtml = '';
+  if (warnings.length) {
+    warningHtml = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">' + warnings.map(function(w){ return '<span style="font-size:11px;padding:4px 10px;border-radius:6px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2)">' + w + '</span>'; }).join('') + '</div>';
+  }
+
+  let sampleHtml = warningHtml + '<table style="width:100%;font-size:11px"><thead><tr><th>Date</th><th>Store</th><th>Product</th><th>Category</th><th>Qty</th><th>Total</th></tr></thead><tbody>';
   data.slice(0, 5).forEach(i => {
     sampleHtml += `<tr><td>${i.d}</td><td>${i.s}</td><td>${i.n}</td><td>${i.c}</td><td>${i.q}</td><td>${fmt(i.t)}</td></tr>`;
   });
-  if (data.length > 5) sampleHtml += `<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">... and ${data.length - 5} more items</td></tr>`;
-  sampleHtml += '</tbody></table>';
+  if (data.length > 5) {
+    sampleHtml += `<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">... and ${data.length - 5} more items</td></tr>`;
+    sampleHtml += '</tbody></table>';
+    sampleHtml += '<div style="margin-top:10px;text-align:center"><button onclick="toggleFullPreview()" id="preview-toggle-btn" style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:var(--blue,#3b82f6);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">View all ' + data.length + ' items</button></div>';
+    sampleHtml += '<div id="full-preview-table" style="display:none;max-height:300px;overflow-y:auto;margin-top:10px"><table style="width:100%;font-size:11px"><thead><tr><th>Date</th><th>Store</th><th>Product</th><th>Category</th><th>Qty</th><th>Total</th></tr></thead><tbody>';
+    data.forEach(function(i) {
+      var rowStyle = (!i.c || i.c === 'Uncategorized' || !i.t || i.t === 0) ? ' style="background:rgba(245,158,11,0.06)"' : '';
+      sampleHtml += '<tr' + rowStyle + '><td>' + i.d + '</td><td>' + i.s + '</td><td>' + i.n + '</td><td>' + i.c + '</td><td>' + i.q + '</td><td>' + fmt(i.t) + '</td></tr>';
+    });
+    sampleHtml += '</tbody></table></div>';
+  } else {
+    sampleHtml += '</tbody></table>';
+  }
   document.getElementById("upload-sample").innerHTML = sampleHtml;
 
   document.getElementById("drop-zone").style.display = "none";
   document.getElementById("upload-preview").style.display = "";
   document.getElementById("upload-actions").style.display = "";
+}
+
+function toggleFullPreview() {
+  var el = document.getElementById('full-preview-table');
+  var btn = document.getElementById('preview-toggle-btn');
+  if (!el) return;
+  if (el.style.display === 'none') {
+    el.style.display = '';
+    if (btn) btn.textContent = 'Hide full list';
+  } else {
+    el.style.display = 'none';
+    if (btn) btn.textContent = 'View all items';
+  }
 }
 
 function confirmUpload() {
@@ -2280,7 +2427,13 @@ function closeDataManager() {
 
 function deleteMonth(key) {
   if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) { showDemoUpgradePrompt("Create an account to manage your own data."); return; }
-  if (!confirm("Delete all data for this month? This cannot be undone.")) return;
+  // Snapshot data before deleting
+  var dataSnap = localStorage.getItem("data_" + key);
+  var editsSnap = localStorage.getItem("edits_" + key);
+  var monthsSnap = localStorage.getItem("grocery_months");
+  var mk = key;
+  var label = key.replace('_', ' ');
+
   localStorage.removeItem("data_" + key);
   localStorage.removeItem("edits_" + key);
   let months = getLoadedMonths().filter(m => m !== key);
@@ -2290,6 +2443,15 @@ function deleteMonth(key) {
   buildMonthSelector();
   openDataManager();
   if (typeof syncToCloud === 'function') syncToCloud();
+
+  pushUndo(label + ' deleted', function() {
+    if (dataSnap) localStorage.setItem("data_" + mk, dataSnap);
+    if (editsSnap) localStorage.setItem("edits_" + mk, editsSnap);
+    if (monthsSnap) localStorage.setItem("grocery_months", monthsSnap);
+    switchMonth(mk);
+    buildMonthSelector();
+    if (typeof syncToCloud === 'function') syncToCloud();
+  });
 }
 
 // ─────────── DOWNLOAD / LOAD DATA ───────────

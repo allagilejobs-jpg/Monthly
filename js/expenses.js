@@ -1412,6 +1412,22 @@ function showMultiMonthPreview() {
   });
   html += '</div>';
 
+  // Validation warnings
+  var vWarnings = [];
+  var vNoCat = parsedTransactions.filter(function(t){ return !t.category || t.category === 'Uncategorized' || t.category === 'Other'; }).length;
+  var vZero = parsedTransactions.filter(function(t){ return !t.amount || t.amount === 0; }).length;
+  var vDups = 0;
+  var seenKeys = {};
+  parsedTransactions.forEach(function(t){ var k = (t.date||'') + '|' + (t.merchant||'') + '|' + (t.amount||0).toFixed(2); if (seenKeys[k]) vDups++; seenKeys[k] = true; });
+  if (vNoCat) vWarnings.push('<span style="color:#f59e0b">&#9888; ' + vNoCat + ' transaction' + (vNoCat>1?'s':'') + ' will be "Uncategorized"</span>');
+  if (vZero) vWarnings.push('<span style="color:#f59e0b">&#9888; ' + vZero + ' transaction' + (vZero>1?'s':'') + ' with $0 amount</span>');
+  if (vDups) vWarnings.push('<span style="color:#f97316">&#9888; ' + vDups + ' possible duplicate' + (vDups>1?'s':'') + '</span>');
+  if (vWarnings.length) {
+    html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:12px 0">';
+    vWarnings.forEach(function(w){ html += '<span style="font-size:11px;padding:4px 10px;border-radius:6px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2)">' + w + '</span>'; });
+    html += '</div>';
+  }
+
   // Sample transactions
   var allSorted = parsedTransactions.slice().sort(function(a, b) { return a.date.localeCompare(b.date); });
   html += '<div style="margin-top:16px"><span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">Sample Transactions</span>';
@@ -1424,6 +1440,18 @@ function showMultiMonthPreview() {
     html += '<tr><td colspan="4" style="color:var(--text-muted);text-align:center">... and ' + (parsedTransactions.length - 5) + ' more</td></tr>';
   }
   html += '</tbody></table></div>';
+
+  // Expandable full transaction list
+  if (parsedTransactions.length > 5) {
+    html += '<div style="margin-top:8px;text-align:center"><button onclick="toggleExpFullList()" id="exp-preview-toggle" style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:var(--blue,#3b82f6);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">View all ' + parsedTransactions.length + ' transactions</button></div>';
+    html += '<div id="exp-full-preview" style="display:none;max-height:300px;overflow-y:auto;margin-top:8px"><table style="width:100%;font-size:11px"><thead><tr><th>Date</th><th>Merchant</th><th>Category</th><th>Amount</th></tr></thead><tbody>';
+    allSorted.forEach(function(t) {
+      var amtStyle = t.amount < 0 ? ' style="color:var(--green)"' : '';
+      var rowWarn = (!t.category || t.category === 'Uncategorized' || t.category === 'Other' || !t.amount) ? ' style="background:rgba(245,158,11,0.06)"' : '';
+      html += '<tr' + rowWarn + '><td>' + t.date + '</td><td>' + t.merchant + '</td><td>' + t.category + '</td><td class="amt"' + amtStyle + '>' + fmt(t.amount) + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
 
   // Top categories
   var cats = {};
@@ -1443,6 +1471,19 @@ function showMultiMonthPreview() {
 }
 
 // Toggle month selection and update card visual state
+function toggleExpFullList() {
+  var el = document.getElementById('exp-full-preview');
+  var btn = document.getElementById('exp-preview-toggle');
+  if (!el) return;
+  if (el.style.display === 'none') {
+    el.style.display = '';
+    if (btn) btn.textContent = 'Hide full list';
+  } else {
+    el.style.display = 'none';
+    if (btn) btn.textContent = 'View all transactions';
+  }
+}
+
 function toggleMonthSelect(mk) {
   var cb = document.getElementById('select-' + mk);
   var card = document.getElementById('bucket-card-' + mk);
@@ -1580,7 +1621,12 @@ function closeDataManager() { document.getElementById('manager-modal').classList
 
 function deleteMonth(mk) {
   if (_isDemo) { showDemoUpgradePrompt("Create an account to manage your own expense data."); return; }
-  if (!confirm('Delete all data for this month? This cannot be undone.')) return;
+  // Snapshot before deleting
+  var dataSnap = localStorage.getItem('expenses_data_' + mk);
+  var editsSnap = localStorage.getItem('expenses_edits_' + mk);
+  var monthsSnap = JSON.stringify(loadMonths());
+  var label = mk.replace('_', ' ');
+
   localStorage.removeItem('expenses_data_' + mk);
   localStorage.removeItem('expenses_edits_' + mk);
   let months = loadMonths().filter(m => m !== mk);
@@ -1589,8 +1635,15 @@ function deleteMonth(mk) {
     if (months.length > 0) switchMonth(months.sort().reverse()[0]);
     else { activeData = []; ctx = {}; recomputeAll(); destroyAllCharts(); updateSubtitle(); renderAll(); }
   }
-  openDataManager(); // refresh
-  if (typeof syncToCloud === 'function') syncToCloud();
+  openDataManager();
+
+  pushUndo(label + ' deleted', function() {
+    if (dataSnap) localStorage.setItem('expenses_data_' + mk, dataSnap);
+    if (editsSnap) localStorage.setItem('expenses_edits_' + mk, editsSnap);
+    saveMonths(JSON.parse(monthsSnap));
+    switchMonth(mk);
+    if (typeof syncToCloud === 'function') syncToCloud();
+  });
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1769,16 +1822,33 @@ function saveAddExpense() {
 }
 
 function deleteTx(id) {
-  if (!confirm('Delete this transaction?')) return;
-  activeData = activeData.filter(t => t.id !== id);
-  saveData(ctx.monthKey, activeData);
+  var tx = activeData.find(function(t){ return t.id === id; });
   var edits = loadEdits(ctx.monthKey);
+  var editSnap = edits[id] ? JSON.parse(JSON.stringify(edits[id])) : null;
+  var mkSnap = ctx.monthKey;
+
+  activeData = activeData.filter(function(t){ return t.id !== id; });
   delete edits[id];
+  saveData(ctx.monthKey, activeData);
   saveEdits(ctx.monthKey, edits);
   recomputeAll();
   destroyAllCharts();
   renderAll();
-  showToast('Transaction deleted', 'success');
+
+  if (tx) {
+    pushUndo('Transaction deleted', function() {
+      activeData.push(tx);
+      if (editSnap) {
+        var e = loadEdits(mkSnap);
+        e[id] = editSnap;
+        saveEdits(mkSnap, e);
+      }
+      saveData(mkSnap, activeData);
+      recomputeAll();
+      destroyAllCharts();
+      renderAll();
+    });
+  }
 }
 
 function resetEdit() {
@@ -1931,24 +2001,84 @@ function renderOverview() {
     html += '</div></div>';
   }
 
-  // Recurring & Subscriptions
+  // Recurring & Subscriptions (enhanced with tracking)
   const recurring = detectRecurring();
-  if (recurring.length > 0) {
-    html += '<div class="card"><div class="card-title">Recurring & Subscriptions</div>';
+  const trackedRecurring = loadTrackedRecurring();
+  // Check for missing or changed recurring expenses
+  var recurringAlerts = [];
+  Object.keys(trackedRecurring).forEach(function(key) {
+    var tr = trackedRecurring[key];
+    if (!tr.active) return;
+    var found = activeData.find(function(t) { return t.merchant.toLowerCase() === key.toLowerCase(); });
+    if (!found) {
+      recurringAlerts.push({ type: 'missing', merchant: key, expected: tr.expected, category: tr.category });
+    } else if (tr.expected > 0 && Math.abs(found.amount - tr.expected) > 0.50) {
+      recurringAlerts.push({ type: 'changed', merchant: key, expected: tr.expected, actual: found.amount, category: tr.category });
+    }
+  });
+
+  // Recurring KPI
+  var trackedCount = Object.values(trackedRecurring).filter(function(r) { return r.active; }).length;
+  var trackedTotal = Object.values(trackedRecurring).filter(function(r) { return r.active; }).reduce(function(s, r) { return s + (r.expected || 0); }, 0);
+
+  if (recurring.length > 0 || recurringAlerts.length > 0) {
+    html += '<div class="card"><div class="card-title" style="display:flex;justify-content:space-between;align-items:center">Recurring & Subscriptions';
+    if (trackedCount > 0) html += '<span style="font-size:12px;font-weight:600;color:var(--blue)">' + trackedCount + ' tracked &bull; ' + fmt(trackedTotal) + '/mo</span>';
+    html += '</div>';
+
+    // Alerts for tracked recurring
+    if (recurringAlerts.length > 0) {
+      recurringAlerts.forEach(function(a) {
+        if (a.type === 'missing') {
+          html += '<div style="padding:10px 14px;margin-bottom:10px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);font-size:12px;display:flex;align-items:center;gap:8px">';
+          html += '<span style="font-size:16px">&#9888;&#65039;</span>';
+          html += '<div><span style="font-weight:700;color:var(--amber)">' + a.merchant + '</span> — expected ' + fmt(a.expected) + ', not found this month</div>';
+          html += '</div>';
+        } else if (a.type === 'changed') {
+          var diff = a.actual - a.expected;
+          var diffColor = diff > 0 ? 'var(--rose)' : 'var(--green)';
+          html += '<div style="padding:10px 14px;margin-bottom:10px;border-radius:8px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);font-size:12px;display:flex;align-items:center;gap:8px">';
+          html += '<span style="font-size:16px">&#8505;&#65039;</span>';
+          html += '<div><span style="font-weight:700">' + a.merchant + '</span> — expected ' + fmt(a.expected) + ', charged <span style="color:' + diffColor + ';font-weight:700">' + fmt(a.actual) + '</span> (' + (diff > 0 ? '+' : '') + fmt(diff) + ')</div>';
+          html += '</div>';
+        }
+      });
+    }
+
     recurring.forEach(r => {
       const confColor = r.confidence === 'high' ? 'var(--green)' : r.confidence === 'medium' ? 'var(--amber)' : 'var(--text-muted)';
       const confBg = r.confidence === 'high' ? 'rgba(34,197,94,0.12)' : r.confidence === 'medium' ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.05)';
       const catColor = getCatColor(r.category);
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;gap:10px" onclick="showView(\'merchant-detail\',{merchant:\'' + r.merchant.replace(/'/g,"\\'") + '\',source:\'overview\'})">';
-      html += '<div style="flex:1;min-width:0">';
+      var mKey = r.merchant.toLowerCase();
+      var isTracked = trackedRecurring[mKey] && trackedRecurring[mKey].active;
+      var expectedAmt = trackedRecurring[mKey] ? trackedRecurring[mKey].expected : r.avgAmount;
+      // Check if paid this month
+      var paidThisMonth = activeData.find(function(t) { return t.merchant === r.merchant; });
+      var statusBadge = '';
+      if (isTracked) {
+        statusBadge = paidThisMonth
+          ? '<span class="tag" style="background:rgba(34,197,94,0.12);color:var(--green)">&#10003; Paid</span>'
+          : '<span class="tag" style="background:rgba(245,158,11,0.12);color:var(--amber)">&#9888; Missing</span>';
+      }
+
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);gap:8px">';
+      html += '<div style="flex:1;min-width:0;cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + r.merchant.replace(/'/g,"\\'") + '\',source:\'overview\'})">';
       html += '<div style="font-weight:600;font-size:14px;margin-bottom:3px">' + r.merchant + '</div>';
       html += '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
       html += '<span class="tag" style="background:' + catColor + '22;color:' + catColor + '">' + r.category + '</span>';
       html += '<span style="font-size:11px;color:var(--text-muted)">' + r.frequency + '</span>';
-      html += '<span class="tag" style="background:' + confBg + ';color:' + confColor + '">' + r.confidence + '</span>';
+      html += statusBadge;
       html += '</div></div>';
+      html += '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">';
       html += '<div style="font-size:16px;font-weight:700;color:var(--amber);white-space:nowrap">' + fmt(r.avgAmount) + '</div>';
-      html += '</div>';
+      // Track toggle
+      var toggleChecked = isTracked ? ' checked' : '';
+      html += '<label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0" title="Track as recurring">';
+      html += '<input type="checkbox"' + toggleChecked + ' onchange="toggleRecurringTrack(\'' + r.merchant.replace(/'/g,"\\'") + '\',' + r.avgAmount.toFixed(2) + ',\'' + r.category.replace(/'/g,"\\'") + '\',this.checked)" style="opacity:0;width:0;height:0">';
+      html += '<span style="position:absolute;cursor:pointer;inset:0;background:' + (isTracked ? 'var(--blue,#3b82f6)' : 'rgba(113,113,122,0.3)') + ';border-radius:20px;transition:background .2s"></span>';
+      html += '<span style="position:absolute;left:' + (isTracked ? '18px' : '2px') + ';top:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:left .2s"></span>';
+      html += '</label>';
+      html += '</div></div>';
     });
     html += '</div>';
   }
@@ -2312,6 +2442,7 @@ function renderTransactions() {
   html += '</div>';
 
   html += '<div class="card" style="overflow-x:auto"><table id="tx-table"><thead><tr>';
+  html += '<th style="width:32px"><input type="checkbox" class="tx-check" onchange="toggleAllTx(this.checked)"></th>';
   html += '<th class="sortable' + (txSortCol === 'date' ? (txSortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '') + '" onclick="sortTxTable(\'date\')">Date</th>';
   html += '<th class="sortable' + (txSortCol === 'merchant' ? (txSortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '') + '" onclick="sortTxTable(\'merchant\')">Merchant</th>';
   html += '<th class="sortable' + (txSortCol === 'category' ? (txSortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '') + '" onclick="sortTxTable(\'category\')">Category</th>';
@@ -2362,7 +2493,8 @@ function renderTxRows() {
   tbody.innerHTML = pageData.map(t => {
     const edited = edits[t.id];
     const editDot = edited ? '<span class="edit-dot" title="Edited"></span>' : '';
-    return '<tr><td class="mono">' + t.date + '</td>' +
+    return '<tr><td><input type="checkbox" class="tx-check" data-id="' + t.id + '" onchange="updateBulkBar()"></td>' +
+      '<td class="mono">' + t.date + '</td>' +
       '<td style="font-weight:600">' + t.merchant + editDot + '</td>' +
       '<td><span class="tag" style="background:' + getCatColor(t.category) + '22;color:' + getCatColor(t.category) + '">' + t.category + '</span></td>' +
       '<td class="text-right amt"' + (t.amount < 0 ? ' style="color:var(--green)"' : '') + '>' + fmt(t.amount) + '</td>' +
@@ -2918,6 +3050,27 @@ const RECURRING_KEYWORDS = [
   "adobe","microsoft","google storage","icloud","dropbox","chatgpt","openai"
 ];
 
+// ── Recurring Expense Tracking ──
+function loadTrackedRecurring() {
+  try { return JSON.parse((_isDemo ? demoGet('expenses_recurring') : localStorage.getItem('expenses_recurring')) || '{}'); }
+  catch(e) { return {}; }
+}
+function saveTrackedRecurring(data) {
+  if (_isDemo) demoSet('expenses_recurring', JSON.stringify(data));
+  else localStorage.setItem('expenses_recurring', JSON.stringify(data));
+}
+function toggleRecurringTrack(merchant, avgAmount, category, checked) {
+  var tracked = loadTrackedRecurring();
+  var key = merchant.toLowerCase();
+  if (checked) {
+    tracked[key] = { expected: avgAmount, category: category, active: true, merchant: merchant };
+  } else {
+    if (tracked[key]) tracked[key].active = false;
+  }
+  saveTrackedRecurring(tracked);
+  if (typeof showToast === 'function') showToast(checked ? merchant + ' tracked as recurring' : merchant + ' untracked', 'info');
+}
+
 function detectRecurring() {
   const results = [];
   const seen = new Set();
@@ -3004,6 +3157,143 @@ function detectRecurring() {
   });
 
   return results.sort((a, b) => b.avgAmount - a.avgAmount);
+}
+
+// ══════════════════════════════════════════════════════════
+// BULK ACTIONS
+// ══════════════════════════════════════════════════════════
+function getCheckedIds() {
+  var checks = document.querySelectorAll('#tx-tbody .tx-check:checked');
+  var ids = [];
+  checks.forEach(function(cb) { if (cb.dataset.id) ids.push(cb.dataset.id); });
+  return ids;
+}
+function updateBulkBar() {
+  var ids = getCheckedIds();
+  var bar = document.getElementById('bulk-bar');
+  var countEl = document.getElementById('bulk-count');
+  if (!bar) return;
+  if (ids.length > 0) {
+    bar.classList.add('active');
+    if (countEl) countEl.textContent = ids.length + ' selected';
+  } else {
+    bar.classList.remove('active');
+  }
+  // Update header checkbox
+  var headerCb = document.querySelector('#tx-table thead .tx-check');
+  var allCbs = document.querySelectorAll('#tx-tbody .tx-check');
+  if (headerCb && allCbs.length > 0) {
+    headerCb.checked = ids.length === allCbs.length;
+  }
+}
+function toggleAllTx(checked) {
+  var checks = document.querySelectorAll('#tx-tbody .tx-check');
+  checks.forEach(function(cb) { cb.checked = checked; });
+  updateBulkBar();
+}
+function clearBulkSelection() {
+  toggleAllTx(false);
+  var headerCb = document.querySelector('#tx-table thead .tx-check');
+  if (headerCb) headerCb.checked = false;
+  updateBulkBar();
+}
+function bulkDelete() {
+  var ids = getCheckedIds();
+  if (ids.length === 0) return;
+  // Snapshot for undo
+  var deleted = [];
+  var edits = loadEdits(ctx.monthKey);
+  var editSnaps = {};
+  ids.forEach(function(id) {
+    var tx = activeData.find(function(t) { return t.id === id; });
+    if (tx) deleted.push(JSON.parse(JSON.stringify(tx)));
+    if (edits[id]) editSnaps[id] = JSON.parse(JSON.stringify(edits[id]));
+  });
+  var mkSnap = ctx.monthKey;
+
+  activeData = activeData.filter(function(t) { return ids.indexOf(t.id) === -1; });
+  ids.forEach(function(id) { delete edits[id]; });
+  saveData(ctx.monthKey, activeData);
+  saveEdits(ctx.monthKey, edits);
+  recomputeAll();
+  destroyAllCharts();
+  renderAll();
+
+  pushUndo(deleted.length + ' transaction' + (deleted.length > 1 ? 's' : '') + ' deleted', function() {
+    deleted.forEach(function(tx) { activeData.push(tx); });
+    var e = loadEdits(mkSnap);
+    Object.keys(editSnaps).forEach(function(id) { e[id] = editSnaps[id]; });
+    saveEdits(mkSnap, e);
+    saveData(mkSnap, activeData);
+    recomputeAll();
+    destroyAllCharts();
+    renderAll();
+  });
+}
+function bulkRecategorize() {
+  var ids = getCheckedIds();
+  if (ids.length === 0) return;
+  // Build category picker modal
+  var overlay = document.createElement('div');
+  overlay.id = 'bulk-recat-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:100001;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)';
+  var catHtml = '<div style="background:var(--card,#1a1b2e);border:1px solid var(--card-border,#2a2b35);border-radius:16px;padding:24px;max-width:360px;width:100%;max-height:80vh;overflow-y:auto">';
+  catHtml += '<div style="font-size:16px;font-weight:700;margin-bottom:16px;text-align:center">Change Category (' + ids.length + ' selected)</div>';
+  CATEGORY_LIST.forEach(function(cat) {
+    var clr = getCatColor(cat);
+    catHtml += '<button onclick="applyBulkCategory(\'' + cat.replace(/'/g,"\\'") + '\')" style="display:block;width:100%;padding:10px 14px;margin-bottom:6px;border-radius:8px;border:1px solid ' + clr + '33;background:' + clr + '11;color:' + clr + ';font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left">' + cat + '</button>';
+  });
+  catHtml += '<button onclick="closeBulkRecat()" style="display:block;width:100%;padding:10px;margin-top:8px;border:none;background:none;color:var(--text-muted);font-size:13px;cursor:pointer;font-family:inherit">Cancel</button>';
+  catHtml += '</div>';
+  overlay.innerHTML = catHtml;
+  document.body.appendChild(overlay);
+}
+function closeBulkRecat() {
+  var overlay = document.getElementById('bulk-recat-overlay');
+  if (overlay) overlay.parentNode.removeChild(overlay);
+}
+function applyBulkCategory(cat) {
+  var ids = getCheckedIds();
+  closeBulkRecat();
+  if (ids.length === 0) return;
+  // Snapshot for undo
+  var prevCats = {};
+  var prevEdits = {};
+  var edits = loadEdits(ctx.monthKey);
+  var mkSnap = ctx.monthKey;
+  ids.forEach(function(id) {
+    var tx = activeData.find(function(t) { return t.id === id; });
+    if (tx) {
+      prevCats[id] = tx.category;
+      if (edits[id]) prevEdits[id] = JSON.parse(JSON.stringify(edits[id]));
+      tx.category = cat;
+      tx._manualCategory = true;
+      if (!edits[id]) edits[id] = {};
+      edits[id].category = cat;
+    }
+  });
+  saveEdits(ctx.monthKey, edits);
+  saveData(ctx.monthKey, activeData);
+  recomputeAll();
+  destroyAllCharts();
+  renderAll();
+  clearBulkSelection();
+  pushUndo(ids.length + ' recategorized', function() {
+    var e = loadEdits(mkSnap);
+    ids.forEach(function(id) {
+      var tx = activeData.find(function(t) { return t.id === id; });
+      if (tx && prevCats[id]) {
+        tx.category = prevCats[id];
+        tx._manualCategory = false;
+        if (prevEdits[id]) e[id] = prevEdits[id];
+        else delete e[id];
+      }
+    });
+    saveEdits(mkSnap, e);
+    saveData(mkSnap, activeData);
+    recomputeAll(); destroyAllCharts(); renderAll();
+  });
+  showToast(ids.length + ' transaction' + (ids.length > 1 ? 's' : '') + ' recategorized to ' + cat, 'success');
 }
 
 // ══════════════════════════════════════════════════════════

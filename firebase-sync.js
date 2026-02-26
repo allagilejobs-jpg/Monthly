@@ -583,7 +583,15 @@ async function syncToCloud() {
       batch.set(fb_db.collection('users').doc(uid).collection('config').doc('scanner_meta'), { abbrevDict });
     }
 
+    // Sync timestamp metadata
+    batch.set(fb_db.collection('users').doc(uid).collection('config').doc('sync_meta'), {
+      lastPush: Date.now(),
+      device: (navigator.userAgent || '').substring(0, 80)
+    });
+
     await batch.commit();
+    localStorage.setItem('_lastSyncTs', String(Date.now()));
+    localStorage.removeItem('_localDirty');
     setSyncStatus('Synced');
     setTimeout(() => setSyncStatus(null), 2000);
   } catch(e) {
@@ -595,7 +603,7 @@ async function syncToCloud() {
 }
 
 // Pull Firestore → localStorage
-async function syncFromCloud() {
+async function syncFromCloud(forceMode) {
   if (isDemoMode()) return;
   if (!fb_initialized || !fb_user || syncing) return;
   syncing = true;
@@ -604,6 +612,30 @@ async function syncFromCloud() {
   try {
     const uid = fb_user.uid;
     const userRef = fb_db.collection('users').doc(uid);
+
+    // Check for sync conflicts (unless force mode specified)
+    if (!forceMode) {
+      const metaDoc = await userRef.collection('config').doc('sync_meta').get();
+      if (metaDoc.exists) {
+        const cloudTs = metaDoc.data().lastPush || 0;
+        const localTs = parseInt(localStorage.getItem('_lastSyncTs') || '0');
+        const localDirty = parseInt(localStorage.getItem('_localDirty') || '0');
+        // Conflict: cloud was updated after our last sync AND we have local changes
+        if (cloudTs > localTs && localDirty > 0 && localDirty > localTs) {
+          syncing = false;
+          setSyncStatus(null);
+          showSyncConflictDialog(cloudTs, metaDoc.data().device || 'another device');
+          return;
+        }
+      }
+    }
+
+    // If forceMode is 'local', push local to cloud instead of pulling
+    if (forceMode === 'local') {
+      syncing = false;
+      await syncToCloud();
+      return;
+    }
 
     // Grocery meta
     const gMeta = await userRef.collection('config').doc('grocery_meta').get();
@@ -699,6 +731,8 @@ async function syncFromCloud() {
       localStorage.setItem('scanner_abbrevDict', sMeta.data().abbrevDict);
     }
 
+    localStorage.setItem('_lastSyncTs', String(Date.now()));
+    localStorage.removeItem('_localDirty');
     setSyncStatus('Synced');
     setTimeout(() => setSyncStatus(null), 2000);
   } catch(e) {
@@ -708,6 +742,149 @@ async function syncFromCloud() {
   }
   syncing = false;
 }
+
+// ── Sync Conflict Resolution ──
+function showSyncConflictDialog(cloudTs, deviceInfo) {
+  var timeAgo = formatTimeAgo(cloudTs);
+  var overlay = document.createElement('div');
+  overlay.id = 'sync-conflict-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:100001;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)';
+  overlay.innerHTML =
+    '<div style="background:var(--card,#1a1b2e);border:1px solid var(--card-border,#2a2b35);border-radius:16px;padding:28px 24px;max-width:420px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,0.5)">' +
+    '<div style="font-size:24px;text-align:center;margin-bottom:12px">&#9888;&#65039;</div>' +
+    '<div style="font-size:17px;font-weight:700;text-align:center;margin-bottom:8px;color:var(--text,#e2e8f0)">Sync Conflict Detected</div>' +
+    '<div style="font-size:13px;color:var(--text-muted,#71717a);text-align:center;margin-bottom:24px;line-height:1.6">Another device updated your data ' + timeAgo + '.<br>You also have unsaved local changes.</div>' +
+    '<div style="display:flex;flex-direction:column;gap:10px">' +
+    '<button onclick="resolveSyncConflict(\'cloud\')" style="width:100%;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);color:var(--blue,#3b82f6)">Use Cloud Data<span style="display:block;font-size:11px;font-weight:400;color:var(--text-muted);margin-top:2px">Overwrite local with cloud data</span></button>' +
+    '<button onclick="resolveSyncConflict(\'local\')" style="width:100%;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:var(--green,#22c55e)">Keep Local Data<span style="display:block;font-size:11px;font-weight:400;color:var(--text-muted);margin-top:2px">Push your local changes to cloud</span></button>' +
+    '<button onclick="resolveSyncConflict(\'merge\')" style="width:100%;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);color:#a855f7">Smart Merge<span style="display:block;font-size:11px;font-weight:400;color:var(--text-muted);margin-top:2px">Combine both — keep whichever has more data</span></button>' +
+    '<button onclick="resolveSyncConflict(\'dismiss\')" style="width:100%;padding:8px;border:none;background:none;color:var(--text-muted);font-size:12px;cursor:pointer;font-family:inherit">Decide Later</button>' +
+    '</div></div>';
+  document.body.appendChild(overlay);
+}
+
+function resolveSyncConflict(choice) {
+  var overlay = document.getElementById('sync-conflict-overlay');
+  if (overlay) overlay.parentNode.removeChild(overlay);
+
+  if (choice === 'cloud') {
+    // Force pull from cloud (overwrite local)
+    syncFromCloud('cloud');
+  } else if (choice === 'local') {
+    // Force push to cloud (overwrite cloud)
+    syncFromCloud('local');
+  } else if (choice === 'merge') {
+    // Smart merge: pull cloud but use whichever month has more data
+    syncFromCloudMerge();
+  }
+  // 'dismiss' — do nothing, user will decide later
+}
+
+async function syncFromCloudMerge() {
+  if (!fb_initialized || !fb_user || syncing) return;
+  syncing = true;
+  setSyncStatus('Merging...');
+  try {
+    const uid = fb_user.uid;
+    const userRef = fb_db.collection('users').doc(uid);
+
+    // For each data type: union month lists, keep whichever month has more transactions
+    // Grocery
+    const gMeta = await userRef.collection('config').doc('grocery_meta').get();
+    if (gMeta.exists) {
+      const cloudMonths = JSON.parse(gMeta.data().months || '[]');
+      const localMonths = JSON.parse(localStorage.getItem('grocery_months') || '[]');
+      const merged = [...new Set([...localMonths, ...cloudMonths])];
+      localStorage.setItem('grocery_months', JSON.stringify(merged));
+      for (const mk of cloudMonths) {
+        const cloudDoc = await userRef.collection('grocery_data').doc(mk).get();
+        const cloudData = cloudDoc.exists ? cloudDoc.data().json : null;
+        const localData = localStorage.getItem('data_' + mk);
+        var cloudLen = 0, localLen = 0;
+        try { cloudLen = cloudData ? JSON.parse(cloudData).length : 0; } catch(e){}
+        try { localLen = localData ? JSON.parse(localData).length : 0; } catch(e){}
+        if (cloudLen > localLen && cloudData) localStorage.setItem('data_' + mk, cloudData);
+      }
+    }
+    // Expenses
+    const eMeta = await userRef.collection('config').doc('expenses_meta').get();
+    if (eMeta.exists) {
+      const cloudMonths = JSON.parse(eMeta.data().months || '[]');
+      const localMonths = JSON.parse(localStorage.getItem('expenses_months') || '[]');
+      const merged = [...new Set([...localMonths, ...cloudMonths])];
+      localStorage.setItem('expenses_months', JSON.stringify(merged));
+      for (const mk of cloudMonths) {
+        const cloudDoc = await userRef.collection('expenses_data').doc(mk).get();
+        const cloudData = cloudDoc.exists ? cloudDoc.data().json : null;
+        const localData = localStorage.getItem('expenses_data_' + mk);
+        var cLen = 0, lLen = 0;
+        try { cLen = cloudData ? JSON.parse(cloudData).length : 0; } catch(e){}
+        try { lLen = localData ? JSON.parse(localData).length : 0; } catch(e){}
+        if (cLen > lLen && cloudData) localStorage.setItem('expenses_data_' + mk, cloudData);
+      }
+    }
+    // Budget
+    const bMeta = await userRef.collection('config').doc('budget_meta').get();
+    if (bMeta.exists) {
+      const cloudMonths = JSON.parse(bMeta.data().months || '[]');
+      const localMonths = JSON.parse(localStorage.getItem('budget_months') || '[]');
+      const merged = [...new Set([...localMonths, ...cloudMonths])];
+      localStorage.setItem('budget_months', JSON.stringify(merged));
+      for (const mk of cloudMonths) {
+        const cloudDoc = await userRef.collection('budget_data').doc(mk).get();
+        const cloudData = cloudDoc.exists ? cloudDoc.data().json : null;
+        const localData = localStorage.getItem('budget_data_' + mk);
+        var bcLen = 0, blLen = 0;
+        try { bcLen = cloudData ? JSON.parse(cloudData).length : 0; } catch(e){}
+        try { blLen = localData ? JSON.parse(localData).length : 0; } catch(e){}
+        if (bcLen > blLen && cloudData) localStorage.setItem('budget_data_' + mk, cloudData);
+      }
+    }
+
+    localStorage.setItem('_lastSyncTs', String(Date.now()));
+    localStorage.removeItem('_localDirty');
+
+    // Now push merged result back to cloud
+    await syncToCloud();
+
+    setSyncStatus('Merged');
+    setTimeout(() => setSyncStatus(null), 2000);
+    if (typeof location !== 'undefined') location.reload();
+  } catch(e) {
+    console.error('[Sync] Merge failed:', e);
+    setSyncStatus('Merge error');
+    setTimeout(() => setSyncStatus(null), 3000);
+  }
+  syncing = false;
+}
+
+function formatTimeAgo(ts) {
+  var diff = Date.now() - ts;
+  var secs = Math.floor(diff / 1000);
+  if (secs < 60) return 'just now';
+  var mins = Math.floor(secs / 60);
+  if (mins < 60) return mins + ' minute' + (mins !== 1 ? 's' : '') + ' ago';
+  var hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + ' hour' + (hrs !== 1 ? 's' : '') + ' ago';
+  var days = Math.floor(hrs / 24);
+  return days + ' day' + (days !== 1 ? 's' : '') + ' ago';
+}
+
+// ── Track local data changes for conflict detection ──
+function markLocalDirty() {
+  localStorage.setItem('_localDirty', String(Date.now()));
+}
+
+// Intercept localStorage.setItem to track dirty state for sync-related keys
+(function() {
+  var origSetItem = Storage.prototype.setItem;
+  Storage.prototype.setItem = function(key, value) {
+    origSetItem.call(this, key, value);
+    if (key !== '_localDirty' && key !== '_lastSyncTs' && shouldSync(key)) {
+      origSetItem.call(this, '_localDirty', String(Date.now()));
+    }
+  };
+})();
 
 // ── Initialize on page load ──
 document.addEventListener('DOMContentLoaded', () => {

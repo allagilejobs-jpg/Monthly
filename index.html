@@ -33,10 +33,10 @@
   body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: var(--bg); color: var(--text); line-height: 1.5;
-    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    min-height: 100vh;
     transition: background 0.3s, color 0.3s;
   }
-  .container { max-width: 900px; width: 100%; padding: 40px 24px; text-align: center; }
+  .container { max-width: 900px; width: 100%; padding: 40px 24px; text-align: center; margin: 0 auto; }
   h1 {
     font-size: 32px; font-weight: 700; margin-bottom: 8px;
     background: linear-gradient(135deg, #22c55e, #3b82f6, #a855f7);
@@ -118,6 +118,80 @@
   }
   .home-user-email { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .header { gap: 10px; }
+
+  /* ── How It Works ── */
+  .how-it-works { margin-top: 64px; }
+  .section-title {
+    font-size: 22px; font-weight: 700; margin-bottom: 8px; color: var(--text);
+  }
+  .section-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 32px; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .step {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 28px 20px; text-align: center;
+    transition: all 0.2s;
+  }
+  .step:hover { border-color: var(--blue); }
+  .step-num {
+    width: 36px; height: 36px; border-radius: 50%; line-height: 36px;
+    font-size: 15px; font-weight: 700; margin: 0 auto 14px;
+    background: rgba(59,130,246,0.12); color: var(--blue);
+  }
+  .step-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .step-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+  /* ── Feature Highlights ── */
+  .features { margin-top: 56px; }
+  .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .feat {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 22px 18px; text-align: left;
+    transition: all 0.2s;
+  }
+  .feat:hover { border-color: var(--green); }
+  .feat-icon { font-size: 24px; margin-bottom: 10px; }
+  .feat-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .feat-detail { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+  /* ── FAQ ── */
+  .faq { margin-top: 56px; margin-bottom: 40px; text-align: left; max-width: 680px; margin-left: auto; margin-right: auto; }
+  .faq .section-title { text-align: center; }
+  .faq .section-sub { text-align: center; }
+  .faq-item {
+    border: 1px solid var(--card-border); border-radius: 12px;
+    margin-bottom: 10px; overflow: hidden; background: var(--card);
+    transition: border-color 0.2s;
+  }
+  .faq-item.open { border-color: var(--blue); }
+  .faq-q {
+    padding: 16px 20px; font-size: 14px; font-weight: 700; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center;
+    color: var(--text); user-select: none;
+  }
+  .faq-q:hover { color: var(--blue); }
+  .faq-chevron {
+    font-size: 12px; transition: transform 0.2s; color: var(--text-muted);
+    flex-shrink: 0; margin-left: 12px;
+  }
+  .faq-item.open .faq-chevron { transform: rotate(180deg); }
+  .faq-a {
+    padding: 0 20px; max-height: 0; overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    font-size: 13px; color: var(--text-muted); line-height: 1.7;
+  }
+  .faq-item.open .faq-a { max-height: 200px; padding: 0 20px 16px; }
+
+  @media (max-width: 600px) {
+    .steps { grid-template-columns: 1fr; gap: 12px; }
+    .step { padding: 22px 18px; }
+    .feat-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .feat { padding: 18px 14px; }
+    .section-title { font-size: 19px; }
+    .faq-q { padding: 14px 16px; font-size: 13px; }
+    .how-it-works { margin-top: 48px; }
+    .features { margin-top: 40px; }
+    .faq { margin-top: 40px; }
+  }
 </style>
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
@@ -184,6 +258,108 @@
       "><span style="font-size:18px">&#128176;</span> Budget Demo</button>
     </div>
   </div>
+
+  <!-- How It Works -->
+  <div class="how-it-works">
+    <div class="section-title">How It Works</div>
+    <p class="section-sub">Get started in three simple steps</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-title">Upload Your Data</div>
+        <div class="step-desc">Import bank statements (CSV, PDF, Excel), grocery receipts, or scan paper receipts with OCR.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-title">Auto-Categorize</div>
+        <div class="step-desc">Transactions are automatically sorted into categories using 100+ smart rules. Edit anything with one click.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-title">Track &amp; Compare</div>
+        <div class="step-desc">See trends, set budget goals, compare months, and sync across devices with cloud backup.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature Highlights -->
+  <div class="features">
+    <div class="section-title">What You Get</div>
+    <p class="section-sub">Powerful tools to understand your spending</p>
+    <div class="feat-grid">
+      <div class="feat">
+        <div class="feat-icon">&#128196;</div>
+        <div class="feat-name">Multi-Format Import</div>
+        <div class="feat-detail">CSV, PDF, and Excel support. Auto-detects Chase, Bank of America, Wells Fargo, Capital One, Citi, and more.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">&#127991;&#65039;</div>
+        <div class="feat-name">Smart Categories</div>
+        <div class="feat-detail">100+ merchant rules auto-categorize your transactions. Teach it new rules and they stick.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">&#9729;&#65039;</div>
+        <div class="feat-name">Cloud Sync</div>
+        <div class="feat-detail">Optional Firebase sync keeps your data backed up and accessible across all your devices.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">&#128247;</div>
+        <div class="feat-name">Receipt Scanner</div>
+        <div class="feat-detail">Snap photos of paper receipts. OCR extracts items, prices, and stores automatically.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">&#127919;</div>
+        <div class="feat-name">Budget Goals</div>
+        <div class="feat-detail">Set monthly spending targets by category. Visual progress bars show where you stand.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">&#127763;</div>
+        <div class="feat-name">Dark &amp; Light Mode</div>
+        <div class="feat-detail">Easy on the eyes, day or night. Your preference saves automatically.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="faq">
+    <div class="section-title">Questions &amp; Answers</div>
+    <p class="section-sub">Everything you need to know</p>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Is my data private?
+        <span class="faq-chevron">&#9660;</span>
+      </div>
+      <div class="faq-a">Your data lives in your browser's local storage by default — it never leaves your device. Cloud sync is optional and uses your personal Firebase account with encrypted transfer.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        What file formats are supported?
+        <span class="faq-chevron">&#9660;</span>
+      </div>
+      <div class="faq-a">Bank statements in CSV, PDF, and Excel formats. Grocery data via Excel upload. Receipt photos in JPG, PNG, HEIC, WebP, BMP, and TIFF for OCR scanning.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Can I use this on my phone?
+        <span class="faq-chevron">&#9660;</span>
+      </div>
+      <div class="faq-a">Yes! All dashboards are fully responsive and designed mobile-first. Upload files, scan receipts, and track spending from any device.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        How do I share with my partner?
+        <span class="faq-chevron">&#9660;</span>
+      </div>
+      <div class="faq-a">Sign in with the same account on both devices. Cloud sync will keep your data in sync automatically across all logged-in devices.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Is it free?
+        <span class="faq-chevron">&#9660;</span>
+      </div>
+      <div class="faq-a">Yes, completely free. No subscriptions, no hidden fees, no ads. Your finances are your business.</div>
+    </div>
+  </div>
 </div>
 <script src="demo-data.js"></script>
 <script src="firebase-sync.js"></script>
@@ -221,6 +397,14 @@ if (new URLSearchParams(window.location.search).has('signup')) {
 function enterDemoMode(dashboard) {
   sessionStorage.setItem('demo_mode', 'true');
   window.location.href = (dashboard || 'Groceries') + '/?demo=true';
+}
+function toggleFaq(el) {
+  var item = el.parentElement;
+  var wasOpen = item.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.faq-item').forEach(function(f) { f.classList.remove('open'); });
+  // Toggle clicked
+  if (!wasOpen) item.classList.add('open');
 }
 
 // Update homepage auth buttons on auth state change

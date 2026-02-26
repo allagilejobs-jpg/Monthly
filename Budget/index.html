@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Monthly Budget Dashboard</title>
-<link rel="stylesheet" href="../css/shared.css?v=20260225n">
+<link rel="stylesheet" href="../css/shared.css?v=20260226a">
 <link rel="stylesheet" href="../css/budget.css?v=20260225n">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -190,6 +190,7 @@
             <table class="tbl" id="tx-table">
               <thead>
                 <tr>
+                  <th style="width:32px"><input type="checkbox" class="tx-check" onchange="toggleAllBudgetTx(this.checked)"></th>
                   <th class="sortable" style="width:90px" onclick="sortTx('date')">Date</th>
                   <th class="sortable" onclick="sortTx('category')">Category</th>
                   <th class="sortable" onclick="sortTx('description')">Description</th>
@@ -743,10 +744,16 @@
   </div>
 </div>
 
+<div class="bulk-bar" id="bulk-bar">
+  <span class="bulk-count" id="bulk-count">0 selected</span>
+  <button class="bulk-recat" onclick="bulkBudgetRecat()">Change Category</button>
+  <button class="bulk-delete" onclick="bulkBudgetDelete()">Delete</button>
+  <button class="bulk-cancel" onclick="clearBudgetBulkSelection()">Cancel</button>
+</div>
 <script src="../demo-data.js"></script>
 <script src="../firebase-sync.js"></script>
-<script src="../js/shared.js?v=20260225f"></script>
-<script src="../js/budget.js?v=20260225m"></script>
+<script src="../js/shared.js?v=20260226a"></script>
+<script src="../js/budget.js?v=20260226a"></script>
 <div style="text-align:center;padding:32px 20px 24px;font-size:12px;color:var(--text-muted);border-top:1px solid var(--card-border);margin-top:40px">
   <span style="font-weight:600;color:var(--text)">Family Finance Dashboards</span><br>
   <a href="https://allagilejobs-jpg.github.io/Monthly/Groceries/" style="color:var(--green);text-decoration:none;margin:0 8px">Groceries</a> &bull;

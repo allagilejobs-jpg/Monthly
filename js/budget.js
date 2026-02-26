@@ -471,6 +471,7 @@ function renderTxTable() {
 
   body.innerHTML = pageData.map(function(tx) {
     return '<tr>'
+      + '<td><input type="checkbox" class="tx-check" data-id="'+tx.id+'" onchange="updateBudgetBulkBar()"></td>'
       + '<td>'+escHtml(tx.date)+'</td>'
       + '<td>'+escHtml(tx.category)+'</td>'
       + '<td>'+escHtml(tx.description)+'</td>'
@@ -759,10 +760,18 @@ function saveTx() {
   renderTracker();
 }
 function deleteTx(id) {
-  if (!confirm('Delete this transaction?')) return;
-  activeData = activeData.filter(function(t){return t.id !== id;});
+  var tx = activeData.find(function(t){ return t.id === id; });
+  var mkSnap = ctx.monthKey;
+  activeData = activeData.filter(function(t){ return t.id !== id; });
   saveTransactions(ctx.monthKey, activeData);
   renderTracker();
+  if (tx) {
+    pushUndo('Transaction deleted', function() {
+      activeData.push(tx);
+      saveTransactions(mkSnap, activeData);
+      renderTracker();
+    });
+  }
 }
 
 // ════════════════════════════════════════
@@ -876,10 +885,18 @@ function saveAcct() {
   renderAccounts();
 }
 function deleteAcct(id) {
-  if (!confirm('Delete this account?')) return;
-  activeAccounts = activeAccounts.filter(function(x){return x.id !== id;});
+  var acct = activeAccounts.find(function(x){ return x.id === id; });
+  var mkSnap = ctx.monthKey;
+  activeAccounts = activeAccounts.filter(function(x){ return x.id !== id; });
   saveAccounts(ctx.monthKey, activeAccounts);
   renderAccounts();
+  if (acct) {
+    pushUndo('Account deleted', function() {
+      activeAccounts.push(acct);
+      saveAccounts(mkSnap, activeAccounts);
+      renderAccounts();
+    });
+  }
 }
 function copyAccountsFromPrev() {
   var months = loadMonths().sort();
@@ -955,9 +972,15 @@ function deleteMonth() {
     showDemoUpgradePrompt('Sign up to manage your budget data.');
     return;
   }
-  if (!confirm('Delete ' + ctx.monthName + ' ' + ctx.year + ' and all its data?')) return;
 
   var mk = ctx.monthKey;
+  var label = ctx.monthName + ' ' + ctx.year;
+  // Snapshot before deleting
+  var dataSnap = _get('budget_data_' + mk);
+  var incomeSnap = _get('budget_income_' + mk);
+  var acctsSnap = _get('budget_accounts_' + mk);
+  var monthsSnap = JSON.stringify(loadMonths());
+
   _remove('budget_data_' + mk);
   _remove('budget_income_' + mk);
   _remove('budget_accounts_' + mk);
@@ -976,6 +999,110 @@ function deleteMonth() {
     renderTracker();
     renderAccounts();
   }
+
+  pushUndo(label + ' deleted', function() {
+    if (dataSnap) _set('budget_data_' + mk, dataSnap);
+    if (incomeSnap) _set('budget_income_' + mk, incomeSnap);
+    if (acctsSnap) _set('budget_accounts_' + mk, acctsSnap);
+    saveMonths(JSON.parse(monthsSnap));
+    switchMonth(mk);
+  });
+}
+
+// ════════════════════════════════════════
+// BULK ACTIONS
+// ════════════════════════════════════════
+function getBudgetCheckedIds() {
+  var checks = document.querySelectorAll('#tx-body .tx-check:checked');
+  var ids = [];
+  checks.forEach(function(cb) { if (cb.dataset.id) ids.push(cb.dataset.id); });
+  return ids;
+}
+function updateBudgetBulkBar() {
+  var ids = getBudgetCheckedIds();
+  var bar = document.getElementById('bulk-bar');
+  var countEl = document.getElementById('bulk-count');
+  if (!bar) return;
+  if (ids.length > 0) {
+    bar.classList.add('active');
+    if (countEl) countEl.textContent = ids.length + ' selected';
+  } else {
+    bar.classList.remove('active');
+  }
+}
+function toggleAllBudgetTx(checked) {
+  document.querySelectorAll('#tx-body .tx-check').forEach(function(cb) { cb.checked = checked; });
+  updateBudgetBulkBar();
+}
+function clearBudgetBulkSelection() {
+  toggleAllBudgetTx(false);
+  var h = document.querySelector('#tx-table thead .tx-check');
+  if (h) h.checked = false;
+  updateBudgetBulkBar();
+}
+function bulkBudgetDelete() {
+  var ids = getBudgetCheckedIds();
+  if (ids.length === 0) return;
+  var deleted = [];
+  ids.forEach(function(id) {
+    var tx = activeData.find(function(t) { return t.id === id; });
+    if (tx) deleted.push(JSON.parse(JSON.stringify(tx)));
+  });
+  var mkSnap = ctx.monthKey;
+  activeData = activeData.filter(function(t) { return ids.indexOf(t.id) === -1; });
+  saveTransactions(ctx.monthKey, activeData);
+  renderTracker();
+  pushUndo(deleted.length + ' transaction' + (deleted.length > 1 ? 's' : '') + ' deleted', function() {
+    deleted.forEach(function(tx) { activeData.push(tx); });
+    saveTransactions(mkSnap, activeData);
+    renderTracker();
+  });
+}
+function bulkBudgetRecat() {
+  var ids = getBudgetCheckedIds();
+  if (ids.length === 0) return;
+  var cats = ['Housing','Food','Transportation','Health','Personal','Extra','Savings','Transfer','Other'];
+  var overlay = document.createElement('div');
+  overlay.id = 'bulk-recat-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:100001;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)';
+  var html = '<div style="background:var(--card,#1a1b2e);border:1px solid var(--card-border,#2a2b35);border-radius:16px;padding:24px;max-width:340px;width:100%">';
+  html += '<div style="font-size:16px;font-weight:700;margin-bottom:16px;text-align:center">Change Category (' + ids.length + ')</div>';
+  cats.forEach(function(cat) {
+    html += '<button onclick="applyBudgetBulkCat(\'' + cat + '\')" style="display:block;width:100%;padding:10px 14px;margin-bottom:6px;border-radius:8px;border:1px solid var(--card-border);background:rgba(255,255,255,0.04);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left">' + cat + '</button>';
+  });
+  html += '<button onclick="closeBudgetBulkRecat()" style="display:block;width:100%;padding:8px;margin-top:8px;border:none;background:none;color:var(--text-muted);font-size:13px;cursor:pointer;font-family:inherit">Cancel</button>';
+  html += '</div>';
+  overlay.innerHTML = html;
+  document.body.appendChild(overlay);
+}
+function closeBudgetBulkRecat() {
+  var o = document.getElementById('bulk-recat-overlay');
+  if (o) o.parentNode.removeChild(o);
+}
+function applyBudgetBulkCat(cat) {
+  var ids = getBudgetCheckedIds();
+  closeBudgetBulkRecat();
+  var prevCats = {};
+  var mkSnap = ctx.monthKey;
+  ids.forEach(function(id) {
+    var tx = activeData.find(function(t) { return t.id === id; });
+    if (tx) {
+      prevCats[id] = tx.category;
+      tx.category = cat;
+    }
+  });
+  saveTransactions(ctx.monthKey, activeData);
+  renderTracker();
+  clearBudgetBulkSelection();
+  showToast(ids.length + ' recategorized to ' + cat, 'success');
+  pushUndo(ids.length + ' recategorized', function() {
+    ids.forEach(function(id) {
+      var tx = activeData.find(function(t) { return t.id === id; });
+      if (tx && prevCats[id]) tx.category = prevCats[id];
+    });
+    saveTransactions(mkSnap, activeData);
+    renderTracker();
+  });
 }
 
 // ════════════════════════════════════════
