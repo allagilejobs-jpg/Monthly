@@ -1909,7 +1909,7 @@ function showTripDetail(tripIdx) {
     </div>`;
 
   // Build item groups
-  var groupColors = { 'tag-grocery': 'var(--green)', 'tag-toiletry': 'var(--purple)', 'tag-nongrocery': 'var(--rose)' };
+  var groupColors = { 'tag-grocery': 'var(--teal)', 'tag-toiletry': 'var(--purple)', 'tag-nongrocery': 'var(--rose)' };
   function renderGroup(label, items, tagClass, tagLabel) {
     if (items.length === 0) return "";
     const groupTotal = items.reduce((s, i) => s + i.t, 0);
