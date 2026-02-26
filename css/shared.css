@@ -272,21 +272,6 @@ body.light .tbl tbody tr:nth-child(even) td { background: rgba(0,0,0,0.02); }
     font-size: 11px; padding: 8px 6px; min-height: 36px; white-space: nowrap;
   }
 
-  /* ── Tabs: horizontal scroll strip ── */
-  .tabs {
-    display: flex !important; grid-template-columns: unset !important;
-    overflow-x: auto !important; -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x mandatory;
-    flex-wrap: nowrap !important; width: 100% !important; gap: 4px !important;
-    padding: 4px !important;
-  }
-  .tabs::-webkit-scrollbar { display: none; }
-  .tab {
-    flex: 0 0 auto !important; padding: 8px 14px !important;
-    font-size: 11px !important; white-space: nowrap !important;
-    scroll-snap-align: start; text-align: center;
-  }
-
   /* ── Budget header-right: centered row ── */
   .header-right {
     position: static !important;

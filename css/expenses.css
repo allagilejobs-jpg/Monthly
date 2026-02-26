@@ -531,11 +531,10 @@
     .kpi-value { font-size: 20px; }
     .kpi-card { padding: 14px 16px; }
     .tabs {
-      width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
-      flex-wrap: nowrap;
+      width: 100%; display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
     }
-    .tabs::-webkit-scrollbar { display: none; }
-    .tab { padding: 8px 12px; font-size: 11px; white-space: nowrap; flex-shrink: 0; text-align: center; }
+    .tab { padding: 8px 6px; font-size: 11px; white-space: nowrap; text-align: center; }
     .card { padding: 16px; margin-bottom: 14px; }
     .card-title { font-size: 11px; margin-bottom: 12px; }
     .chart-wrap { height: 260px; }
@@ -565,6 +564,8 @@
     .kpi-card { padding: 12px 14px; }
     .kpi-label { font-size: 9px; letter-spacing: 1px; }
     .kpi-sub { font-size: 11px; }
+    .tabs { grid-template-columns: repeat(3, 1fr); gap: 3px; }
+    .tab { padding: 7px 4px; font-size: 10px; }
     .chart-wrap { height: 220px; }
     .chart-wrap-sm { height: 200px; }
     .chart-wrap-tall { height: 280px; }

@@ -198,9 +198,8 @@ body.light .modal { box-shadow:0 20px 60px rgba(0,0,0,0.15); }
   .kpi-grid { grid-template-columns:repeat(2,1fr); }
   .grid-2, .grid-3 { grid-template-columns:1fr; }
   .setup-grid { grid-template-columns:1fr; }
-  .tabs { width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; flex-wrap:nowrap; }
-  .tabs::-webkit-scrollbar { display:none; }
-  .tab { padding:8px 10px; font-size:11px; text-align:center; flex-shrink:0; white-space:nowrap; }
+  .tabs { width:100%; display:grid; grid-template-columns:repeat(3,1fr); gap:3px; }
+  .tab { padding:8px 6px; font-size:11px; text-align:center; }
   .chart-wrap { height:240px; }
   .setup-row { grid-template-columns:100px 1fr 80px; }
 }
