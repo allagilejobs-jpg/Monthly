@@ -17,7 +17,7 @@ let activeData = []; // current month's transactions
 let activeIncome = null; // current month's income
 let activeAccounts = []; // current month's accounts
 let txSortCol = 'date', txSortDir = 1;
-let txPerPage = 50, txCurrentPage = 1;
+let txPerPage = 100, txCurrentPage = 1;
 let editingTxId = null;
 let editingAcctId = null;
 

@@ -2418,7 +2418,7 @@ function renderTrends() {
 // ══════════════════════════════════════════════════════════
 let txFilterCat = 'All', txFilterMerchant = '', txFilterDate = 'All';
 let txSortCol = 'date', txSortDir = 'asc';
-let txPerPage = 50, txCurrentPage = 1;
+let txPerPage = 100, txCurrentPage = 1;
 
 function renderTransactions() {
   const el = document.getElementById('view-transactions');

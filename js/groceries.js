@@ -1946,7 +1946,7 @@ function showTripDetail(tripIdx) {
 
 // ─────────── ALL ITEMS TAB ───────────
 let currentSort = { col: "d", dir: "asc" };
-let itemsPerPage = 50;
+let itemsPerPage = 100;
 let itemsCurrentPage = 1;
 
 function renderAllItems() {
