@@ -3030,7 +3030,7 @@ function renderCompare() {
     return '<div class="delta-card"><div class="kpi-label">' + label + '</div>' +
       '<div style="font-size:11px;color:var(--blue);margin-bottom:4px">' + curr.label + '</div>' +
       '<div class="delta-value" style="color:var(--text)">' + valStr + '</div>' +
-      '<div class="delta-change ' + cls + '">' + diffStr + ' (' + (diff > 0 ? "+" : "") + pctChange + '%)<span style="color:var(--cyan)"> vs' + prev.label + '</span></div></div>';
+      '<div class="delta-change ' + cls + '">' + diffStr + ' (' + (diff > 0 ? "+" : "") + pctChange + '%)<span style="color:var(--cyan)"> vs ' + prev.label + '</span></div></div>';
   }
 
   html += '<div class="delta-grid">';
