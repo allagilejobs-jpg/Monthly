@@ -292,6 +292,23 @@
             border-radius: 4px;
         }
 
+        .sector-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .sector-badge {
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         @media (max-width: 768px) {
             .tokens-grid {
                 grid-template-columns: 1fr;
@@ -344,40 +361,57 @@
     </div>
 
     <script>
-        // Token list with CoinGecko IDs
+        // Sector color mapping
+        const SECTOR_COLORS = {
+            'L1': '#3b82f6',       // Blue
+            'L2': '#6366f1',       // Indigo
+            'AI': '#8b5cf6',       // Purple
+            'DeFi': '#22c55e',     // Green
+            'DePIN': '#f59e0b',    // Amber
+            'RWA': '#ec4899',      // Pink
+            'Oracle': '#14b8a6',   // Teal
+            'Gaming': '#f43f5e',   // Rose
+            'Infra': '#64748b',    // Slate
+            'Modular': '#0ea5e9',  // Sky
+            'Restaking': '#a855f7',// Violet
+            'Meme': '#fbbf24',     // Yellow
+            'GPU': '#06b6d4',      // Cyan
+        };
+
+        // Token list with CoinGecko IDs and sectors
         const TOKENS = [
-            { symbol: 'BTC', name: 'Bitcoin', id: 'bitcoin' },
-            { symbol: 'ETH', name: 'Ethereum', id: 'ethereum' },
-            { symbol: 'LINK', name: 'Chainlink', id: 'chainlink' },
-            { symbol: 'SOL', name: 'Solana', id: 'solana' },
-            { symbol: 'SUI', name: 'Sui', id: 'sui' },
-            { symbol: 'NEAR', name: 'NEAR Protocol', id: 'near' },
-            { symbol: 'AAVE', name: 'Aave', id: 'aave' },
-            { symbol: 'RENDER', name: 'Render', id: 'render-token' },
-            { symbol: 'ONDO', name: 'Ondo Finance', id: 'ondo-finance' },
-            { symbol: 'PENDLE', name: 'Pendle', id: 'pendle' },
-            { symbol: 'TIA', name: 'Celestia', id: 'celestia' },
-            { symbol: 'MORPHO', name: 'Morpho', id: 'morpho' },
-            { symbol: 'INJ', name: 'Injective', id: 'injective-protocol' },
-            { symbol: 'ARB', name: 'Arbitrum', id: 'arbitrum' },
-            { symbol: 'IMX', name: 'Immutable X', id: 'immutable-x' },
-            { symbol: 'EIGEN', name: 'EigenLayer', id: 'eigenlayer' },
-            { symbol: 'CFG', name: 'Centrifuge', id: 'centrifuge' },
-            { symbol: 'IO', name: 'io.net', id: 'io' },
-            { symbol: 'ZETA', name: 'ZetaChain', id: 'zetachain' },
-            { symbol: 'DIMO', name: 'DIMO', id: 'dimo' },
-            { symbol: 'HONEY', name: 'Hivemapper', id: 'hivemapper' },
-            { symbol: 'WMT', name: 'World Mobile Token', id: 'world-mobile-token' },
-            { symbol: 'TAO', name: 'Bittensor', id: 'bittensor' },
-            { symbol: 'FET', name: 'ASI Alliance', id: 'fetch-ai' },
-            { symbol: 'HNT', name: 'Helium', id: 'helium' },
-            { symbol: 'ADA', name: 'Cardano', id: 'cardano' },
-            { symbol: 'AVAX', name: 'Avalanche', id: 'avalanche-2' },
-            { symbol: 'HYPE', name: 'Hyperliquid', id: 'hyperliquid' },
-            { symbol: 'PUMP', name: 'Pump.fun', id: 'pump-fun' },
-            { symbol: 'SKY', name: 'Sky', id: 'sky' },
-            { symbol: 'SYRUP', name: 'Maple Finance', id: 'syrup' },
-            { symbol: 'ETHFI', name: 'Ether.fi', id: 'ether-fi' }
+            { symbol: 'BTC', name: 'Bitcoin', id: 'bitcoin', sectors: ['L1'] },
+            { symbol: 'ETH', name: 'Ethereum', id: 'ethereum', sectors: ['L1'] },
+            { symbol: 'LINK', name: 'Chainlink', id: 'chainlink', sectors: ['Oracle', 'Infra'] },
+            { symbol: 'SOL', name: 'Solana', id: 'solana', sectors: ['L1'] },
+            { symbol: 'SUI', name: 'Sui', id: 'sui', sectors: ['L1'] },
+            { symbol: 'NEAR', name: 'NEAR Protocol', id: 'near', sectors: ['L1', 'AI'] },
+            { symbol: 'AAVE', name: 'Aave', id: 'aave', sectors: ['DeFi'] },
+            { symbol: 'RENDER', name: 'Render', id: 'render-token', sectors: ['AI', 'GPU'] },
+            { symbol: 'ONDO', name: 'Ondo Finance', id: 'ondo-finance', sectors: ['RWA', 'DeFi'] },
+            { symbol: 'PENDLE', name: 'Pendle', id: 'pendle', sectors: ['DeFi'] },
+            { symbol: 'TIA', name: 'Celestia', id: 'celestia', sectors: ['Modular', 'Infra'] },
+            { symbol: 'MORPHO', name: 'Morpho', id: 'morpho', sectors: ['DeFi'] },
+            { symbol: 'INJ', name: 'Injective', id: 'injective-protocol', sectors: ['L1', 'DeFi'] },
+            { symbol: 'ARB', name: 'Arbitrum', id: 'arbitrum', sectors: ['L2'] },
+            { symbol: 'IMX', name: 'Immutable X', id: 'immutable-x', sectors: ['L2', 'Gaming'] },
+            { symbol: 'EIGEN', name: 'EigenLayer', id: 'eigenlayer', sectors: ['Restaking', 'Infra'] },
+            { symbol: 'CFG', name: 'Centrifuge', id: 'centrifuge', sectors: ['RWA'] },
+            { symbol: 'IO', name: 'io.net', id: 'io', sectors: ['AI', 'DePIN', 'GPU'] },
+            { symbol: 'ZETA', name: 'ZetaChain', id: 'zetachain', sectors: ['L1', 'Infra'] },
+            { symbol: 'DIMO', name: 'DIMO', id: 'dimo', sectors: ['DePIN'] },
+            { symbol: 'HONEY', name: 'Hivemapper', id: 'hivemapper', sectors: ['DePIN'] },
+            { symbol: 'WMT', name: 'World Mobile Token', id: 'world-mobile-token', sectors: ['DePIN'] },
+            { symbol: 'TAO', name: 'Bittensor', id: 'bittensor', sectors: ['AI'] },
+            { symbol: 'FET', name: 'ASI Alliance', id: 'fetch-ai', sectors: ['AI'] },
+            { symbol: 'HNT', name: 'Helium', id: 'helium', sectors: ['DePIN'] },
+            { symbol: 'ADA', name: 'Cardano', id: 'cardano', sectors: ['L1'] },
+            { symbol: 'AVAX', name: 'Avalanche', id: 'avalanche-2', sectors: ['L1'] },
+            { symbol: 'HYPE', name: 'Hyperliquid', id: 'hyperliquid', sectors: ['L1', 'DeFi'] },
+            { symbol: 'PUMP', name: 'Pump.fun', id: 'pump-fun', sectors: ['Meme', 'Infra'] },
+            { symbol: 'SKY', name: 'Sky', id: 'sky', sectors: ['DeFi'] },
+            { symbol: 'SYRUP', name: 'Maple Finance', id: 'syrup', sectors: ['DeFi', 'RWA'] },
+            { symbol: 'ETHFI', name: 'Ether.fi', id: 'ether-fi', sectors: ['DeFi', 'Restaking'] }
         ];
 
         let tokenData = [];
@@ -583,6 +617,10 @@
             const change1hClass = token.change1h >= 0 ? 'positive' : 'negative';
             const change30dClass = token.change30d >= 0 ? 'positive' : 'negative';
 
+            const sectorBadges = (token.sectors || []).map(sector => 
+                `<span class="sector-badge" style="background: ${SECTOR_COLORS[sector] || '#666'}">${sector}</span>`
+            ).join('');
+
             return `
                 <div class="token-card">
                     <div class="token-header">
@@ -594,6 +632,7 @@
                         <span class="rank-badge">#${token.rank || '?'}</span>
                         <div class="token-price">${formatPrice(token.price)}</div>
                     </div>
+                    <div class="sector-tags">${sectorBadges}</div>
                     
                     <div class="price-changes">
                         <div class="price-change">
