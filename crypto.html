@@ -419,7 +419,7 @@
 
         let lastFetchTime = 0;
         let cachedData = null;
-        const CACHE_DURATION = 30000; // 30 seconds cache
+        const CACHE_DURATION = 180000; // 3 minutes cache
 
         async function fetchData(retryCount = 0) {
             const container = document.getElementById('tokensContainer');
@@ -431,7 +431,7 @@
                 renderTokens();
                 updateSummary();
                 document.getElementById('lastUpdated').textContent = 
-                    `Last updated: ${new Date(lastFetchTime).toLocaleTimeString()} (cached) • Auto-refresh: 60s`;
+                    `Last updated: ${new Date(lastFetchTime).toLocaleTimeString()} (cached) • Auto-refresh: 5m`;
                 return;
             }
             
@@ -708,7 +708,7 @@
         function updateLastUpdated() {
             const now = new Date();
             document.getElementById('lastUpdated').textContent = 
-                `Last updated: ${now.toLocaleTimeString()} • Auto-refresh: 90s`;
+                `Last updated: ${now.toLocaleTimeString()} • Auto-refresh: 5m`;
         }
 
         function sortBy(type) {
@@ -726,8 +726,8 @@
         // Initial fetch
         fetchData();
 
-        // Auto-refresh every 90 seconds (to avoid rate limits)
-        setInterval(fetchData, 90000);
+        // Auto-refresh every 5 minutes (to avoid rate limits)
+        setInterval(fetchData, 300000);
     </script>
 </body>
 </html>
