@@ -429,6 +429,15 @@
             return '$' + price.toFixed(6);
         }
 
+        function formatMarketCap(cap) {
+            if (cap === null || cap === undefined) return 'N/A';
+            if (cap >= 1e12) return '$' + (cap / 1e12).toFixed(2) + 'T';
+            if (cap >= 1e9) return '$' + (cap / 1e9).toFixed(2) + 'B';
+            if (cap >= 1e6) return '$' + (cap / 1e6).toFixed(2) + 'M';
+            if (cap >= 1e3) return '$' + (cap / 1e3).toFixed(2) + 'K';
+            return '$' + cap.toFixed(0);
+        }
+
         function formatPercent(value) {
             if (value === null || value === undefined) return 'N/A';
             const sign = value >= 0 ? '+' : '';
@@ -498,7 +507,7 @@
                         <img class="token-icon" src="${token.image}" alt="${token.name}" onerror="this.style.display='none'">
                         <div class="token-name">
                             <h3>${token.name}</h3>
-                            <span>${token.symbol}</span>
+                            <span>${token.symbol} • MCap: ${formatMarketCap(token.marketCap)}</span>
                         </div>
                         <span class="rank-badge">#${token.rank || '?'}</span>
                         <div class="token-price">${formatPrice(token.price)}</div>
