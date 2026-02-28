@@ -210,9 +210,8 @@ function extractDate(text) {
       }
     }
   }
-  // Default to today
-  const now = new Date();
-  return String(now.getMonth()+1).padStart(2,'0') + '/' + String(now.getDate()).padStart(2,'0');
+  // No date found — leave blank for user to fill in
+  return '';
 }
 
 // ============================================================
@@ -934,7 +933,7 @@ async function processWithGemini(uf, doAutoDetect) {
 
   const parsed = JSON.parse(jsonMatch[0]);
   const store = (doAutoDetect && parsed.store) || 'Unknown Store';
-  const date = (doAutoDetect && parsed.date) || extractDate('');
+  const date = (doAutoDetect && parsed.date) || '';
 
   return (parsed.items || []).map(item => ({
     d: date,
@@ -1008,12 +1007,12 @@ function renderReview() {
     groupsHtml += `<div class="receipt-group">`;
     groupsHtml += `<div class="receipt-header" onclick="toggleGroup('${groupId}')">
       <div class="file-name">&#128206; ${fileName} &mdash; ${items.length} item(s)</div>
-      <div class="file-meta"><span>${store}</span><span>${date}</span><span>$${fmt(fileTotal)}</span><span class="chevron">&#9660;</span></div>
+      <div class="file-meta"><span>${store}</span><span>${date || 'No date'}</span><span>$${fmt(fileTotal)}</span><span class="chevron">&#9660;</span></div>
     </div>`;
 
     groupsHtml += `<div class="store-date-row" id="${groupId}_meta">
       <label>Store: <input type="text" value="${escHtml(store)}" onchange="updateGroupField('${fileName}','s',this.value)"></label>
-      <label>Date: <input type="text" value="${escHtml(date)}" placeholder="MM/DD" onchange="updateGroupField('${fileName}','d',this.value)"></label>
+      <label>Date: ${buildDateDropdowns(date, fileName)}</label>
     </div>`;
 
     groupsHtml += `<div class="receipt-body" id="${groupId}">`;
@@ -1081,6 +1080,63 @@ function updateGroupField(fileName, field, value) {
   extractedData.forEach(item => {
     if (item._file === fileName) item[field] = value;
   });
+}
+
+function daysInMonth(month) {
+  if (!month) return 31;
+  const m = parseInt(month);
+  if (m === 2) {
+    const yr = new Date().getFullYear();
+    return (yr % 4 === 0 && (yr % 100 !== 0 || yr % 400 === 0)) ? 29 : 28;
+  }
+  return [4,6,9,11].includes(m) ? 30 : 31;
+}
+
+function buildDayOptions(month, selDay) {
+  const maxDay = daysInMonth(month);
+  let dayOpts = '<option value="">Day</option>';
+  for (let d = 1; d <= maxDay; d++) {
+    const val = String(d).padStart(2,'0');
+    dayOpts += `<option value="${val}"${val === selDay ? ' selected' : ''}>${d}</option>`;
+  }
+  return dayOpts;
+}
+
+function buildDateDropdowns(date, fileName) {
+  const parts = (date || '').split('/');
+  const selMonth = parts[0] || '';
+  const selDay = parts[1] || '';
+  const monthNames = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  let monthOpts = '<option value="">Mo</option>';
+  for (let m = 1; m <= 12; m++) {
+    const val = String(m).padStart(2,'0');
+    monthOpts += `<option value="${val}"${val === selMonth ? ' selected' : ''}>${monthNames[m]}</option>`;
+  }
+
+  const fn = escHtml(fileName);
+  return `<select class="date-select" onchange="updateDateFromDropdowns('${fn}')" data-file="${fn}" data-part="month">${monthOpts}</select>
+    <span class="date-slash">/</span>
+    <select class="date-select" onchange="updateDateFromDropdowns('${fn}')" data-file="${fn}" data-part="day">${buildDayOptions(selMonth, selDay)}</select>`;
+}
+
+function updateDateFromDropdowns(fileName) {
+  const monthSel = document.querySelector(`select[data-file="${fileName}"][data-part="month"]`);
+  const daySel = document.querySelector(`select[data-file="${fileName}"][data-part="day"]`);
+  const month = monthSel?.value || '';
+
+  // Update day options when month changes
+  const currentDay = daySel?.value || '';
+  const maxDay = daysInMonth(month);
+  daySel.innerHTML = buildDayOptions(month, currentDay);
+  // If selected day exceeds new max, reset it
+  if (currentDay && parseInt(currentDay) > maxDay) {
+    daySel.value = '';
+  }
+
+  const day = daySel?.value || '';
+  const date = (month && day) ? month + '/' + day : '';
+  updateGroupField(fileName, 'd', date);
 }
 
 function escHtml(s) {

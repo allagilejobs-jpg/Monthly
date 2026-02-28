@@ -132,6 +132,8 @@ body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var
 .store-date-row { padding:10px 20px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; border-bottom:1px solid var(--border); background:var(--surface); }
 .store-date-row label { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
 .store-date-row input, .store-date-row select { background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:4px 8px; color:var(--text); font-size:12px; }
+.date-select { min-width:60px; cursor:pointer; }
+.date-slash { color:var(--muted); font-weight:600; margin:0 2px; }
 
 /* Export panel */
 .export-cards { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px; }
