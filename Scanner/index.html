@@ -14,17 +14,23 @@
 <link rel="stylesheet" href="../css/scanner.css">
 </head>
 <body>
+<script>
+// Apply theme before render (demo defaults to light)
+(function(){
+  var isDemo = new URLSearchParams(window.location.search).has('demo') || sessionStorage.getItem('demo_mode') === 'true';
+  var saved = isDemo ? sessionStorage.getItem('demo_scanner_theme') : localStorage.getItem('scanner_theme');
+  if ((isDemo && !saved) || saved === 'light') document.body.classList.add('light');
+})();
+</script>
 
 <div class="header">
   <h1>&#128247; <span>Receipt Scanner</span></h1>
-  <div class="header-right">
+  <div class="header-links">
+    <a href="../">Home</a>
+    <a href="../Groceries/">Groceries</a>
+    <a href="../Expenses/">Expenses</a>
+    <a href="../Budget/">Budget</a>
     <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">&#9790;</button>
-    <div class="header-links">
-      <a href="../">Home</a>
-      <a href="../Groceries/">Groceries</a>
-      <a href="../Expenses/">Expenses</a>
-      <a href="../Budget/">Budget</a>
-    </div>
   </div>
 </div>
 

@@ -166,9 +166,10 @@ body.light .review-table input, body.light .review-table select,
 body.light .store-date-row input, body.light .store-date-row select,
 body.light .month-picker select, body.light .month-picker input { background: #fff; }
 body.light .thumb-remove { background: rgba(0,0,0,0.5); }
-.header-right { display:flex; align-items:center; gap:12px; }
-.theme-toggle { background:rgba(255,255,255,0.06); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:16px; line-height:1; cursor:pointer; color:var(--text); transition:all 0.2s; }
-.theme-toggle:hover { background:rgba(255,255,255,0.1); border-color:var(--orange); }
+.theme-toggle { background:rgba(255,255,255,0.06); border:1px solid var(--border); border-radius:8px; padding:5px 10px; cursor:pointer; font-size:16px; line-height:1; transition:all 0.2s; color:var(--text); vertical-align:middle; }
+.theme-toggle:hover { background:rgba(255,255,255,0.1); transform:translateY(-1px); }
+body.light .theme-toggle { background:rgba(0,0,0,0.04); }
+body.light .theme-toggle:hover { background:rgba(0,0,0,0.08); }
 
 /* Responsive */
 @media(max-width:700px){
