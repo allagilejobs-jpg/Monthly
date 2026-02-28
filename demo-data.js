@@ -929,18 +929,25 @@ if (DEMO_MODE) {
 // ── Shared demo UI functions ──
 function injectDemoBanner(color) {
   color = color || 'green';
-  var colorMap = { green:{ c1:'#1e3a2f',c2:'#1a2740',accent:'rgba(34,197,94,0.3)',accentVar:'#22c55e',rgb:'34,197,94' },
-    blue:{ c1:'#1a2740',c2:'#1e2a3f',accent:'rgba(59,130,246,0.3)',accentVar:'#3b82f6',rgb:'59,130,246' },
-    purple:{ c1:'#2a1f40',c2:'#1e2a3f',accent:'rgba(168,85,247,0.3)',accentVar:'#a855f7',rgb:'168,85,247' } };
+  var isLight = document.body.classList.contains('light');
+  var colorMap = {
+    green:{ c1d:'#1e3a2f',c2d:'#1a2740',c1l:'#e8f5e9',c2l:'#e3f2fd',accent:'rgba(34,197,94,0.3)',accentVar:'#22c55e',rgb:'34,197,94' },
+    blue:{ c1d:'#1a2740',c2d:'#1e2a3f',c1l:'#e3f2fd',c2l:'#e8eaf6',accent:'rgba(59,130,246,0.3)',accentVar:'#3b82f6',rgb:'59,130,246' },
+    purple:{ c1d:'#2a1f40',c2d:'#1e2a3f',c1l:'#f3e5f5',c2l:'#e8eaf6',accent:'rgba(168,85,247,0.3)',accentVar:'#a855f7',rgb:'168,85,247' }
+  };
   var cm = colorMap[color] || colorMap.green;
-  var c1 = cm.c1, c2 = cm.c2, accent = cm.accent, accentVar = cm.accentVar;
+  var c1 = isLight ? cm.c1l : cm.c1d;
+  var c2 = isLight ? cm.c2l : cm.c2d;
+  var accent = cm.accent, accentVar = cm.accentVar;
+  var textColor = isLight ? '#1a1a2e' : '#e4e4e7';
+  var mutedColor = isLight ? '#6b6b80' : '#71717a';
   var banner = document.createElement('div');
   banner.id = 'demo-banner';
-  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:10000;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');border-bottom:1px solid ' + accent + ';padding:8px 12px;display:flex;justify-content:center;align-items:center;gap:8px;font-size:12px;color:#e4e4e7;flex-wrap:wrap;';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:10000;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');border-bottom:1px solid ' + accent + ';padding:8px 12px;display:flex;justify-content:center;align-items:center;gap:8px;font-size:12px;color:' + textColor + ';flex-wrap:wrap;';
   banner.innerHTML = '<span style="font-weight:700;color:' + accentVar + '">DEMO MODE</span>' +
-    '<span style="color:#71717a">Exploring with sample data</span>' +
+    '<span style="color:' + mutedColor + '">Exploring with sample data</span>' +
     '<button onclick="exitDemoAndSignUp()" style="background:rgba(' + cm.rgb + ',0.15);border:1px solid ' + accent + ';color:' + accentVar + ';border-radius:6px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Sign Up to Save Your Data</button>' +
-    '<button onclick="exitDemo()" style="background:none;border:none;color:#71717a;cursor:pointer;font-size:12px;text-decoration:underline;font-family:inherit;">Exit Demo</button>';
+    '<button onclick="exitDemo()" style="background:none;border:none;color:' + mutedColor + ';cursor:pointer;font-size:12px;text-decoration:underline;font-family:inherit;">Exit Demo</button>';
   document.body.prepend(banner);
   // Push down everything below the fixed demo banner - responsive
   var isMobile = window.innerWidth <= 480;
