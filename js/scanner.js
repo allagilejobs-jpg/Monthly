@@ -601,7 +601,7 @@ function handleFiles(fileList) {
   const isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
   if (isDemo && uploadedFiles.length >= 1) {
     if (typeof showDemoUpgradePrompt === 'function') {
-      showDemoUpgradePrompt('You\u2019ve used your free scan! Sign up to scan unlimited receipts, PDFs, and online orders.');
+      showDemoUpgradePrompt('Demo mode is limited to 1 file. Sign up for a free account to scan unlimited receipts, PDFs, and online orders.');
     }
     return;
   }
