@@ -1419,7 +1419,7 @@ function toggleTheme() {
   // Restore theme (demo defaults to light)
   const isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
   const savedTheme = isDemo ? sessionStorage.getItem('demo_scanner_theme') : localStorage.getItem('scanner_theme');
-  if (isDemo && !savedTheme || savedTheme === 'light') {
+  if ((isDemo && !savedTheme) || savedTheme === 'light') {
     document.body.classList.add('light');
     document.getElementById('theme-toggle').innerHTML = '&#9788;';
   }

@@ -910,7 +910,7 @@ function toggleTheme() {
   const saved = isDemo
     ? sessionStorage.getItem("demo_grocery_theme")
     : localStorage.getItem("grocery_theme");
-  if (isDemo && !saved || saved === "light") {
+  if ((isDemo && !saved) || saved === "light") {
     document.body.classList.add("light");
     document.getElementById("theme-toggle").innerHTML = "&#9788;";
   }

@@ -3352,7 +3352,7 @@ function applyBulkCategory(cat) {
 (function init() {
   // Restore theme (demo defaults to light)
   const savedTheme = _isDemo ? sessionStorage.getItem('demo_expenses_theme') : localStorage.getItem('expenses_theme');
-  if (_isDemo && !savedTheme || savedTheme === 'light') {
+  if ((_isDemo && !savedTheme) || savedTheme === 'light') {
     document.body.classList.add('light');
     document.getElementById('theme-toggle').innerHTML = '&#9788;';
   }
