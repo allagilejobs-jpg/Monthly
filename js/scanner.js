@@ -550,22 +550,93 @@ dropZone.addEventListener('drop', e => {
 });
 fileInput.addEventListener('change', () => { handleFiles(fileInput.files); fileInput.value = ''; });
 
-function handleFiles(fileList) {
-  const newFiles = Array.from(fileList).filter(f => f.type.startsWith('image/') || /\.(heic|tif|tiff)$/i.test(f.name));
-  const remaining = 100 - uploadedFiles.length;
-  const toAdd = newFiles.slice(0, remaining);
-  if (newFiles.length > remaining) {
-    log(`Only adding ${remaining} more images (100 max). ${newFiles.length - remaining} files skipped.`, 'error');
+const MAX_PDF_PAGES = 20;
+
+async function renderPdfPages(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const totalPages = Math.min(pdf.numPages, MAX_PDF_PAGES);
+
+  if (pdf.numPages > MAX_PDF_PAGES) {
+    log(`PDF has ${pdf.numPages} pages — processing first ${MAX_PDF_PAGES} only.`, 'error');
   }
-  for (const file of toAdd) {
+
+  const pages = [];
+  for (let i = 1; i <= totalPages; i++) {
+    const page = await pdf.getPage(i);
+    const scale = 2;
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    // Check if page is blank (mostly white)
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const pixels = imageData.data;
+    let darkPixels = 0;
+    for (let p = 0; p < pixels.length; p += 16) {
+      if (pixels[p] < 240 || pixels[p+1] < 240 || pixels[p+2] < 240) darkPixels++;
+    }
+    if (darkPixels < (pixels.length / 16) * 0.01) {
+      continue; // skip blank page
+    }
+
+    const dataUrl = canvas.toDataURL('image/png');
+    pages.push({
+      dataUrl,
+      name: `${file.name} (page ${i}${totalPages > 1 ? '/' + totalPages : ''})`,
+      pageNum: i,
+      totalPages
+    });
+  }
+
+  if (!pages.length) throw new Error('PDF appears to be empty or contains only blank pages');
+  return pages;
+}
+
+function handleFiles(fileList) {
+  const files = Array.from(fileList);
+  const imageFiles = files.filter(f => f.type.startsWith('image/') || /\.(heic|tif|tiff)$/i.test(f.name));
+  const pdfFiles = files.filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+  const remaining = 100 - uploadedFiles.length;
+
+  // Process images directly
+  const imagesToAdd = imageFiles.slice(0, remaining);
+  let added = imagesToAdd.length;
+
+  for (const file of imagesToAdd) {
     const reader = new FileReader();
     reader.onload = () => {
-      uploadedFiles.push({ file, dataUrl: reader.result, name: file.name });
+      uploadedFiles.push({ file, dataUrl: reader.result, name: file.name, isPdf: false });
       renderThumbnails();
     };
     reader.readAsDataURL(file);
   }
-  if (toAdd.length) setTimeout(renderThumbnails, 100);
+
+  // Process PDFs — render pages to images
+  const pdfsToAdd = pdfFiles.slice(0, Math.max(0, remaining - added));
+  for (const file of pdfsToAdd) {
+    renderPdfPages(file).then(pages => {
+      const space = 100 - uploadedFiles.length;
+      const pagesToAdd = pages.slice(0, space);
+      for (const pg of pagesToAdd) {
+        uploadedFiles.push({ file, dataUrl: pg.dataUrl, name: pg.name, isPdf: true, pageNum: pg.pageNum, totalPages: pg.totalPages });
+      }
+      renderThumbnails();
+    }).catch(err => {
+      log(`Failed to load PDF "${file.name}": ${err.message}`, 'error');
+    });
+  }
+
+  const skipped = files.length - imageFiles.length - pdfFiles.length;
+  if (skipped > 0) log(`${skipped} unsupported file(s) skipped.`, 'error');
+  if (imageFiles.length + pdfFiles.length > remaining) {
+    log(`Only adding ${remaining} more files (100 max).`, 'error');
+  }
+
+  if (imagesToAdd.length || pdfsToAdd.length) setTimeout(renderThumbnails, 100);
 }
 
 function renderThumbnails() {
@@ -574,12 +645,15 @@ function renderThumbnails() {
     const uf = uploadedFiles[i];
     const card = document.createElement('div');
     card.className = 'thumb-card';
-    card.innerHTML = `<img src="${uf.dataUrl}" alt="${uf.name}"><div class="thumb-name" title="${uf.name}">${uf.name}</div><button class="thumb-remove" onclick="removeFile(${i})">&times;</button>`;
+    let badge = '';
+    if (uf.isPdf) badge = `<div class="thumb-badge">PDF p${uf.pageNum}</div>`;
+    card.innerHTML = `<img src="${uf.dataUrl}" alt="${uf.name}">${badge}<div class="thumb-name" title="${uf.name}">${uf.name}</div><button class="thumb-remove" onclick="removeFile(${i})">&times;</button>`;
     thumbGrid.appendChild(card);
   }
   uploadActions.style.display = uploadedFiles.length ? 'flex' : 'none';
-  document.getElementById('uploadCount').textContent = uploadedFiles.length + ' image' + (uploadedFiles.length !== 1 ? 's' : '');
-  document.getElementById('btnProcess').disabled = !uploadedFiles.length;
+  const count = uploadedFiles.length;
+  document.getElementById('uploadCount').textContent = count + ' file' + (count !== 1 ? 's' : '');
+  document.getElementById('btnProcess').disabled = !count;
 }
 
 function removeFile(idx) {

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Receipt Scanner</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
@@ -37,10 +38,10 @@
   <div class="panel active" id="panelUpload">
     <div class="drop-zone" id="dropZone">
       <div class="drop-zone-icon">&#128228;</div>
-      <div class="drop-zone-text">Drop receipt images here or click to browse</div>
-      <div class="drop-zone-sub">Accepts JPG, PNG, HEIC, WebP, BMP, TIFF &mdash; up to 100 images at once</div>
+      <div class="drop-zone-text">Drop receipts here or click to browse</div>
+      <div class="drop-zone-sub">Accepts images (JPG, PNG, HEIC, WebP, BMP, TIFF) and PDFs &mdash; up to 100 files at once</div>
     </div>
-    <input type="file" class="file-input" id="fileInput" multiple accept="image/jpeg,image/png,image/heic,image/webp,image/bmp,image/tiff,.heic,.jpg,.jpeg,.png,.webp,.bmp,.tiff,.tif">
+    <input type="file" class="file-input" id="fileInput" multiple accept="image/jpeg,image/png,image/heic,image/webp,image/bmp,image/tiff,.heic,.jpg,.jpeg,.png,.webp,.bmp,.tiff,.tif,application/pdf,.pdf">
     <div class="thumb-grid" id="thumbGrid"></div>
     <div class="upload-actions" id="uploadActions" style="display:none">
       <span class="upload-count" id="uploadCount">0 images</span>
