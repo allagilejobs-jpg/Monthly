@@ -3097,8 +3097,9 @@ function renderRecurring() {
 
 (function init() {
   // Theme
+  // Theme (demo defaults to light)
   var theme = _isDemo ? sessionStorage.getItem('budget_theme') : localStorage.getItem('budget_theme');
-  if (theme === 'light') {
+  if (_isDemo && !theme || theme === 'light') {
     document.body.classList.add('light');
     document.getElementById('theme-toggle').innerHTML = '&#9788;';
   }

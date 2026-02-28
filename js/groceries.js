@@ -904,12 +904,13 @@ function toggleTheme() {
   else localStorage.setItem("grocery_theme", isLight ? "light" : "dark");
   document.getElementById("theme-toggle").innerHTML = isLight ? "&#9788;" : "&#9790;";
 }
-// Apply saved theme on load
+// Apply saved theme on load (demo defaults to light)
 (function() {
-  const saved = (typeof DEMO_MODE !== 'undefined' && DEMO_MODE)
+  const isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
+  const saved = isDemo
     ? sessionStorage.getItem("demo_grocery_theme")
     : localStorage.getItem("grocery_theme");
-  if (saved === "light") {
+  if (isDemo && !saved || saved === "light") {
     document.body.classList.add("light");
     document.getElementById("theme-toggle").innerHTML = "&#9788;";
   }

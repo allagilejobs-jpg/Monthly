@@ -1405,8 +1405,25 @@ function resetAll() {
   document.getElementById('currentFileFill').classList.remove('done');
 }
 
+// ── Theme Toggle ──
+function toggleTheme() {
+  const isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
+  const isLight = document.body.classList.toggle('light');
+  if (isDemo) sessionStorage.setItem('demo_scanner_theme', isLight ? 'light' : 'dark');
+  else localStorage.setItem('scanner_theme', isLight ? 'light' : 'dark');
+  document.getElementById('theme-toggle').innerHTML = isLight ? '&#9788;' : '&#9790;';
+}
+
 // Load saved settings
 (function(){
+  // Restore theme (demo defaults to light)
+  const isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
+  const savedTheme = isDemo ? sessionStorage.getItem('demo_scanner_theme') : localStorage.getItem('scanner_theme');
+  if (isDemo && !savedTheme || savedTheme === 'light') {
+    document.body.classList.add('light');
+    document.getElementById('theme-toggle').innerHTML = '&#9788;';
+  }
+
   // Restore scan mode — reset old 'ocr' default to 'ai'
   let savedMode = localStorage.getItem('scanner_mode');
   if (!savedMode || savedMode === 'ocr') { savedMode = 'ai'; localStorage.setItem('scanner_mode', 'ai'); }
