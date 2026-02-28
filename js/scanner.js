@@ -604,7 +604,6 @@ function selectMode(mode) {
     c.classList.toggle('selected', isSelected);
     c.querySelector('.mode-badge').textContent = isSelected ? 'Selected' : 'Select';
   });
-  document.getElementById('geminiSection').classList.toggle('visible', mode === 'ai');
   document.getElementById('preprocessLabel').style.display = mode === 'ocr' ? '' : 'none';
 }
 
@@ -641,17 +640,9 @@ async function startProcessing() {
   goToStep(2);
   document.getElementById('logBox').innerHTML = '';
 
-  const geminiKey = document.getElementById('geminiKey').value.trim();
   const doPreprocess = document.getElementById('chkPreprocess').checked;
   const doAutoDetect = document.getElementById('chkAutoDetect').checked;
   const useGemini = scanMode === 'ai';
-
-  // Validate AI mode has a key
-  if (useGemini && !geminiKey) {
-    log('AI mode selected but no Gemini API key provided. Please paste your key or switch to Offline OCR.', 'error');
-    setTimeout(() => goToStep(1), 1500);
-    return;
-  }
 
   const total = uploadedFiles.length;
   log(`Starting scan of ${total} receipt(s)...`, 'info');
@@ -692,7 +683,7 @@ async function startProcessing() {
     try {
       let items;
       if (useGemini) {
-        items = await processWithGemini(uf, geminiKey, doAutoDetect);
+        items = await processWithGemini(uf, doAutoDetect);
       } else {
         items = await processWithTesseract(uf, doPreprocess, doAutoDetect);
       }
@@ -831,41 +822,21 @@ async function processWithTesseract(uf, doPreprocess, doAutoDetect) {
   });
 }
 
-async function processWithGemini(uf, apiKey, doAutoDetect) {
-  log('  Sending to Gemini Vision API...');
+async function processWithGemini(uf, doAutoDetect) {
+  log('  Sending to AI Scanner...');
 
   const base64 = uf.dataUrl.split(',')[1];
   const mimeType = uf.dataUrl.split(';')[0].split(':')[1] || 'image/jpeg';
 
-  const payload = {
-    contents: [{
-      parts: [
-        { inlineData: { mimeType, data: base64 } },
-        { text: `Analyze this grocery receipt image and extract all purchased items. For each item, return:
-- rawName: the abbreviated name exactly as printed on the receipt
-- fullName: the decoded/full product name
-- category: one of these categories: Dairy & Eggs, Meat & Seafood, Produce, Bakery & Bread, Frozen, Canned & Packaged, Snacks & Candy, Beverages, Condiments & Sauces, Grains & Pasta, Baking & Cooking, Baby Products, Pet Supplies, Other Grocery, Cleaning Products, Paper Products, Personal Care, Health & Medicine, Kitchen & Home, Laundry, Electronics & Misc, Other Non-Grocery
-- quantity: number (default 1)
-- unitPrice: price per unit as number
-- total: line total as number
-- storeName: the store name if visible
-- date: the transaction date in MM/DD format if visible
-
-Return ONLY a JSON object with this exact structure:
-{"store":"StoreName","date":"MM/DD","items":[{"rawName":"...","fullName":"...","category":"...","quantity":1,"unitPrice":0.00,"total":0.00}]}` }
-      ]
-    }]
-  };
-
-  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+  const resp = await fetch('https://receipt-proxy.vercel.app/api/scan', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({ image: base64, mimeType, autoDetect: doAutoDetect })
   });
 
   if (!resp.ok) {
-    const err = await resp.text();
-    throw new Error('Gemini API error: ' + resp.status + ' ' + err.slice(0, 200));
+    const err = await resp.json().catch(() => ({}));
+    throw new Error('Scan error: ' + (err.error || resp.status));
   }
 
   const data = await resp.json();
@@ -1350,13 +1321,6 @@ function resetAll() {
 
 // Load saved settings
 (function(){
-  // Restore Gemini key
-  const saved = localStorage.getItem('scanner_geminiKey');
-  if (saved) document.getElementById('geminiKey').value = saved;
-  document.getElementById('geminiKey').addEventListener('change', function() {
-    if (this.value.trim()) localStorage.setItem('scanner_geminiKey', this.value.trim());
-    else localStorage.removeItem('scanner_geminiKey');
-  });
   // Restore scan mode — reset old 'ocr' default to 'ai'
   let savedMode = localStorage.getItem('scanner_mode');
   if (!savedMode || savedMode === 'ocr') { savedMode = 'ai'; localStorage.setItem('scanner_mode', 'ai'); }
