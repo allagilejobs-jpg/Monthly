@@ -597,10 +597,22 @@ async function renderPdfPages(file) {
 }
 
 function handleFiles(fileList) {
+  // Demo mode: allow 1 file only, then require sign-up
+  const isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
+  if (isDemo && uploadedFiles.length >= 1) {
+    if (typeof showDemoUpgradePrompt === 'function') {
+      showDemoUpgradePrompt('You\u2019ve used your free scan! Sign up to scan unlimited receipts, PDFs, and online orders.');
+    }
+    return;
+  }
+
   const files = Array.from(fileList);
   const imageFiles = files.filter(f => f.type.startsWith('image/') || /\.(heic|tif|tiff)$/i.test(f.name));
   const pdfFiles = files.filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
-  const remaining = 100 - uploadedFiles.length;
+
+  // Demo mode: limit to 1 file total
+  const maxFiles = isDemo ? 1 : 100;
+  const remaining = maxFiles - uploadedFiles.length;
 
   // Process images directly
   const imagesToAdd = imageFiles.slice(0, remaining);
@@ -619,7 +631,7 @@ function handleFiles(fileList) {
   const pdfsToAdd = pdfFiles.slice(0, Math.max(0, remaining - added));
   for (const file of pdfsToAdd) {
     renderPdfPages(file).then(pages => {
-      const space = 100 - uploadedFiles.length;
+      const space = maxFiles - uploadedFiles.length;
       const pagesToAdd = pages.slice(0, space);
       for (const pg of pagesToAdd) {
         uploadedFiles.push({ file, dataUrl: pg.dataUrl, name: pg.name, isPdf: true, pageNum: pg.pageNum, totalPages: pg.totalPages });
@@ -633,7 +645,7 @@ function handleFiles(fileList) {
   const skipped = files.length - imageFiles.length - pdfFiles.length;
   if (skipped > 0) log(`${skipped} unsupported file(s) skipped.`, 'error');
   if (imageFiles.length + pdfFiles.length > remaining) {
-    log(`Only adding ${remaining} more files (100 max).`, 'error');
+    log(`Only adding ${remaining} more files (${maxFiles} max).`, 'error');
   }
 
   if (imagesToAdd.length || pdfsToAdd.length) setTimeout(renderThumbnails, 100);

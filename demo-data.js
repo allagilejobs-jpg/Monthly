@@ -991,7 +991,7 @@ function demofyLinks() {
   if (!DEMO_MODE) return;
   document.querySelectorAll('a').forEach(function(a) {
     var href = a.getAttribute('href') || '';
-    if ((href.includes('Groceries/') || href.includes('Expenses/') || href.includes('Budget/') || href.includes('../Groceries') || href.includes('../Expenses') || href.includes('../Budget')) && !href.includes('demo')) {
+    if ((href.includes('Groceries/') || href.includes('Expenses/') || href.includes('Budget/') || href.includes('Scanner/') || href.includes('../Groceries') || href.includes('../Expenses') || href.includes('../Budget') || href.includes('../Scanner')) && !href.includes('demo')) {
       a.setAttribute('href', href + (href.includes('?') ? '&' : '?') + 'demo=true');
     }
   });
