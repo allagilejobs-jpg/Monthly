@@ -972,15 +972,21 @@ function exitDemoAndSignUp() {
 }
 
 function showDemoUpgradePrompt(message) {
+  var isLight = document.body.classList.contains('light');
+  var bg = isLight ? '#ffffff' : '#1a1b23';
+  var border = isLight ? '#d4d4d8' : '#2a2b35';
+  var muted = isLight ? '#6b6b80' : '#71717a';
+  var btnBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
+  var overlayBg = isLight ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.7)';
   var overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:10001;display:flex;justify-content:center;align-items:center;padding:20px;';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:' + overlayBg + ';z-index:10001;display:flex;justify-content:center;align-items:center;padding:20px;';
   overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
-  overlay.innerHTML = '<div style="background:#1a1b23;border:1px solid #2a2b35;border-radius:16px;padding:32px;max-width:400px;text-align:center">' +
+  overlay.innerHTML = '<div style="background:' + bg + ';border:1px solid ' + border + ';border-radius:16px;padding:32px;max-width:400px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,' + (isLight ? '0.15' : '0.5') + ')">' +
     '<div style="font-size:36px;margin-bottom:12px">&#128274;</div>' +
     '<div style="font-size:16px;font-weight:700;color:#22c55e;margin-bottom:8px">Create a Free Account</div>' +
-    '<div style="font-size:14px;color:#71717a;margin-bottom:20px;line-height:1.6">' + message + '</div>' +
+    '<div style="font-size:14px;color:' + muted + ';margin-bottom:20px;line-height:1.6">' + message + '</div>' +
     '<div style="display:flex;gap:10px;justify-content:center">' +
-      '<button onclick="this.closest(\'div[style]\').parentElement.remove()" style="padding:10px 20px;border-radius:8px;border:1px solid #2a2b35;background:rgba(255,255,255,0.06);color:#71717a;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Continue Demo</button>' +
+      '<button onclick="this.closest(\'div[style]\').parentElement.remove()" style="padding:10px 20px;border-radius:8px;border:1px solid ' + border + ';background:' + btnBg + ';color:' + muted + ';font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Continue Demo</button>' +
       '<button onclick="exitDemoAndSignUp()" style="padding:10px 20px;border-radius:8px;border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.15);color:#22c55e;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Sign Up Free</button>' +
     '</div></div>';
   document.body.appendChild(overlay);

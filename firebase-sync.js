@@ -439,19 +439,28 @@ function showAuthGate() {
     }
   }
 
+  var isLight = document.body.classList.contains('light');
+  var bg = isLight ? '#ffffff' : '#1a1b23';
+  var border = isLight ? '#d4d4d8' : '#2a2b35';
+  var muted = isLight ? '#6b6b80' : '#71717a';
+  var text = isLight ? '#1a1a2e' : '#e4e4e7';
+  var btnBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
+  var overlayBg = isLight ? 'rgba(245,245,247,0.95)' : 'rgba(15,17,23,0.95)';
+  var shadow = isLight ? '0.15' : '0.5';
+
   const gate = document.createElement('div');
   gate.id = 'fb-auth-gate';
-  gate.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,17,23,0.95);z-index:9998;display:flex;justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto;backdrop-filter:blur(2px);';
-  gate.innerHTML = '<div style="background:#1a1b23;border:1px solid #2a2b35;border-radius:20px;padding:24px 20px;max-width:400px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);margin:auto">' +
+  gate.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:' + overlayBg + ';z-index:9998;display:flex;justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto;backdrop-filter:blur(2px);';
+  gate.innerHTML = '<div style="background:' + bg + ';border:1px solid ' + border + ';border-radius:20px;padding:24px 20px;max-width:400px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,' + shadow + ');margin:auto">' +
     '<div style="font-size:32px;margin-bottom:10px">&#128274;</div>' +
     '<div style="font-size:18px;font-weight:700;margin-bottom:6px;background:linear-gradient(135deg,#22c55e,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Sign In Required</div>' +
-    '<div style="color:#71717a;font-size:13px;margin-bottom:20px;line-height:1.5">Sign in to access your dashboard and sync data across devices, or try the demo to explore with sample data.</div>' +
+    '<div style="color:' + muted + ';font-size:13px;margin-bottom:20px;line-height:1.5">Sign in to access your dashboard and sync data across devices, or try the demo to explore with sample data.</div>' +
     '<div style="display:flex;flex-direction:column;gap:12px;align-items:center">' +
-      '<button onclick="signInWithGoogle()" style="width:100%;max-width:280px;padding:10px 20px;border-radius:10px;border:1px solid #2a2b35;background:rgba(255,255,255,0.06);color:#e4e4e7;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 010-9.18l-7.98-6.19a24.01 24.01 0 000 21.56l7.98-6.19z"/><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Sign in with Google</button>' +
-      '<div style="display:flex;align-items:center;gap:10px;width:100%;max-width:280px"><div style="flex:1;height:1px;background:#2a2b35"></div><span style="font-size:11px;color:#71717a">or</span><div style="flex:1;height:1px;background:#2a2b35"></div></div>' +
+      '<button onclick="signInWithGoogle()" style="width:100%;max-width:280px;padding:10px 20px;border-radius:10px;border:1px solid ' + border + ';background:' + btnBg + ';color:' + text + ';font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 010-9.18l-7.98-6.19a24.01 24.01 0 000 21.56l7.98-6.19z"/><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Sign in with Google</button>' +
+      '<div style="display:flex;align-items:center;gap:10px;width:100%;max-width:280px"><div style="flex:1;height:1px;background:' + border + '"></div><span style="font-size:11px;color:' + muted + '">or</span><div style="flex:1;height:1px;background:' + border + '"></div></div>' +
       '<button onclick="openAuthModal()" style="width:100%;max-width:280px;padding:10px 20px;border-radius:10px;border:1px solid rgba(249,115,22,0.3);background:rgba(249,115,22,0.15);color:#f97316;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s">Sign In with Email</button>' +
       '<button onclick="sessionStorage.setItem(\'demo_mode\',\'true\');location.reload()" style="width:100%;max-width:280px;padding:10px 20px;border-radius:10px;border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.1);color:#22c55e;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s">Try Demo</button>' +
-      '<a href="../" style="color:#71717a;font-size:13px;margin-top:4px;text-decoration:none">Back to Home</a>' +
+      '<a href="../" style="color:' + muted + ';font-size:13px;margin-top:4px;text-decoration:none">Back to Home</a>' +
     '</div></div>';
   document.body.appendChild(gate);
 }
