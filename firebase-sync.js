@@ -136,8 +136,8 @@ function injectAuthUI() {
   var mInputBg = il ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
   var mBtnBg = il ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
   var mTabActive = il ? '#f3f4f6' : '#23242e';
-  var mOverlay = il ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.7)';
-  var mShadow = il ? '0.15' : '0.5';
+  var mOverlay = il ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.7)';
+  var mShadow = il ? '0.25' : '0.5';
   modal.style.cssText = `
     display:none;position:fixed;top:0;left:0;right:0;bottom:0;
     background:${mOverlay};z-index:9999;justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto;
