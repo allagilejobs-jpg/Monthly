@@ -929,7 +929,7 @@ if (DEMO_MODE) {
 // ── Shared demo UI functions ──
 function injectDemoBanner(color) {
   color = color || 'green';
-  var isLight = document.body.classList.contains('light');
+  var isLight = document.body.classList.contains('light') || (localStorage.getItem('app_theme') || 'light') !== 'dark';
   var colorMap = {
     green:{ c1d:'#1e3a2f',c2d:'#1a2740',c1l:'#e8f5e9',c2l:'#e3f2fd',accent:'rgba(34,197,94,0.3)',accentVar:'#22c55e',rgb:'34,197,94' },
     blue:{ c1d:'#1a2740',c2d:'#1e2a3f',c1l:'#e3f2fd',c2l:'#e8eaf6',accent:'rgba(59,130,246,0.3)',accentVar:'#3b82f6',rgb:'59,130,246' },
@@ -979,7 +979,7 @@ function exitDemoAndSignUp() {
 }
 
 function showDemoUpgradePrompt(message) {
-  var isLight = document.body.classList.contains('light');
+  var isLight = document.body.classList.contains('light') || (localStorage.getItem('app_theme') || 'light') !== 'dark';
   var bg = isLight ? '#ffffff' : '#1a1b23';
   var border = isLight ? '#d4d4d8' : '#2a2b35';
   var muted = isLight ? '#6b6b80' : '#71717a';

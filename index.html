@@ -367,12 +367,12 @@
 // Theme toggle
 function toggleHomeTheme() {
   var isDark = document.body.classList.toggle('dark');
-  localStorage.setItem('home_theme', isDark ? 'dark' : 'light');
+  localStorage.setItem('app_theme', isDark ? 'dark' : 'light');
   document.getElementById('theme-toggle').innerHTML = isDark ? '&#9788;' : '&#9790;';
 }
 // Restore saved theme (default: light)
 (function() {
-  var saved = localStorage.getItem('home_theme');
+  var saved = localStorage.getItem('app_theme');
   if (saved === 'dark') {
     document.body.classList.add('dark');
     document.getElementById('theme-toggle').innerHTML = '&#9788;';

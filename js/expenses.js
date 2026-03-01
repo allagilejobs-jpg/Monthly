@@ -2784,8 +2784,8 @@ document.addEventListener('click', e => {
 // ══════════════════════════════════════════════════════════
 function toggleTheme() {
   const isLight = document.body.classList.toggle('light');
-  if (_isDemo) sessionStorage.setItem('demo_expenses_theme', isLight ? 'light' : 'dark');
-  else localStorage.setItem('expenses_theme', isLight ? 'light' : 'dark');
+  if (_isDemo) sessionStorage.setItem('demo_app_theme', isLight ? 'light' : 'dark');
+  else localStorage.setItem('app_theme', isLight ? 'light' : 'dark');
   document.getElementById('theme-toggle').innerHTML = isLight ? '&#9788;' : '&#9790;';
 }
 
@@ -3350,9 +3350,9 @@ function applyBulkCategory(cat) {
 // INITIALIZATION
 // ══════════════════════════════════════════════════════════
 (function init() {
-  // Restore theme (demo defaults to light)
-  const savedTheme = _isDemo ? sessionStorage.getItem('demo_expenses_theme') : localStorage.getItem('expenses_theme');
-  if ((_isDemo && !savedTheme) || savedTheme === 'light') {
+  // Restore theme (defaults to light)
+  const savedTheme = _isDemo ? sessionStorage.getItem('demo_app_theme') : localStorage.getItem('app_theme');
+  if (savedTheme !== 'dark') {
     document.body.classList.add('light');
     document.getElementById('theme-toggle').innerHTML = '&#9788;';
   }

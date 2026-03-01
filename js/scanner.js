@@ -1511,17 +1511,17 @@ function resetAll() {
 function toggleTheme() {
   const isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
   const isLight = document.body.classList.toggle('light');
-  if (isDemo) sessionStorage.setItem('demo_scanner_theme', isLight ? 'light' : 'dark');
-  else localStorage.setItem('scanner_theme', isLight ? 'light' : 'dark');
+  if (isDemo) sessionStorage.setItem('demo_app_theme', isLight ? 'light' : 'dark');
+  else localStorage.setItem('app_theme', isLight ? 'light' : 'dark');
   document.getElementById('theme-toggle').innerHTML = isLight ? '&#9788;' : '&#9790;';
 }
 
 // Load saved settings
 (function(){
-  // Restore theme (demo defaults to light)
+  // Restore theme (defaults to light)
   const isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
-  const savedTheme = isDemo ? sessionStorage.getItem('demo_scanner_theme') : localStorage.getItem('scanner_theme');
-  if ((isDemo && !savedTheme) || savedTheme === 'light') {
+  const savedTheme = isDemo ? sessionStorage.getItem('demo_app_theme') : localStorage.getItem('app_theme');
+  if (savedTheme !== 'dark') {
     document.body.classList.add('light');
     document.getElementById('theme-toggle').innerHTML = '&#9788;';
   }

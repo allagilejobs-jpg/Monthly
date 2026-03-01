@@ -900,17 +900,17 @@ function detectRegularPurchases() {
 // ─────────── THEME TOGGLE ───────────
 function toggleTheme() {
   const isLight = document.body.classList.toggle("light");
-  if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) sessionStorage.setItem("demo_grocery_theme", isLight ? "light" : "dark");
-  else localStorage.setItem("grocery_theme", isLight ? "light" : "dark");
+  if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) sessionStorage.setItem("demo_app_theme", isLight ? "light" : "dark");
+  else localStorage.setItem("app_theme", isLight ? "light" : "dark");
   document.getElementById("theme-toggle").innerHTML = isLight ? "&#9788;" : "&#9790;";
 }
-// Apply saved theme on load (demo defaults to light)
+// Apply saved theme on load (defaults to light)
 (function() {
   const isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
   const saved = isDemo
-    ? sessionStorage.getItem("demo_grocery_theme")
-    : localStorage.getItem("grocery_theme");
-  if ((isDemo && !saved) || saved === "light") {
+    ? sessionStorage.getItem("demo_app_theme")
+    : localStorage.getItem("app_theme");
+  if (saved !== "dark") {
     document.body.classList.add("light");
     document.getElementById("theme-toggle").innerHTML = "&#9788;";
   }

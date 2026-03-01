@@ -206,8 +206,8 @@ function closeHelpModal() { document.getElementById('help-modal').classList.remo
 // ── Theme ──
 function toggleTheme() {
   var isLight = document.body.classList.toggle('light');
-  if (_isDemo) sessionStorage.setItem('budget_theme', isLight ? 'light' : 'dark');
-  else localStorage.setItem('budget_theme', isLight ? 'light' : 'dark');
+  if (_isDemo) sessionStorage.setItem('demo_app_theme', isLight ? 'light' : 'dark');
+  else localStorage.setItem('app_theme', isLight ? 'light' : 'dark');
   document.getElementById('theme-toggle').innerHTML = isLight ? '&#9788;' : '&#9790;';
 }
 
@@ -3096,10 +3096,9 @@ function renderRecurring() {
 // ════════════════════════════════════════
 
 (function init() {
-  // Theme
-  // Theme (demo defaults to light)
-  var theme = _isDemo ? sessionStorage.getItem('budget_theme') : localStorage.getItem('budget_theme');
-  if ((_isDemo && !theme) || theme === 'light') {
+  // Theme (defaults to light)
+  var theme = _isDemo ? sessionStorage.getItem('demo_app_theme') : localStorage.getItem('app_theme');
+  if (theme !== 'dark') {
     document.body.classList.add('light');
     document.getElementById('theme-toggle').innerHTML = '&#9788;';
   }
