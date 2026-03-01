@@ -128,64 +128,74 @@ function injectAuthUI() {
   // Auth modal (always injected — all pages need it)
   const modal = document.createElement('div');
   modal.id = 'fb-auth-modal';
+  var il = document.body.classList.contains('light');
+  var mBg = il ? '#ffffff' : '#1a1b23';
+  var mBorder = il ? '#d4d4d8' : '#2a2b35';
+  var mText = il ? '#1a1a2e' : '#e4e4e7';
+  var mMuted = il ? '#6b6b80' : '#71717a';
+  var mInputBg = il ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
+  var mBtnBg = il ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
+  var mTabActive = il ? '#f3f4f6' : '#23242e';
+  var mOverlay = il ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.7)';
+  var mShadow = il ? '0.15' : '0.5';
   modal.style.cssText = `
     display:none;position:fixed;top:0;left:0;right:0;bottom:0;
-    background:rgba(0,0,0,0.7);z-index:9999;justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto;
+    background:${mOverlay};z-index:9999;justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto;
   `;
   modal.onclick = function(e) { if (e.target === this) closeAuthModal(); };
   modal.innerHTML = `
     <div style="
-      background:#1a1b23;border:1px solid #2a2b35;border-radius:16px;padding:24px;
-      max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);margin:auto;
+      background:${mBg};border:1px solid ${mBorder};border-radius:16px;padding:24px;
+      max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,${mShadow});margin:auto;
     ">
       <div style="font-size:16px;font-weight:700;color:#f97316;margin-bottom:4px">Cloud Sync</div>
-      <div style="font-size:12px;color:#71717a;margin-bottom:20px">Sign in to sync your data across devices</div>
+      <div style="font-size:12px;color:${mMuted};margin-bottom:20px">Sign in to sync your data across devices</div>
 
       <div id="fb-auth-tabs" style="display:flex;gap:0;margin-bottom:20px;">
         <button id="fb-tab-signin" onclick="switchAuthTab('signin')" style="
-          flex:1;padding:10px;border:1px solid #2a2b35;background:#23242e;color:#e4e4e7;
+          flex:1;padding:10px;border:1px solid ${mBorder};background:${mTabActive};color:${mText};
           font-size:13px;font-weight:600;cursor:pointer;border-radius:8px 0 0 8px;font-family:inherit;
         ">Sign In</button>
         <button id="fb-tab-signup" onclick="switchAuthTab('signup')" style="
-          flex:1;padding:10px;border:1px solid #2a2b35;background:transparent;color:#71717a;
+          flex:1;padding:10px;border:1px solid ${mBorder};background:transparent;color:${mMuted};
           font-size:13px;font-weight:600;cursor:pointer;border-radius:0 8px 8px 0;font-family:inherit;
         ">Sign Up</button>
       </div>
 
       <button onclick="signInWithGoogle()" style="
-        width:100%;padding:10px 16px;border-radius:8px;border:1px solid #2a2b35;
-        background:rgba(255,255,255,0.06);color:#e4e4e7;font-size:13px;font-weight:600;
+        width:100%;padding:10px 16px;border-radius:8px;border:1px solid ${mBorder};
+        background:${mBtnBg};color:${mText};font-size:13px;font-weight:600;
         cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;
         margin-bottom:14px;transition:all 0.2s;
-      " onmouseover="this.style.borderColor='#4285f4';this.style.color='#4285f4'" onmouseout="this.style.borderColor='#2a2b35';this.style.color='#e4e4e7'">
+      " onmouseover="this.style.borderColor='#4285f4';this.style.color='#4285f4'" onmouseout="this.style.borderColor='${mBorder}';this.style.color='${mText}'">
         <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 010-9.18l-7.98-6.19a24.01 24.01 0 000 21.56l7.98-6.19z"/><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
         Continue with Google
       </button>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-        <div style="flex:1;height:1px;background:#2a2b35"></div>
-        <span style="font-size:11px;color:#71717a;text-transform:uppercase;letter-spacing:1px">or</span>
-        <div style="flex:1;height:1px;background:#2a2b35"></div>
+        <div style="flex:1;height:1px;background:${mBorder}"></div>
+        <span style="font-size:11px;color:${mMuted};text-transform:uppercase;letter-spacing:1px">or</span>
+        <div style="flex:1;height:1px;background:${mBorder}"></div>
       </div>
 
       <div style="margin-bottom:14px">
-        <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:#71717a;display:block;margin-bottom:6px">Email</label>
+        <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:${mMuted};display:block;margin-bottom:6px">Email</label>
         <input id="fb-email" type="email" placeholder="you@example.com" style="
-          width:100%;background:rgba(255,255,255,0.05);border:1px solid #2a2b35;border-radius:8px;
-          padding:10px 14px;color:#e4e4e7;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;
+          width:100%;background:${mInputBg};border:1px solid ${mBorder};border-radius:8px;
+          padding:10px 14px;color:${mText};font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;
         ">
       </div>
       <div style="margin-bottom:14px">
-        <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:#71717a;display:block;margin-bottom:6px">Password</label>
+        <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:${mMuted};display:block;margin-bottom:6px">Password</label>
         <input id="fb-password" type="password" placeholder="Min 6 characters" style="
-          width:100%;background:rgba(255,255,255,0.05);border:1px solid #2a2b35;border-radius:8px;
-          padding:10px 14px;color:#e4e4e7;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;
+          width:100%;background:${mInputBg};border:1px solid ${mBorder};border-radius:8px;
+          padding:10px 14px;color:${mText};font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;
         ">
       </div>
       <div id="fb-confirm-wrap" style="margin-bottom:14px;display:none">
-        <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:#71717a;display:block;margin-bottom:6px">Confirm Password</label>
+        <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:${mMuted};display:block;margin-bottom:6px">Confirm Password</label>
         <input id="fb-password-confirm" type="password" placeholder="Repeat password" style="
-          width:100%;background:rgba(255,255,255,0.05);border:1px solid #2a2b35;border-radius:8px;
-          padding:10px 14px;color:#e4e4e7;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;
+          width:100%;background:${mInputBg};border:1px solid ${mBorder};border-radius:8px;
+          padding:10px 14px;color:${mText};font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;
         ">
       </div>
 
@@ -193,8 +203,8 @@ function injectAuthUI() {
 
       <div style="display:flex;gap:10px;justify-content:flex-end">
         <button onclick="closeAuthModal()" style="
-          padding:10px 20px;border-radius:8px;border:1px solid #2a2b35;background:rgba(255,255,255,0.06);
-          color:#71717a;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;
+          padding:10px 20px;border-radius:8px;border:1px solid ${mBorder};background:${mBtnBg};
+          color:${mMuted};font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;
         ">Cancel</button>
         <button id="fb-auth-submit" onclick="submitAuth()" style="
           padding:10px 20px;border-radius:8px;border:none;background:rgba(249,115,22,0.2);
@@ -205,7 +215,7 @@ function injectAuthUI() {
 
       <div style="margin-top:16px;text-align:center">
         <button id="fb-forgot-btn" onclick="doForgotPassword()" style="
-          background:none;border:none;color:#71717a;font-size:11px;cursor:pointer;
+          background:none;border:none;color:${mMuted};font-size:11px;cursor:pointer;
           text-decoration:underline;font-family:inherit;
         ">Forgot password?</button>
       </div>
@@ -233,15 +243,19 @@ function switchAuthTab(tab) {
   const forgot = document.getElementById('fb-forgot-btn');
   document.getElementById('fb-auth-error').style.display = 'none';
 
+  var tl = document.body.classList.contains('light');
+  var tActive = tl ? '#f3f4f6' : '#23242e';
+  var tText = tl ? '#1a1a2e' : '#e4e4e7';
+  var tMuted = tl ? '#6b6b80' : '#71717a';
   if (tab === 'signin') {
-    si.style.background = '#23242e'; si.style.color = '#e4e4e7';
-    su.style.background = 'transparent'; su.style.color = '#71717a';
+    si.style.background = tActive; si.style.color = tText;
+    su.style.background = 'transparent'; su.style.color = tMuted;
     confirm.style.display = 'none';
     submit.textContent = 'Sign In';
     forgot.style.display = '';
   } else {
-    su.style.background = '#23242e'; su.style.color = '#e4e4e7';
-    si.style.background = 'transparent'; si.style.color = '#71717a';
+    su.style.background = tActive; su.style.color = tText;
+    si.style.background = 'transparent'; si.style.color = tMuted;
     confirm.style.display = 'block';
     submit.textContent = 'Sign Up';
     forgot.style.display = 'none';
