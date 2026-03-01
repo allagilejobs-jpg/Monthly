@@ -935,19 +935,24 @@ async function processWithGemini(uf, doAutoDetect) {
   const store = (doAutoDetect && parsed.store) || 'Unknown Store';
   const date = (doAutoDetect && parsed.date) || '';
 
-  return (parsed.items || []).map(item => ({
-    d: date,
-    s: store,
-    r: item.rawName || item.fullName || '',
-    n: item.fullName || item.rawName || '',
-    c: item.category || assignCategory(item.fullName || ''),
-    q: item.quantity || 1,
-    u: item.unitPrice || 0,
-    t: item.total || (item.unitPrice * (item.quantity || 1)) || 0,
-    ng: isNonGrocery(item.category || ''),
-    _file: uf.name,
-    _confidence: 95
-  }));
+  const validCategories = new Set(ALL_CATEGORIES);
+  return (parsed.items || []).map(item => {
+    const fullName = item.fullName || item.rawName || '';
+    const cat = (item.category && validCategories.has(item.category)) ? item.category : assignCategory(fullName);
+    return {
+      d: date,
+      s: store,
+      r: item.rawName || fullName,
+      n: fullName,
+      c: cat,
+      q: item.quantity || 1,
+      u: item.unitPrice || 0,
+      t: item.total || (item.unitPrice * (item.quantity || 1)) || 0,
+      ng: isNonGrocery(cat),
+      _file: uf.name,
+      _confidence: 95
+    };
+  });
 }
 
 function cancelProcessing() {
