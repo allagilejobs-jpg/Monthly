@@ -3099,6 +3099,15 @@ function toggleRecurringTrack(merchant, avgAmount, category, checked) {
   }
   saveTrackedRecurring(tracked);
   if (typeof showToast === 'function') showToast(checked ? merchant + ' tracked as recurring' : merchant + ' untracked', 'info');
+  // Update toggle visual state
+  var label = event.target.parentElement;
+  if (label) {
+    var spans = label.querySelectorAll('span');
+    if (spans.length >= 2) {
+      spans[0].style.background = checked ? 'var(--blue,#3b82f6)' : 'rgba(113,113,122,0.3)';
+      spans[1].style.left = checked ? '18px' : '2px';
+    }
+  }
 }
 
 function detectRecurring() {
