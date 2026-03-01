@@ -187,6 +187,11 @@ body.light .theme-toggle:hover { background:rgba(0,0,0,0.08); }
   .export-cards { grid-template-columns:1fr; }
   .thumb-grid { grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); }
   .review-table { font-size:11px; }
+  .store-date-row { padding:10px 12px; gap:8px; flex-direction:column; align-items:stretch; }
+  .store-date-row label { flex-wrap:wrap; gap:6px; }
+  .date-select { min-width:50px; flex:1; }
+  .month-picker { flex-direction:column; align-items:stretch; gap:8px; }
+  .month-year-select select { min-width:70px; flex:1; }
   .mode-selector { flex-direction:column; }
   .settings-row { flex-direction:column; align-items:flex-start; }
   .gemini-input { width:100%; }
