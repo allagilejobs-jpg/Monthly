@@ -993,7 +993,7 @@ function showDemoUpgradePrompt(message) {
     '<div style="font-size:16px;font-weight:700;color:#22c55e;margin-bottom:8px">Create a Free Account</div>' +
     '<div style="font-size:14px;color:' + muted + ';margin-bottom:20px;line-height:1.6">' + message + '</div>' +
     '<div style="display:flex;gap:10px;justify-content:center">' +
-      '<button onclick="this.closest(\'div[style]\').parentElement.remove()" style="padding:10px 20px;border-radius:8px;border:1px solid ' + border + ';background:' + btnBg + ';color:' + muted + ';font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Continue Demo</button>' +
+      '<button onclick="var o=this;while(o.parentElement!==document.body)o=o.parentElement;o.remove()" style="padding:10px 20px;border-radius:8px;border:1px solid ' + border + ';background:' + btnBg + ';color:' + muted + ';font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Continue Demo</button>' +
       '<button onclick="exitDemoAndSignUp()" style="padding:10px 20px;border-radius:8px;border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.15);color:#22c55e;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Sign Up Free</button>' +
     '</div></div>';
   document.body.appendChild(overlay);
