@@ -459,8 +459,8 @@ function showAuthGate() {
   var muted = isLight ? '#6b6b80' : '#71717a';
   var text = isLight ? '#1a1a2e' : '#e4e4e7';
   var btnBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
-  var overlayBg = isLight ? 'rgba(245,245,247,0.95)' : 'rgba(15,17,23,0.95)';
-  var shadow = isLight ? '0.15' : '0.5';
+  var overlayBg = isLight ? 'rgba(0,0,0,0.6)' : 'rgba(15,17,23,0.95)';
+  var shadow = isLight ? '0.25' : '0.5';
 
   const gate = document.createElement('div');
   gate.id = 'fb-auth-gate';
