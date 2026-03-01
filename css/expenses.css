@@ -70,7 +70,7 @@
   }
   .kpi-card:active { transform: translateY(0); }
   .kpi-card::after {
-    content: "\u2192"; position: absolute; top: 14px; right: 14px;
+    content: "\2192"; position: absolute; top: 14px; right: 14px;
     font-size: 14px; color: var(--text-muted); opacity: 0; transition: opacity 0.2s;
   }
   .kpi-card:hover::after { opacity: 1; }
