@@ -58,6 +58,8 @@ body.light .theme-toggle:hover { background: rgba(0,0,0,0.08); }
   background: rgba(168,85,247,0.15); color: var(--accent);
   box-shadow: 0 0 12px rgba(168,85,247,0.1);
 }
+.tab.tab-help { color: var(--blue); margin-left: auto; }
+.tab.tab-help:hover { background: rgba(59,130,246,0.12); color: var(--blue); }
 /* ── Container ── */
 .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
 /* ── Views ── */
