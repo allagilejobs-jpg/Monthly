@@ -1156,6 +1156,31 @@ function fmt(n) {
 // ============================================================
 let selectedExport = null;
 
+function populateMonthYearDropdowns(monthSelId, yearSelId, selectedMonth, selectedYear) {
+  const monthNames = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
+  const monthSel = document.getElementById(monthSelId);
+  const yearSel = document.getElementById(yearSelId);
+
+  monthSel.innerHTML = '<option value="">Month</option>';
+  for (let m = 1; m <= 12; m++) {
+    const val = String(m).padStart(2,'0');
+    monthSel.innerHTML += `<option value="${val}"${val === selectedMonth ? ' selected' : ''}>${monthNames[m]}</option>`;
+  }
+
+  const currentYear = new Date().getFullYear();
+  yearSel.innerHTML = '<option value="">Year</option>';
+  for (let y = currentYear - 2; y <= currentYear + 1; y++) {
+    yearSel.innerHTML += `<option value="${y}"${String(y) === selectedYear ? ' selected' : ''}>${y}</option>`;
+  }
+}
+
+function getMonthVal(monthSelId, yearSelId) {
+  const mo = document.getElementById(monthSelId)?.value || '';
+  const yr = document.getElementById(yearSelId)?.value || '';
+  if (!mo || !yr) return '';
+  return yr + '-' + mo;
+}
+
 function selectExport(type) {
   selectedExport = type;
   document.getElementById('exportExcel').classList.toggle('selected', type === 'excel');
@@ -1164,21 +1189,27 @@ function selectExport(type) {
   document.getElementById('dashboardOptions').style.display = type === 'dashboard' ? 'block' : 'none';
   document.getElementById('exportResult').style.display = 'none';
 
-  // Set default month from data
+  // Try to infer month from receipt dates
   const dates = extractedData.map(i => i.d).filter(Boolean);
-  const now = new Date();
-  let yr = now.getFullYear(), mo = now.getMonth() + 1;
+  let selMonth = '', selYear = '';
   if (dates.length) {
-    // Try to infer month from most common date
     const monthCounts = {};
     dates.forEach(d => { const m = d.split('/')[0]; monthCounts[m] = (monthCounts[m]||0) + 1; });
-    mo = parseInt(Object.entries(monthCounts).sort((a,b)=>b[1]-a[1])[0][0]) || mo;
+    const topMonth = Object.entries(monthCounts).sort((a,b)=>b[1]-a[1])[0]?.[0];
+    if (topMonth) selMonth = topMonth;
+    selYear = String(new Date().getFullYear());
   }
-  const monthStr = yr + '-' + String(mo).padStart(2,'0');
-  if (type === 'excel') document.getElementById('excelMonth').value = monthStr;
+
+  if (type === 'excel') {
+    populateMonthYearDropdowns('excelMonthSel', 'excelYearSel', selMonth, selYear);
+  }
   if (type === 'dashboard') {
-    document.getElementById('dashMonth').value = monthStr;
-    checkExistingMonth(yr + '_' + String(mo).padStart(2,'0'));
+    populateMonthYearDropdowns('dashMonthSel', 'dashYearSel', selMonth, selYear);
+    if (selMonth && selYear) {
+      checkExistingMonth(selYear + '_' + selMonth);
+    } else {
+      document.getElementById('mergeWarning').style.display = 'none';
+    }
   }
 }
 
@@ -1187,12 +1218,22 @@ function checkExistingMonth(monthKey) {
   document.getElementById('mergeWarning').style.display = existing ? 'block' : 'none';
 }
 
+function onDashMonthChange() {
+  const mo = document.getElementById('dashMonthSel')?.value || '';
+  const yr = document.getElementById('dashYearSel')?.value || '';
+  if (mo && yr) {
+    checkExistingMonth(yr + '_' + mo);
+  } else {
+    document.getElementById('mergeWarning').style.display = 'none';
+  }
+}
+
 // ============================================================
 // EXCEL EXPORT
 // ============================================================
 async function doExcelExport() {
-  const monthVal = document.getElementById('excelMonth').value;
-  if (!monthVal) { showToast('Please select a month.', 'warning'); return; }
+  const monthVal = getMonthVal('excelMonthSel', 'excelYearSel');
+  if (!monthVal) { showToast('Please select a month and year.', 'warning'); return; }
   const [yr, mo] = monthVal.split('-');
   const monthName = new Date(yr, parseInt(mo)-1).toLocaleString('default',{month:'long'});
 
@@ -1371,8 +1412,8 @@ async function doExcelExport() {
 // DASHBOARD IMPORT
 // ============================================================
 function doDashboardImport() {
-  const monthVal = document.getElementById('dashMonth').value;
-  if (!monthVal) { showToast('Please select a month.', 'warning'); return; }
+  const monthVal = getMonthVal('dashMonthSel', 'dashYearSel');
+  if (!monthVal) { showToast('Please select a month and year.', 'warning'); return; }
   const [yr, mo] = monthVal.split('-');
   const monthKey = yr + '_' + mo;
 

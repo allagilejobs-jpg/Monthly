@@ -2644,8 +2644,20 @@ document.addEventListener("keydown", e => {
 let pendingUploadData = null;
 let pendingUploadKey = null;
 
-function openUploadModal() {
+function openUploadChoice() {
   if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) { showDemoUpgradePrompt("Upload your own grocery data by creating a free account."); return; }
+  document.getElementById("upload-choice-modal").classList.add("open");
+}
+
+function closeUploadChoice() {
+  document.getElementById("upload-choice-modal").classList.remove("open");
+}
+
+function goToScanner() {
+  window.location.href = '../Scanner/';
+}
+
+function openUploadModal() {
   document.getElementById("upload-preview").style.display = "none";
   document.getElementById("upload-actions").style.display = "none";
   document.getElementById("drop-zone").style.display = "";

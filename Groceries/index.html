@@ -29,7 +29,7 @@
 
   <div class="month-nav" id="month-nav">
     <select id="month-select"></select>
-    <button class="month-nav-btn" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3)" onclick="openUploadModal()">+ Upload Month</button>
+    <button class="month-nav-btn" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3)" onclick="openUploadChoice()">+ Upload Month</button>
     <button class="month-nav-btn" style="background:rgba(255,255,255,0.04);color:var(--text-muted);border:1px solid var(--card-border)" onclick="openDataManager()">Manage Data</button>
     <button class="month-nav-btn" style="background:rgba(59,130,246,0.12);color:var(--blue);border:1px solid rgba(59,130,246,0.25)" onclick="openHelpModal()">? Help</button>
   </div>
@@ -219,6 +219,26 @@
 
 </div><!-- end container -->
 
+<!-- Upload Choice Modal -->
+<div class="modal-overlay" id="upload-choice-modal" onclick="if(event.target===this)closeUploadChoice()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">Upload Monthly Data</div>
+    <div class="upload-choice-subtitle">How would you like to add your grocery data?</div>
+    <div class="upload-choice-cards">
+      <div class="upload-choice-card upload-choice-primary" onclick="goToScanner()">
+        <div class="upload-choice-icon">&#128247;</div>
+        <div class="upload-choice-name">Scan Receipts</div>
+        <div class="upload-choice-desc">Upload receipt photos &mdash; items, prices and stores are extracted automatically</div>
+      </div>
+      <div class="upload-choice-card upload-choice-secondary" onclick="closeUploadChoice();openUploadModal()">
+        <div class="upload-choice-icon">&#128196;</div>
+        <div class="upload-choice-name">Upload Excel</div>
+        <div class="upload-choice-desc">Import from a formatted Excel spreadsheet</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Upload Modal -->
 <div class="modal-overlay" id="upload-modal" onclick="if(event.target===this)closeUploadModal()">
   <div class="modal" style="max-width:560px">
@@ -286,11 +306,11 @@
       </div>
       <div class="help-step">
         <div class="help-step-num">2</div>
-        <div class="help-step-text">Drag and drop your Excel file into the upload area, or click to browse for it</div>
+        <div class="help-step-text">Choose <strong>"Scan Receipts"</strong> to upload receipt photos (items extracted automatically), or <strong>"Upload Excel"</strong> to import a formatted spreadsheet</div>
       </div>
       <div class="help-step">
         <div class="help-step-num">3</div>
-        <div class="help-step-text">The dashboard will read <strong>Sheet 1</strong> and import all line items automatically</div>
+        <div class="help-step-text">For receipts: scan, review extracted items, then import to dashboard. For Excel: drag and drop your file — the dashboard reads <strong>Sheet 1</strong> automatically</div>
       </div>
       <div class="help-step">
         <div class="help-step-num">4</div>
