@@ -949,17 +949,21 @@ function injectDemoBanner(color) {
     '<button onclick="exitDemoAndSignUp()" style="background:rgba(' + cm.rgb + ',0.15);border:1px solid ' + accent + ';color:' + accentVar + ';border-radius:6px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Sign Up to Save Your Data</button>' +
     '<button onclick="exitDemo()" style="background:none;border:none;color:' + mutedColor + ';cursor:pointer;font-size:12px;text-decoration:underline;font-family:inherit;">Exit Demo</button>';
   document.body.prepend(banner);
-  // Push down everything below the fixed demo banner - use actual height
+  // Insert a spacer div right after the banner to push content down
+  var spacer = document.createElement('div');
+  spacer.id = 'demo-banner-spacer';
+  banner.after(spacer);
   function adjustBannerSpace() {
     var b = document.getElementById('demo-banner');
-    if (!b) return;
-    var h = b.offsetHeight + 'px';
-    document.body.style.paddingTop = h;
+    var s = document.getElementById('demo-banner-spacer');
+    if (!b || !s) return;
+    var h = b.offsetHeight;
+    s.style.height = h + 'px';
     var header = document.querySelector('.header');
-    if (header) header.style.marginTop = '0';
-    if (header && getComputedStyle(header).position === 'sticky') header.style.top = h;
+    if (header && getComputedStyle(header).position === 'sticky') header.style.top = h + 'px';
   }
-  adjustBannerSpace();
+  // Wait for banner to render, then measure
+  requestAnimationFrame(function() { requestAnimationFrame(adjustBannerSpace); });
   window.addEventListener('resize', adjustBannerSpace);
 }
 
