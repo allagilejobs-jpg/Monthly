@@ -128,7 +128,8 @@ function injectAuthUI() {
   // Auth modal (always injected — all pages need it)
   const modal = document.createElement('div');
   modal.id = 'fb-auth-modal';
-  var il = document.body.classList.contains('light');
+  var isHomepage = window.location.pathname.endsWith('/Monthly/') || window.location.pathname.endsWith('/Monthly/index.html') || window.location.pathname === '/Monthly';
+  var il = isHomepage ? !document.body.classList.contains('dark') : document.body.classList.contains('light');
   var mBg = il ? '#ffffff' : '#1a1b23';
   var mBorder = il ? '#d4d4d8' : '#2a2b35';
   var mText = il ? '#1a1a2e' : '#e4e4e7';
@@ -243,7 +244,8 @@ function switchAuthTab(tab) {
   const forgot = document.getElementById('fb-forgot-btn');
   document.getElementById('fb-auth-error').style.display = 'none';
 
-  var tl = document.body.classList.contains('light');
+  var isHP = window.location.pathname.endsWith('/Monthly/') || window.location.pathname.endsWith('/Monthly/index.html') || window.location.pathname === '/Monthly';
+  var tl = isHP ? !document.body.classList.contains('dark') : document.body.classList.contains('light');
   var tActive = tl ? '#f3f4f6' : '#23242e';
   var tText = tl ? '#1a1a2e' : '#e4e4e7';
   var tMuted = tl ? '#6b6b80' : '#71717a';
