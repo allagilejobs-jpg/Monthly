@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Monthly Budget Dashboard</title>
 <link rel="stylesheet" href="../css/shared.css?v=20260226c">
-<link rel="stylesheet" href="../css/budget.css?v=20260225n">
+<link rel="stylesheet" href="../css/budget.css?v=20260301a">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -15,21 +15,24 @@
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
+<div class="container">
 
 <!-- ═══════ HEADER ═══════ -->
 <div class="header">
-  <div class="header-left">
-    <div>
-      <h1 style="font-size:18px;font-weight:700;color:var(--accent);margin:0;line-height:1.3">Monthly Budget Dashboard</h1>
-      <p style="font-size:12px;color:var(--text-muted);margin:2px 0 0">Plan, track and manage your monthly budget</p>
-    </div>
+  <div>
+    <h1>Monthly Budget Dashboard</h1>
+    <p id="dashboard-subtitle">Plan, track and manage your monthly budget</p>
   </div>
-  <div class="header-right">
-    <button class="btn-icon" onclick="openHelpModal()" title="Help &amp; Guide" style="font-size:14px;border:1px solid var(--card-border);padding:5px 10px;border-radius:8px">? Help</button>
-    <button class="btn-icon" onclick="toggleTheme()" id="theme-toggle" title="Toggle theme" style="border:1px solid var(--card-border);padding:5px 10px;border-radius:8px">&#9790;</button>
-    <a href="../Groceries/" style="font-size:12px;color:var(--green);text-decoration:none;padding:5px 12px;border:1px solid rgba(34,197,94,0.3);border-radius:8px">&larr; Groceries</a>
-    <a href="../Expenses/" style="font-size:12px;color:var(--blue);text-decoration:none;padding:5px 12px;border:1px solid rgba(59,130,246,0.3);border-radius:8px">Expenses &rarr;</a>
+  <div class="header-nav">
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">&#9790;</button>
+    <a href="../Groceries/" class="nav-pill nav-pill-green">&larr; Groceries</a>
+    <a href="../Expenses/" class="nav-pill nav-pill-blue">Expenses &rarr;</a>
   </div>
+</div>
+
+<!-- ═══════ CONTROLS ═══════ -->
+<div class="month-nav" id="budget-controls">
+  <button class="month-nav-btn" style="background:rgba(59,130,246,0.12);color:var(--blue);border:1px solid rgba(59,130,246,0.25)" onclick="openHelpModal()">? Help</button>
 </div>
 
 <!-- ═══════ TABS ═══════ -->
@@ -41,8 +44,6 @@
   <button class="tab" onclick="showView('trends')">Trends</button>
   <button class="tab" onclick="showView('networth')">Net Worth</button>
 </div>
-
-<div class="container">
 
 <!-- ═══════════════════════════════════════════ -->
 <!-- TAB 1: SETUP                               -->
