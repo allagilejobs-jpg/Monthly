@@ -2061,8 +2061,8 @@ function renderOverview() {
           : '<span class="tag" style="background:rgba(245,158,11,0.12);color:var(--amber)">&#9888; Missing</span>';
       }
 
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);gap:8px">';
-      html += '<div style="flex:1;min-width:0;cursor:pointer" onclick="showView(\'merchant-detail\',{merchant:\'' + r.merchant.replace(/'/g,"\\'") + '\',source:\'overview\'})">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 8px;margin:0 -8px;border-bottom:1px solid rgba(255,255,255,0.04);gap:8px;border-radius:8px;transition:background .15s;cursor:pointer" onmouseover="this.style.background=\'var(--accent-dim,rgba(59,130,246,0.08))\'" onmouseout="this.style.background=\'transparent\'" onclick="showView(\'merchant-detail\',{merchant:\'' + r.merchant.replace(/'/g,"\\'") + '\',source:\'overview\'})">';
+      html += '<div style="flex:1;min-width:0">';
       html += '<div style="font-weight:600;font-size:14px;margin-bottom:3px">' + r.merchant + '</div>';
       html += '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
       html += '<span class="tag" style="background:' + catColor + '22;color:' + catColor + '">' + r.category + '</span>';
