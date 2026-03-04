@@ -37,7 +37,7 @@
   <div class="tabs">
     <button class="tab active" data-view="overview" onclick="showView('overview')">Overview</button>
     <button class="tab" data-view="groceries" onclick="showView('groceries')">Groceries</button>
-    <button class="tab" data-view="toiletries" onclick="showView('toiletries')">Toiletries</button>
+    <button class="tab" data-view="nongrocery" onclick="showView('nongrocery')">Non-Grocery</button>
     <button class="tab" data-view="stores" onclick="showView('stores')">By Store</button>
     <button class="tab" data-view="trends" onclick="showView('trends')">Trends</button>
     <button class="tab" data-view="trips" onclick="showView('trips')">Trips</button>
@@ -71,7 +71,7 @@
         <div class="chart-wrap-sm"><canvas id="chart-weekly"></canvas></div>
       </div>
       <div class="card">
-        <div class="card-title">Grocery vs Toiletries vs Other</div>
+        <div class="card-title">Grocery vs Non-Grocery</div>
         <div class="chart-wrap-sm"><canvas id="chart-split"></canvas></div>
       </div>
     </div>
@@ -104,22 +104,22 @@
     </div>
   </div>
 
-  <!-- ==================== TOILETRIES ==================== -->
-  <div id="view-toiletries" class="view">
-    <div class="kpi-grid" id="kpi-toiletry"></div>
+  <!-- ==================== NON-GROCERY ==================== -->
+  <div id="view-nongrocery" class="view">
+    <div class="kpi-grid" id="kpi-nongrocery"></div>
     <div class="grid-2">
       <div class="card">
-        <div class="card-title">Toiletries Spending by Category</div>
-        <div class="chart-wrap-sm"><canvas id="chart-toiletry-cat"></canvas></div>
+        <div class="card-title">Non-Grocery Spending by Category</div>
+        <div class="chart-wrap-sm"><canvas id="chart-nongrocery-cat"></canvas></div>
       </div>
       <div class="card">
-        <div class="card-title">Toiletries by Store</div>
-        <div class="chart-wrap-sm"><canvas id="chart-toiletry-store"></canvas></div>
+        <div class="card-title">Non-Grocery by Store</div>
+        <div class="chart-wrap-sm"><canvas id="chart-nongrocery-store"></canvas></div>
       </div>
     </div>
     <div class="card">
-      <div class="card-title">All Toiletry & Household Items</div>
-      <div style="overflow-x:auto"><table id="table-toiletry-all"></table></div>
+      <div class="card-title">All Non-Grocery Items</div>
+      <div style="overflow-x:auto"><table id="table-nongrocery-all"></table></div>
     </div>
   </div>
 
@@ -207,7 +207,7 @@
       <select id="filter-type">
         <option value="All">All Types</option>
         <option value="Grocery">Grocery Only</option>
-        <option value="Toiletry">Toiletries Only</option>
+        <option value="Non-Grocery">Non-Grocery Only</option>
         <option value="Other">Other Non-Grocery</option>
       </select>
       <input type="text" id="filter-search" placeholder="Search items..." style="min-width:180px">
@@ -417,9 +417,9 @@
       <div class="help-section-title">How Items Are Classified</div>
       <div class="help-text">
         The dashboard auto-classifies each item into one of three types:<br><br>
-        <strong style="color:var(--green)">Grocery</strong> &mdash; Food and drink items (Non-Grocery = FALSE and not a toiletry category).<br><br>
+        <strong style="color:var(--green)">Grocery</strong> &mdash; Food and drink items (Non-Grocery = FALSE).<br><br>
         <strong style="color:var(--purple)">Toiletry</strong> &mdash; Items in "Health &amp; Beauty", "Household &amp; Cleaning", or "Paper Products" categories.<br><br>
-        <strong style="color:var(--rose)">Other</strong> &mdash; Non-food items like toys, electronics, clothing (Non-Grocery = TRUE and not toiletry).
+        <strong style="color:var(--purple)">Non-Grocery</strong> &mdash; Non-food items like cleaning, personal care, household, electronics (Non-Grocery = TRUE).
       </div>
     </div>
 

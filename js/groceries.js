@@ -153,12 +153,8 @@ const SEED_DATA = [
 ];
 
 // ─────────── CLASSIFICATION ───────────
-const TOILETRY_CATS = ["Health & Beauty", "Household & Cleaning", "Paper Products"];
-
 function itemType(item) {
-  if (TOILETRY_CATS.includes(item.c)) return "toiletry";
-  if (!item.ng) return "grocery";
-  return "other";
+  return item.ng ? "nongrocery" : "grocery";
 }
 
 // ─────────── UTILITIES ───────────
@@ -204,8 +200,8 @@ const COMPARE_COLORS = ["#22c55e","#3b82f6","#f59e0b","#ef4444","#a855f7","#06b6
 // ─────────── MONTH CONTEXT & STORAGE ───────────
 let ctx = null;
 let activeData = [];
-let groceries = [], toiletries = [], others = [];
-let grandTotal = 0, groceryTotal = 0, toiletryTotal = 0, otherTotal = 0;
+let groceries = [], nonGroceries = [];
+let grandTotal = 0, groceryTotal = 0, nonGroceryTotal = 0;
 let allTrips = [];
 let ALL_CATEGORIES = [];
 let filtersInitialized = false;
@@ -290,12 +286,10 @@ function initMonthData(data) {
 
 function recomputeAll() {
   groceries = activeData.filter(i => itemType(i) === "grocery");
-  toiletries = activeData.filter(i => itemType(i) === "toiletry");
-  others = activeData.filter(i => itemType(i) === "other");
+  nonGroceries = activeData.filter(i => itemType(i) === "nongrocery");
   grandTotal = sum(activeData);
   groceryTotal = sum(groceries);
-  toiletryTotal = sum(toiletries);
-  otherTotal = sum(others);
+  nonGroceryTotal = sum(nonGroceries);
   allTrips = buildTrips();
   ALL_CATEGORIES = [...new Set(activeData.map(i => i._origCat))].sort();
 }
@@ -347,7 +341,7 @@ function switchMonth(monthKey) {
 function renderAll() {
   try { renderOverview(); } catch(e) { console.error('renderOverview error:', e); }
   try { renderGroceries(); } catch(e) { console.error('renderGroceries error:', e); }
-  try { renderToiletries(); } catch(e) { console.error('renderToiletries error:', e); }
+  try { renderNonGroceries(); } catch(e) { console.error('renderNonGroceries error:', e); }
   try { renderStores(); } catch(e) { console.error('renderStores error:', e); }
   try { renderTrends(); } catch(e) { console.error('renderTrends error:', e); }
   try { renderTrips(); } catch(e) { console.error('renderTrips error:', e); }
@@ -601,7 +595,7 @@ function showCategoryDetail(categoryName, source) {
   const container = document.getElementById('category-detail-content');
   const backBtn = document.getElementById('category-detail-back');
 
-  const backMap = { overview: ['overview','Overview'], groceries: ['groceries','Groceries'], toiletries: ['toiletries','Toiletries'], items: ['items','All Items'], 'store-detail': ['stores','By Store'] };
+  const backMap = { overview: ['overview','Overview'], groceries: ['groceries','Groceries'], nongrocery: ['nongrocery','Non-Grocery'], items: ['items','All Items'], 'store-detail': ['stores','By Store'] };
   const [backTab, backLabel] = backMap[categoryDetailSource] || backMap.overview;
   backBtn.onclick = () => showView(backTab);
   backBtn.textContent = '\u2190 Back to ' + backLabel;
@@ -613,8 +607,7 @@ function showCategoryDetail(categoryName, source) {
   const totalQty = items.reduce((s, i) => s + i.q, 0);
   const catPctOfAll = ((total / grandTotal) * 100).toFixed(1);
   const isGrocery = items.some(i => itemType(i) === 'grocery');
-  const isToi = items.some(i => itemType(i) === 'toiletry');
-  const typeLabel = isGrocery ? 'Grocery' : isToi ? 'Toiletry' : 'Other';
+  const typeLabel = isGrocery ? 'Grocery' : 'Non-Grocery';
 
   // Group by product
   const products = {};
@@ -778,13 +771,11 @@ function showStoreDetail(storeName, source) {
   });
   const prodList = Object.values(products).sort((a, b) => b.total - a.total);
 
-  // Type breakdown (grocery/toiletry/other)
+  // Type breakdown (grocery/non-grocery)
   const groceryItems = items.filter(i => itemType(i) === 'grocery');
-  const toiletryItems = items.filter(i => itemType(i) === 'toiletry');
-  const otherItems = items.filter(i => itemType(i) === 'other');
+  const nonGroceryItems = items.filter(i => itemType(i) === 'nongrocery');
   const grocerySum = groceryItems.reduce((s, i) => s + i.t, 0);
-  const toiletrySum = toiletryItems.reduce((s, i) => s + i.t, 0);
-  const otherSum = otherItems.reduce((s, i) => s + i.t, 0);
+  const nonGrocerySum = nonGroceryItems.reduce((s, i) => s + i.t, 0);
 
   const dates = [...new Set(items.map(i => i.d))].sort();
   const dateRange = dates.length > 1 ? (ctx.monthAbbr + ' ' + parseInt(dates[0].split('/')[1]) + ' \u2014 ' + ctx.monthAbbr + ' ' + parseInt(dates[dates.length - 1].split('/')[1])) : ctx.monthAbbr + ' ' + parseInt(dates[0].split('/')[1]);
@@ -807,19 +798,15 @@ function showStoreDetail(storeName, source) {
 
   // Type breakdown card
   html += '<div class="card"><div class="card-title">Spending Breakdown</div>';
-  html += '<div class="grid-3" style="margin-top:12px">';
+  html += '<div class="grid-2" style="margin-top:12px">';
   html += '<div class="insight" style="cursor:pointer" onclick="showView(\'items\',\'Grocery\',{store:\'' + storeName.replace(/'/g, "\\'") + '\'})">';
   html += '<div class="insight-title" style="color:var(--green)">Groceries</div>';
   html += '<div class="insight-text"><span class="insight-val">' + fmt(grocerySum) + '</span> (' + ((grocerySum / total) * 100).toFixed(0) + '%)</div>';
   html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + groceryItems.length + ' items</div></div>';
-  html += '<div class="insight" style="cursor:pointer" onclick="showView(\'items\',\'Toiletry\',{store:\'' + storeName.replace(/'/g, "\\'") + '\'})">';
-  html += '<div class="insight-title" style="color:var(--purple)">Toiletries</div>';
-  html += '<div class="insight-text"><span class="insight-val">' + fmt(toiletrySum) + '</span> (' + ((toiletrySum / total) * 100).toFixed(0) + '%)</div>';
-  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + toiletryItems.length + ' items</div></div>';
-  html += '<div class="insight" style="cursor:pointer" onclick="showView(\'items\',\'Other\',{store:\'' + storeName.replace(/'/g, "\\'") + '\'})">';
-  html += '<div class="insight-title" style="color:var(--rose)">Other</div>';
-  html += '<div class="insight-text"><span class="insight-val">' + fmt(otherSum) + '</span> (' + ((otherSum / total) * 100).toFixed(0) + '%)</div>';
-  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + otherItems.length + ' items</div></div>';
+  html += '<div class="insight" style="cursor:pointer" onclick="showView(\'items\',\'Non-Grocery\',{store:\'' + storeName.replace(/'/g, "\\'") + '\'})">';
+  html += '<div class="insight-title" style="color:var(--purple)">Non-Grocery</div>';
+  html += '<div class="insight-text"><span class="insight-val">' + fmt(nonGrocerySum) + '</span> (' + ((nonGrocerySum / total) * 100).toFixed(0) + '%)</div>';
+  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + nonGroceryItems.length + ' items</div></div>';
   html += '</div></div>';
 
   // Charts row
@@ -1187,8 +1174,7 @@ function renderOverview() {
   document.getElementById("kpi-overview").innerHTML = [
     { label: "Total Spend", value: fmt(grandTotal), color: "var(--green)", sub: `${activeData.length} line items`, nav: "items", navLabel: "View all items" },
     { label: "Groceries", value: fmt(groceryTotal), color: "var(--green)", sub: pct(groceryTotal, grandTotal) + " of total", nav: "groceries", navLabel: "View groceries" },
-    { label: "Toiletries", value: fmt(toiletryTotal), color: "var(--purple)", sub: pct(toiletryTotal, grandTotal) + " of total", nav: "toiletries", navLabel: "View toiletries" },
-    { label: "Other Non-Grocery", value: fmt(otherTotal), color: "var(--rose)", sub: pct(otherTotal, grandTotal) + " of total", nav: "items", filter: "Other", navLabel: "View other items" },
+    { label: "Non-Grocery", value: fmt(nonGroceryTotal), color: "var(--purple)", sub: pct(nonGroceryTotal, grandTotal) + " of total", nav: "nongrocery", navLabel: "View non-grocery" },
     { label: "Shopping Trips", value: trips, color: "var(--cyan)", sub: `Avg ${fmt(grandTotal / trips)}/trip`, nav: "trends", navLabel: "View trends" },
     { label: "Stores Visited", value: stores.length, color: "var(--amber)", sub: "Publix most frequent", nav: "stores", navLabel: "View stores" },
   ].map(k => `
@@ -1254,8 +1240,8 @@ function renderOverview() {
   const weeklyData = weeks.map(w => {
     const items = activeData.filter(i => { const day = parseInt(i.d.split("/")[1]); return day >= w.min && day <= w.max; });
     const g = items.filter(i => itemType(i) === "grocery");
-    const t = items.filter(i => itemType(i) === "toiletry");
-    return { name: w.name, grocery: +sum(g).toFixed(2), toiletry: +sum(t).toFixed(2) };
+    const ng = items.filter(i => itemType(i) === "nongrocery");
+    return { name: w.name, grocery: +sum(g).toFixed(2), nonGrocery: +sum(ng).toFixed(2) };
   });
   charts.weekly = new Chart(document.getElementById("chart-weekly"), {
     type: "bar",
@@ -1263,7 +1249,7 @@ function renderOverview() {
       labels: weeklyData.map(w => w.name),
       datasets: [
         { label: "Groceries", data: weeklyData.map(w => w.grocery), backgroundColor: "#22c55e", borderRadius: 6 },
-        { label: "Toiletries", data: weeklyData.map(w => w.toiletry), backgroundColor: "#a855f7", borderRadius: 6 },
+        { label: "Non-Grocery", data: weeklyData.map(w => w.nonGrocery), backgroundColor: "#a855f7", borderRadius: 6 },
       ]
     },
     options: withChartAnimation({
@@ -1273,14 +1259,14 @@ function renderOverview() {
     })
   });
 
-  // Grocery/Toiletry/Other split
+  // Grocery/Non-Grocery split
   charts.split = new Chart(document.getElementById("chart-split"), {
     type: "doughnut",
     data: {
-      labels: ["Groceries", "Toiletries", "Other Non-Grocery"],
+      labels: ["Groceries", "Non-Grocery"],
       datasets: [{
-        data: [+groceryTotal.toFixed(2), +toiletryTotal.toFixed(2), +otherTotal.toFixed(2)],
-        backgroundColor: ["#22c55e", "#a855f7", "#f43f5e"],
+        data: [+groceryTotal.toFixed(2), +nonGroceryTotal.toFixed(2)],
+        backgroundColor: ["#22c55e", "#a855f7"],
         borderWidth: 0
       }]
     },
@@ -1293,7 +1279,7 @@ function renderOverview() {
     })
   });
 
-  // Make split chart clickable - Groceries/Toiletries/Other navigate to respective tabs
+  // Make split chart clickable - Groceries/Non-Grocery navigate to respective tabs
   const splitCanvas = document.getElementById("chart-split");
   splitCanvas.style.cursor = "pointer";
   splitCanvas.addEventListener("click", (evt) => {
@@ -1301,8 +1287,7 @@ function renderOverview() {
     if (points.length > 0) {
       const idx = points[0].index;
       if (idx === 0) showView("groceries");
-      else if (idx === 1) showView("toiletries");
-      else showView("items", "Other");
+      else showView("nongrocery");
     }
   });
 
@@ -1385,7 +1370,7 @@ function renderOverview() {
     { title: "Shopping Pattern", text: `You shop most on <span class="insight-val">${dowNames[busiestDow]}s</span> (${dowCounts[busiestDow]} items) and spend most on <span class="insight-val">${dowNames[biggestSpendDow]}s</span> (${fmt(dowSpend[biggestSpendDow])})`, action: `showView('trends')` },
     { title: "Trip Efficiency", text: `<span class="insight-val">${avgItemsPerTrip} items/trip</span> average across ${tripKeys.length} trips at <span class="insight-val">${fmt(avgTrip)}/trip</span>`, action: `showView('trips')` },
     { title: "Repeat Purchases", text: `<span class="insight-val">${freqProducts.length} products</span> bought 2+ times, totaling ${fmt(freqProducts.reduce((s,p) => s + p.total, 0))} (${pct(freqProducts.reduce((s,p) => s + p.total, 0), grandTotal)} of spend)`, action: `showView('groceries')` },
-    { title: "Toiletries vs Groceries", text: `For every <span class="insight-val">$1</span> on toiletries, you spend <span class="insight-val">${fmt(toiletryTotal > 0 ? groceryTotal / toiletryTotal : 0).replace('$','')}</span> on groceries`, action: `showView('toiletries')` },
+    { title: "Non-Grocery vs Groceries", text: `For every <span class="insight-val">$1</span> on non-grocery items, you spend <span class="insight-val">${fmt(nonGroceryTotal > 0 ? groceryTotal / nonGroceryTotal : 0).replace('$','')}</span> on groceries`, action: `showView('nongrocery')` },
   );
 
   document.getElementById("insights").innerHTML = insights.map(ins =>
@@ -1577,40 +1562,40 @@ function renderGroceries() {
   document.getElementById("table-grocery-freq").innerHTML = html;
 }
 
-// ─────────── TOILETRIES TAB ───────────
-function renderToiletries() {
-  const cats = groupBy(toiletries, "c");
-  const stores = groupBy(toiletries, "s");
-  const products = groupProducts(toiletries);
+// ─────────── NON-GROCERY TAB ───────────
+function renderNonGroceries() {
+  const cats = groupBy(nonGroceries, "c");
+  const stores = groupBy(nonGroceries, "s");
+  const products = groupProducts(nonGroceries);
 
-  document.getElementById("kpi-toiletry").innerHTML = [
-    { label: "Total Toiletries Spend", value: fmt(toiletryTotal), color: "var(--purple)", sub: `${pct(toiletryTotal, grandTotal)} of all spend`, nav: "items", filter: "Toiletry" },
-    { label: "Items Purchased", value: toiletries.reduce((s,i)=>s+i.q,0), color: "var(--cyan)", sub: `${toiletries.length} line items`, nav: "items", filter: "Toiletry" },
+  document.getElementById("kpi-nongrocery").innerHTML = [
+    { label: "Total Non-Grocery Spend", value: fmt(nonGroceryTotal), color: "var(--purple)", sub: `${pct(nonGroceryTotal, grandTotal)} of all spend`, nav: "items", filter: "Non-Grocery" },
+    { label: "Items Purchased", value: nonGroceries.reduce((s,i)=>s+i.q,0), color: "var(--cyan)", sub: `${nonGroceries.length} line items`, nav: "items", filter: "Non-Grocery" },
     { label: "Categories", value: cats.length, color: "var(--amber)", sub: cats.map(c => c.name).join(", "), nav: "overview" },
-    { label: "Avg Item Cost", value: fmt(toiletryTotal / toiletries.reduce((s,i)=>s+i.q,0)), color: "var(--teal)", sub: "per unit", nav: "stores" },
+    { label: "Avg Item Cost", value: fmt(nonGroceryTotal / (nonGroceries.reduce((s,i)=>s+i.q,0) || 1)), color: "var(--teal)", sub: "per unit", nav: "stores" },
   ].map(k => `<div class="kpi-card" onclick="showView('${k.nav}'${k.filter ? ",'" + k.filter + "'" : ''})"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:${k.color}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join("");
-  animateKPICards('#kpi-toiletry');
+  animateKPICards('#kpi-nongrocery');
 
-  // Toiletry by category
-  const toilCatColors = ["#a855f7", "#d946ef", "#ec4899"];
-  charts.toilCat = new Chart(document.getElementById("chart-toiletry-cat"), {
+  // Non-grocery by category
+  const ngCatColors = ["#a855f7", "#d946ef", "#ec4899", "#f43f5e", "#fb923c", "#facc15"];
+  charts.ngCat = new Chart(document.getElementById("chart-nongrocery-cat"), {
     type: "doughnut",
     data: {
       labels: cats.map(c => c.name),
-      datasets: [{ data: cats.map(c => +c.total.toFixed(2)), backgroundColor: toilCatColors, borderWidth: 0 }]
+      datasets: [{ data: cats.map(c => +c.total.toFixed(2)), backgroundColor: ngCatColors, borderWidth: 0 }]
     },
     options: withChartAnimation({
       responsive: true, maintainAspectRatio: false, cutout: "55%",
       plugins: {
-        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, toiletryTotal)})` } }
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)} (${pct(ctx.raw, nonGroceryTotal)})` } }
       }
     })
   });
 
-  makeChartClickable(charts.toilCat, document.getElementById("chart-toiletry-cat"), cats.map(c => c.name), "cat");
+  makeChartClickable(charts.ngCat, document.getElementById("chart-nongrocery-cat"), cats.map(c => c.name), "cat");
 
-  // Toiletry by store
-  charts.toilStore = new Chart(document.getElementById("chart-toiletry-store"), {
+  // Non-grocery by store
+  charts.ngStore = new Chart(document.getElementById("chart-nongrocery-store"), {
     type: "bar",
     data: {
       labels: stores.map(s => s.name),
@@ -1623,23 +1608,23 @@ function renderToiletries() {
     })
   });
 
-  // Make toiletry store chart navigate to store detail
-  const toilStoreCanvas = document.getElementById("chart-toiletry-store");
-  toilStoreCanvas.style.cursor = "pointer";
-  toilStoreCanvas.addEventListener("click", (evt) => {
-    const points = charts.toilStore.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
+  // Make non-grocery store chart navigate to store detail
+  const ngStoreCanvas = document.getElementById("chart-nongrocery-store");
+  ngStoreCanvas.style.cursor = "pointer";
+  ngStoreCanvas.addEventListener("click", (evt) => {
+    const points = charts.ngStore.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
     if (points.length > 0) {
       const idx = points[0].index;
       const storeName = stores[idx].name;
-      showStoreDetail(storeName, 'toiletries');
+      showStoreDetail(storeName, 'nongrocery');
     }
   });
 
-  // All toiletry items table
+  // All non-grocery items table
   let html = `<thead><tr><th>Date</th><th>Store</th><th>Product</th><th>Category</th><th class="text-center">Qty</th><th class="text-right">Unit $</th><th class="text-right">Total</th></tr></thead><tbody>`;
-  toiletries.sort((a,b) => b.t - a.t).forEach(i => {
+  nonGroceries.sort((a,b) => b.t - a.t).forEach(i => {
     const escaped = i.n.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-    html += `<tr style="cursor:pointer" onclick="showProductDetail('${escaped}','toiletries')">
+    html += `<tr style="cursor:pointer" onclick="showProductDetail('${escaped}','nongrocery')">
       <td class="mono">${i.d}</td>
       <td>${i.s}</td>
       <td class="bold">${i.n}<span style="float:right;color:var(--text-muted);font-size:11px">&rarr;</span></td>
@@ -1650,7 +1635,7 @@ function renderToiletries() {
     </tr>`;
   });
   html += `</tbody>`;
-  document.getElementById("table-toiletry-all").innerHTML = html;
+  document.getElementById("table-nongrocery-all").innerHTML = html;
 }
 
 // ─────────── STORES TAB ───────────
@@ -1668,14 +1653,9 @@ function renderStores() {
           backgroundColor: "#22c55e", borderRadius: 4
         },
         {
-          label: "Toiletries",
-          data: storeGroups.map(s => +sum(s.items.filter(i => itemType(i) === "toiletry")).toFixed(2)),
+          label: "Non-Grocery",
+          data: storeGroups.map(s => +sum(s.items.filter(i => itemType(i) === "nongrocery")).toFixed(2)),
           backgroundColor: "#a855f7", borderRadius: 4
-        },
-        {
-          label: "Other",
-          data: storeGroups.map(s => +sum(s.items.filter(i => itemType(i) === "other")).toFixed(2)),
-          backgroundColor: "#f43f5e", borderRadius: 4
         },
       ]
     },
@@ -1967,7 +1947,7 @@ function showProductDetail(productName, source) {
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
 
-  const backMap = { groceries: ['groceries','Groceries'], toiletries: ['toiletries','Toiletries'], overview: ['overview','Overview'], items: ['items','All Items'], 'category-detail': ['overview','Overview'], 'store-detail': ['stores','By Store'], trips: ['trips','Trips'] };
+  const backMap = { groceries: ['groceries','Groceries'], nongrocery: ['nongrocery','Non-Grocery'], overview: ['overview','Overview'], items: ['items','All Items'], 'category-detail': ['overview','Overview'], 'store-detail': ['stores','By Store'], trips: ['trips','Trips'] };
   const [backTab, backLabel] = backMap[productDetailSource] || backMap.items;
   document.getElementById("product-detail-back").onclick = () => showView(backTab);
   document.getElementById("product-detail-back").textContent = "\u2190 Back to " + backLabel;
@@ -2181,8 +2161,7 @@ function showTripDetail(tripIdx) {
   const color = STORE_COLORS[trip.store] || "#888";
 
   const groceryItems = trip.items.filter(i => itemType(i) === "grocery");
-  const toiletryItems = trip.items.filter(i => itemType(i) === "toiletry");
-  const otherItems = trip.items.filter(i => itemType(i) === "other");
+  const nonGroceryItems = trip.items.filter(i => itemType(i) === "nongrocery");
 
   // Navigation to prev/next trip
   const prevBtn = tripIdx > 0
@@ -2205,7 +2184,7 @@ function showTripDetail(tripIdx) {
     </div>`;
 
   // Build item groups
-  var groupColors = { 'tag-grocery': 'var(--amber)', 'tag-toiletry': 'var(--purple)', 'tag-nongrocery': 'var(--rose)' };
+  var groupColors = { 'tag-grocery': 'var(--amber)', 'tag-nongrocery': 'var(--purple)' };
   function renderGroup(label, items, tagClass, tagLabel) {
     if (items.length === 0) return "";
     const groupTotal = items.reduce((s, i) => s + i.t, 0);
@@ -2233,8 +2212,7 @@ function showTripDetail(tripIdx) {
   }
 
   html += renderGroup("Grocery Items", groceryItems, "tag-grocery", "GROCERY");
-  html += renderGroup("Toiletries & Household", toiletryItems, "tag-toiletry", "TOILETRY");
-  html += renderGroup("Other Items", otherItems, "tag-nongrocery", "OTHER");
+  html += renderGroup("Non-Grocery Items", nonGroceryItems, "tag-nongrocery", "NON-GROC");
 
   // Receipt total summary
   html += `<div class="card" style="background:rgba(34,197,94,0.06);border-color:rgba(34,197,94,0.2)">
@@ -2314,8 +2292,7 @@ function renderTable() {
     if (store !== "All" && i.s !== store) return false;
     if (cat !== "All" && i.c !== cat) return false;
     if (type === "Grocery" && itemType(i) !== "grocery") return false;
-    if (type === "Toiletry" && itemType(i) !== "toiletry") return false;
-    if (type === "Other" && itemType(i) === "grocery") return false;
+    if (type === "Non-Grocery" && itemType(i) !== "nongrocery") return false;
     if (search && !i.n.toLowerCase().includes(search) && !i.r.toLowerCase().includes(search)) return false;
     return true;
   });
@@ -2359,8 +2336,8 @@ function renderTable() {
   const dupeMap = getDuplicateMap();
   pageData.forEach(i => {
     const typ = itemType(i);
-    const tagClass = typ === "grocery" ? "tag-grocery" : typ === "toiletry" ? "tag-toiletry" : "tag-nongrocery";
-    const tagLabel = typ === "grocery" ? "GROCERY" : typ === "toiletry" ? "TOILETRY" : "OTHER";
+    const tagClass = typ === "grocery" ? "tag-grocery" : "tag-nongrocery";
+    const tagLabel = typ === "grocery" ? "GROCERY" : "NON-GROC";
     const isEdited = i.n !== i._origName || i.c !== i._origCat || i.ng !== i._origNg;
     const editDot = isEdited ? '<span class="edit-dot" title="Edited"></span>' : '';
     const dupeInfo = dupeMap[i.n];
@@ -3277,13 +3254,13 @@ function renderCompare() {
     if (!data) return null;
     const [y, m] = key.split("_");
     const g = data.filter(i => itemType(i) === "grocery");
-    const t = data.filter(i => itemType(i) === "toiletry");
+    const ng = data.filter(i => itemType(i) === "nongrocery");
     return {
       key, label: MONTH_ABBR[parseInt(m) - 1] + " " + y,
       fullLabel: MONTH_NAMES[parseInt(m) - 1] + " " + y,
       color: COMPARE_COLORS[idx % COMPARE_COLORS.length],
       total: data.reduce((s, i) => s + i.t, 0),
-      groceryTotal: sum(g), toiletryTotal: sum(t),
+      groceryTotal: sum(g), nonGroceryTotal: sum(ng),
       items: data.length,
       trips: [...new Set(data.map(i => i.d + "|" + i.s))].length,
       stores: [...new Set(data.map(i => i.s))].length,
@@ -3344,7 +3321,7 @@ function renderCompare() {
   html += '<div class="delta-grid">';
   html += deltaHtml("Total Spend", curr.total, prev.total, true);
   html += deltaHtml("Grocery Spend", curr.groceryTotal, prev.groceryTotal, true);
-  html += deltaHtml("Toiletry Spend", curr.toiletryTotal, prev.toiletryTotal, true);
+  html += deltaHtml("Non-Grocery Spend", curr.nonGroceryTotal, prev.nonGroceryTotal, true);
   html += deltaHtml("Shopping Trips", curr.trips, prev.trips, false);
   html += deltaHtml("Items Purchased", curr.items, prev.items, false);
   html += deltaHtml("Avg Per Trip", curr.total / curr.trips, prev.total / prev.trips, true);
@@ -3369,7 +3346,7 @@ function renderCompare() {
       datasets: [
         { label: "Total", data: allMonthData.map(m => +m.total.toFixed(2)), borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.1)", fill: true, tension: 0.3, pointRadius: 6, pointBackgroundColor: "#22c55e" },
         { label: "Groceries", data: allMonthData.map(m => +m.groceryTotal.toFixed(2)), borderColor: "#3b82f6", tension: 0.3, pointRadius: 5, pointBackgroundColor: "#3b82f6" },
-        { label: "Toiletries", data: allMonthData.map(m => +m.toiletryTotal.toFixed(2)), borderColor: "#a855f7", tension: 0.3, pointRadius: 5, pointBackgroundColor: "#a855f7" },
+        { label: "Non-Grocery", data: allMonthData.map(m => +m.nonGroceryTotal.toFixed(2)), borderColor: "#a855f7", tension: 0.3, pointRadius: 5, pointBackgroundColor: "#a855f7" },
       ]
     },
     options: withChartAnimation({ responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => "$" + v } } }, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmt(c.raw) } } } })
