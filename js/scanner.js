@@ -203,9 +203,10 @@ function showStoreSuggestions(input) {
     container.innerHTML = '';
     return;
   }
-  container.innerHTML = matches.map(s =>
-    `<div class="store-suggestion" onmousedown="selectStoreSuggestion(this,'${escHtml(s)}')">${escHtml(s)}</div>`
-  ).join('');
+  container.innerHTML = matches.map(s => {
+    const safe = escHtml(s).replace(/'/g, '&#39;');
+    return `<div class="store-suggestion" onmousedown="selectStoreSuggestion(this,'${safe}')">${escHtml(s)}</div>`;
+  }).join('');
 }
 
 function hideStoreSuggestions(input) {
