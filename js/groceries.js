@@ -1850,7 +1850,7 @@ function renderTrends() {
   streakHtml += `</div>`;
 
   // Calendar heatmap
-  streakHtml += `<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Daily Spending Calendar</div>`;
+  streakHtml += `<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Daily Spending Calendar &mdash; ${ctx.monthName} ${ctx.year}</div>`;
   const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
   streakHtml += `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:500px">`;
   dayNames.forEach(d => { streakHtml += `<div style="text-align:center;font-size:10px;color:var(--text-muted);padding:4px">${d}</div>`; });
