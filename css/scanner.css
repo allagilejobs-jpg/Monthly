@@ -155,7 +155,7 @@ body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var
 .receipt-header .file-meta { font-size:12px; color:var(--muted); display:flex; gap:12px; }
 .receipt-header .chevron { transition:transform .2s; color:var(--muted); }
 .receipt-header.collapsed .chevron { transform:rotate(-90deg); }
-.receipt-body { padding:0; }
+.receipt-body { padding:0; overflow-x:auto; -webkit-overflow-scrolling:touch; }
 .receipt-body.collapsed { display:none; }
 
 .review-table { width:100%; border-collapse:collapse; font-size:12px; }
@@ -231,7 +231,7 @@ body.light .scan-confirm-row { background:rgba(239,68,68,0.06); }
   .step-item { flex:1 1 45%; border-radius:8px !important; margin:2px; }
   .export-cards { grid-template-columns:1fr; }
   .thumb-grid { grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); }
-  .review-table { font-size:11px; }
+  .review-table { font-size:11px; min-width:700px; }
   .store-date-row { padding:10px 12px; gap:8px; flex-direction:column; align-items:stretch; }
   .store-date-row label { flex-wrap:wrap; gap:6px; }
   .date-select { min-width:50px; flex:1; }
