@@ -502,6 +502,8 @@
   body.light .modal-select option, body.light .filter-bar select option,
   body.light .month-nav select option { background: #fff; }
   body.light .search-result-name mark { background: rgba(34,197,94,0.25); color: #1a1a2e; }
+  body.light .dupe-popover-btn.dismiss { background: rgba(0,0,0,0.06); }
+  body.light .dupe-popover::before { background: rgba(0,0,0,0.15); }
 
   /* Theme toggle */
   .theme-toggle {
@@ -621,11 +623,25 @@
   .clickable-row:hover {
     background: rgba(255,255,255,0.04);
   }
+  .dupe-popover-scrim {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); z-index: 9999;
+  }
+  .dupe-popover-scrim.open { display: block; }
   @media (max-width: 480px) {
     .dupe-popover {
-      left: 8px !important; right: 8px !important; bottom: 12px !important;
+      left: 0 !important; right: 0 !important; bottom: 0 !important;
       top: auto !important; max-width: none;
+      border-radius: 16px 16px 0 0; padding: 20px 20px 28px;
+      border-bottom: none;
     }
-    .dupe-popover-btn { padding: 12px 18px; font-size: 14px; min-height: 44px; }
-    .dupe-popover-actions { flex-direction: column; }
+    .dupe-popover::before {
+      content: ''; display: block; width: 36px; height: 4px;
+      background: rgba(255,255,255,0.2); border-radius: 2px;
+      margin: 0 auto 16px;
+    }
+    .dupe-popover-label { font-size: 13px; margin-bottom: 6px; }
+    .dupe-popover-match { font-size: 16px; margin-bottom: 18px; }
+    .dupe-popover-btn { padding: 14px 18px; font-size: 15px; min-height: 48px; border-radius: 10px; width: 100%; }
+    .dupe-popover-actions { flex-direction: column; gap: 10px; }
   }

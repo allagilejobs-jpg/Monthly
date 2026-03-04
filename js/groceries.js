@@ -2511,6 +2511,14 @@ function showDupePopover(flagEl, idx) {
   var info = dupeMap[item.n];
   if (!info) return;
 
+  var scrim = document.getElementById("dupe-popover-scrim");
+  if (!scrim) {
+    scrim = document.createElement("div");
+    scrim.id = "dupe-popover-scrim";
+    scrim.className = "dupe-popover-scrim";
+    scrim.onclick = function() { closeDupePopover(); };
+    document.body.appendChild(scrim);
+  }
   var popover = document.getElementById("dupe-popover");
   if (!popover) {
     popover = document.createElement("div");
@@ -2551,6 +2559,7 @@ function showDupePopover(flagEl, idx) {
   }
 
   popover.classList.add("open");
+  if (isMobile) scrim.classList.add("open");
 
   // Close on outside click
   setTimeout(function() {
@@ -2569,9 +2578,12 @@ function _closeDupePopoverEsc(e) {
   if (e.key === "Escape") hideDupePopover();
 }
 
+function closeDupePopover() { hideDupePopover(); }
 function hideDupePopover() {
   var popover = document.getElementById("dupe-popover");
   if (popover) popover.classList.remove("open");
+  var scrim = document.getElementById("dupe-popover-scrim");
+  if (scrim) scrim.classList.remove("open");
   document.removeEventListener("click", _closeDupePopoverOutside);
   document.removeEventListener("keydown", _closeDupePopoverEsc);
 }
