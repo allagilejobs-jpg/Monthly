@@ -453,7 +453,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const months = getLoadedMonths();
   const activeMonthKey = (typeof DEMO_MODE !== 'undefined' && DEMO_MODE)
     ? (demoGet("grocery_activeMonth") || (months.length ? months[months.length - 1] : null))
-    : (localStorage.getItem("grocery_activeMonth") || (months.length ? months[0] : null));
+    : (localStorage.getItem("grocery_activeMonth") || (months.length ? months[months.length - 1] : null));
   if (activeMonthKey) {
     ctx = buildMonthContext(activeMonthKey);
     activeData = loadMonthData(activeMonthKey) || [];
