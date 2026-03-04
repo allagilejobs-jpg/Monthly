@@ -449,6 +449,8 @@ window.addEventListener("DOMContentLoaded", () => {
     ? (demoGet("grocery_activeMonth") || (months.length ? months[months.length - 1] : null))
     : (localStorage.getItem("grocery_activeMonth") || (months.length ? months[months.length - 1] : null));
   if (activeMonthKey) {
+    // Persist so cloud sync doesn't overwrite with stale value
+    localStorage.setItem("grocery_activeMonth", activeMonthKey);
     ctx = buildMonthContext(activeMonthKey);
     activeData = loadMonthData(activeMonthKey) || [];
     initMonthData(activeData);
