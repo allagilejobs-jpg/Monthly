@@ -989,8 +989,14 @@ async function processWithGemini(uf, doAutoDetect) {
   const store = (doAutoDetect && parsed.store) || 'Unknown Store';
   const date = (doAutoDetect && parsed.date) || '';
 
+  // Filter out discount/savings/subtotal lines Gemini may still return
+  const skipPattern = /^(you saved|savings|special price|subtotal|tax|total|order total|grand total|food tax|regular tax|payment|change|credit|balance|cash|tender)/i;
+
   const validCategories = new Set(ALL_CATEGORIES);
-  return (parsed.items || []).map(item => {
+  return (parsed.items || []).filter(item => {
+    const name = (item.rawName || item.fullName || '').trim();
+    return name && !skipPattern.test(name);
+  }).map(item => {
     const fullName = item.fullName || item.rawName || '';
     const cat = (item.category && validCategories.has(item.category)) ? item.category : assignCategory(fullName);
     return {
@@ -1317,8 +1323,8 @@ function renderReview() {
         <td><input value="${escHtml(item.n)}" onchange="updateItemName(${idx},this.value)"></td>
         <td><select onchange="updateItem(${idx},'c',this.value);updateItem(${idx},'ng',isNonGrocery(this.value))">${catOptions}</select></td>
         <td><input type="number" class="num-input" value="${item.q}" min="1" onchange="updateItemNum(${idx},'q',this.value)"></td>
-        <td><input type="number" class="num-input" value="${item.u.toFixed(2)}" step="0.01" min="0" onchange="updateItemNum(${idx},'u',this.value)"></td>
-        <td><input type="number" class="num-input" value="${item.t.toFixed(2)}" step="0.01" min="0" onchange="updateItemNum(${idx},'t',this.value)"></td>
+        <td><input type="number" class="num-input" value="${item.u.toFixed(2)}" step="0.01" onchange="updateItemNum(${idx},'u',this.value)"></td>
+        <td><input type="number" class="num-input${item.t < 0 ? ' voided-price' : ''}" value="${item.t.toFixed(2)}" step="0.01" onchange="updateItemNum(${idx},'t',this.value)"></td>
         <td style="text-align:center"><input type="checkbox" ${item.ng?'checked':''} onchange="updateItem(${idx},'ng',this.checked)"></td>
         ${item._confidence !== undefined ? `<td>${lowConf ? '<span class="low-confidence" title="Low OCR confidence">&#9888;</span>' : ''}${Math.round(item._confidence)}%</td>` : ''}
         <td style="text-align:center"><button class="line-item-remove" onclick="removeLineItem(${idx})" title="Remove item">&#10005;</button></td>
