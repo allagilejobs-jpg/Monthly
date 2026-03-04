@@ -1474,6 +1474,8 @@ function validateAndExport() {
   }
 
   goToStep(4);
+  // Default to dashboard import
+  selectExport('dashboard');
 }
 
 function daysInMonth(month) {

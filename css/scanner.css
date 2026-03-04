@@ -166,6 +166,8 @@ body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var
 .review-table input:focus, .review-table select:focus { outline:none; border-color:var(--orange); }
 .review-table input[type="checkbox"] { width:auto; accent-color:var(--orange); }
 .review-table .num-input { width:70px; text-align:right; }
+.review-table td:nth-child(1) input, .review-table td:nth-child(2) input { min-width:140px; }
+.review-table td:nth-child(3) select { min-width:130px; }
 .low-confidence { color:var(--yellow); cursor:help; }
 
 .line-item-remove { background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); color:var(--red); border-radius:50%; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; font-size:10px; line-height:1; padding:0; transition:all .2s; }
