@@ -178,6 +178,50 @@ const STORE_PATTERNS = [
   { regex: /walgreen/i, name: "Walgreens" }
 ];
 
+function getKnownStores() {
+  const stores = new Set(STORE_PATTERNS.map(sp => sp.name));
+  // Add stores from current scan
+  extractedData.forEach(i => { if (i.s && i.s !== 'Unknown Store' && i.s !== 'Unknown') stores.add(i.s); });
+  // Add stores from localStorage history
+  try {
+    const months = JSON.parse(localStorage.getItem('grocery_months') || '[]');
+    for (const mk of months) {
+      const data = JSON.parse(localStorage.getItem('data_' + mk) || '[]');
+      data.forEach(i => { if (i.s) stores.add(i.s); });
+    }
+  } catch(e) {}
+  return [...stores].sort();
+}
+
+function showStoreSuggestions(input) {
+  const val = input.value.toLowerCase().trim();
+  const container = input.nextElementSibling;
+  if (!container) return;
+  const stores = getKnownStores();
+  const matches = val ? stores.filter(s => s.toLowerCase().includes(val)) : stores;
+  if (matches.length === 0 || (matches.length === 1 && matches[0].toLowerCase() === val)) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = matches.map(s =>
+    `<div class="store-suggestion" onmousedown="selectStoreSuggestion(this,'${escHtml(s)}')">${escHtml(s)}</div>`
+  ).join('');
+}
+
+function hideStoreSuggestions(input) {
+  const container = input.nextElementSibling;
+  if (container) container.innerHTML = '';
+}
+
+function selectStoreSuggestion(el, storeName) {
+  const input = el.parentElement.previousElementSibling;
+  if (!input) return;
+  input.value = storeName;
+  const fileName = input.dataset.file;
+  if (fileName) updateGroupField(fileName, 's', storeName);
+  el.parentElement.innerHTML = '';
+}
+
 function detectStore(text) {
   for (const sp of STORE_PATTERNS) {
     if (sp.regex.test(text)) return sp.name;
@@ -1246,7 +1290,13 @@ function renderReview() {
     </div>`;
 
     groupsHtml += `<div class="store-date-row" id="${groupId}_meta">
-      <label>Store: <input type="text" value="${escHtml(store)}" onchange="updateGroupField('${fileName}','s',this.value)"></label>
+      <label>Store: <div class="store-autocomplete">
+        <input type="text" class="store-input" value="${escHtml(store)}" data-file="${escHtml(fileName)}"
+          oninput="showStoreSuggestions(this)" onfocus="showStoreSuggestions(this)"
+          onchange="updateGroupField('${escHtml(fileName)}','s',this.value)"
+          onblur="setTimeout(()=>hideStoreSuggestions(this),150)" autocomplete="off">
+        <div class="store-suggestions"></div>
+      </div></label>
       <label>Date: ${buildDateDropdowns(date, fileName)}</label>
     </div>`;
 
