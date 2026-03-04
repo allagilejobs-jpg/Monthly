@@ -1820,15 +1820,15 @@ function categorizeTx(merchant, isCredit) {
   return "Other";
 }
 
-// Categorize credit/refund transactions as Income or Refund
+// Categorize credit/payment transactions as Income or Payment
 function categorizeCredit(desc) {
   var lower = (desc || '').toLowerCase();
   // Income: rewards, cash back, deposits, payroll, interest, dividends
   if (/reward|rebate|cash\s*back|cashback|direct\s*dep|payroll|salary|interest|dividend|bonus|commission|reimbursement/.test(lower)) {
     return "Income";
   }
-  // Everything else is a refund/return from a merchant
-  return "Refund";
+  // Everything else is a payment/return from a merchant
+  return "Payment";
 }
 
 function normalizeStatementDate(str) {
@@ -1903,7 +1903,7 @@ function parseStatementCSV(text) {
   if (negCount > transactions.length / 2) {
     transactions.forEach(function(t) { t.amount = -t.amount; });
   }
-  // Re-categorize credits (negative amounts) as Income or Refund after sign flip
+  // Re-categorize credits (negative amounts) as Income or Payment after sign flip
   transactions.forEach(function(t) {
     if (t.amount < 0) t.category = categorizeCredit(t.description);
   });
@@ -2154,7 +2154,7 @@ function parseStatementExcel(arrayBuffer) {
   if (negC > transactions.length / 2) {
     transactions.forEach(function(t) { t.amount = -t.amount; });
   }
-  // Re-categorize credits (negative amounts) as Income or Refund after sign flip
+  // Re-categorize credits (negative amounts) as Income or Payment after sign flip
   transactions.forEach(function(t) {
     if (t.amount < 0) t.category = categorizeCredit(t.description);
   });
