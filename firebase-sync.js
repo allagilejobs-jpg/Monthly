@@ -68,7 +68,9 @@ function initFirebase() {
             var months = typeof loadMonths === 'function' ? loadMonths()
                        : typeof getLoadedMonths === 'function' ? getLoadedMonths() : [];
             if (months.length > 0) {
-              var active = localStorage.getItem('expenses_activeMonth') || localStorage.getItem('grocery_activeMonth') || '';
+              var isExpenses = window.location.pathname.indexOf('/Expenses') !== -1;
+              var activeKey = isExpenses ? 'expenses_activeMonth' : 'grocery_activeMonth';
+              var active = localStorage.getItem(activeKey) || '';
               var mk = (active && months.indexOf(active) !== -1) ? active : months.sort().reverse()[0];
               switchMonth(mk);
             } else if (typeof renderAll === 'function') {
@@ -674,7 +676,11 @@ async function syncFromCloud(forceMode) {
       const localGroceryMonths = JSON.parse(localStorage.getItem('grocery_months') || '[]');
       const mergedGroceryMonths = [...new Set([...localGroceryMonths, ...cloudGroceryMonths])];
       localStorage.setItem('grocery_months', JSON.stringify(mergedGroceryMonths));
-      if (d.activeMonth) localStorage.setItem('grocery_activeMonth', d.activeMonth);
+      // Only set activeMonth from cloud if local doesn't already point to a valid month
+      var localActive = localStorage.getItem('grocery_activeMonth');
+      if (d.activeMonth && (!localActive || mergedGroceryMonths.indexOf(localActive) === -1)) {
+        localStorage.setItem('grocery_activeMonth', d.activeMonth);
+      }
 
       // Grocery data per month
       for (const mk of cloudGroceryMonths) {
@@ -709,7 +715,10 @@ async function syncFromCloud(forceMode) {
       const localExpMonths = JSON.parse(localStorage.getItem('expenses_months') || '[]');
       const mergedExpMonths = [...new Set([...localExpMonths, ...cloudExpMonths])];
       localStorage.setItem('expenses_months', JSON.stringify(mergedExpMonths));
-      if (d.activeMonth) localStorage.setItem('expenses_activeMonth', d.activeMonth);
+      var localExpActive = localStorage.getItem('expenses_activeMonth');
+      if (d.activeMonth && (!localExpActive || mergedExpMonths.indexOf(localExpActive) === -1)) {
+        localStorage.setItem('expenses_activeMonth', d.activeMonth);
+      }
       if (d.categoryRules) localStorage.setItem('expenses_categoryRules', d.categoryRules);
 
       // Expenses data per month — only pull cloud data if local is empty for that month
