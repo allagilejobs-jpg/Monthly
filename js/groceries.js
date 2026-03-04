@@ -2450,19 +2450,33 @@ function _makePairKey(a, b) {
 function loadDupeDismissals() {
   var _isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
   var raw = _isDemo ? demoGet("dupeDismissed_" + ctx.monthKey) : localStorage.getItem("dupeDismissed_" + ctx.monthKey);
-  return raw ? JSON.parse(raw) : [];
+  var data = raw ? JSON.parse(raw) : {};
+  // Migrate old array format to object format
+  if (Array.isArray(data)) { data = { pairs: data, items: [] }; }
+  if (!data.pairs) data.pairs = [];
+  if (!data.items) data.items = [];
+  return data;
 }
 
-function saveDupeDismissals(arr) {
+function saveDupeDismissals(data) {
   var _isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
   var key = "dupeDismissed_" + ctx.monthKey;
-  if (_isDemo) demoSet(key, JSON.stringify(arr));
-  else localStorage.setItem(key, JSON.stringify(arr));
+  if (_isDemo) demoSet(key, JSON.stringify(data));
+  else localStorage.setItem(key, JSON.stringify(data));
 }
 
 function getDuplicateMap() {
   if (_dupeMapCache && _dupeMapCacheMonth === ctx.monthKey) return _dupeMapCache;
-  var dismissed = new Set(loadDupeDismissals());
+  var dismissals = loadDupeDismissals();
+  var dismissedPairs = new Set(dismissals.pairs);
+  var dismissedItems = new Set(dismissals.items);
+
+  // Build set of item names that have been manually renamed (user already handled them)
+  var editedNames = new Set();
+  var _isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
+  var edits = JSON.parse((_isDemo ? demoGet(ctx.editsKey) : localStorage.getItem(ctx.editsKey)) || "{}");
+  Object.keys(edits).forEach(function(k) { if (edits[k].n) editedNames.add(edits[k].n); });
+
   var currentNames = [];
   var seen = {};
   activeData.forEach(function(i) {
@@ -2476,11 +2490,13 @@ function getDuplicateMap() {
 
   var dupeMap = {};
   currentNames.forEach(function(name) {
+    // Skip items dismissed at the item level or already renamed by user
+    if (dismissedItems.has(name) || editedNames.has(name)) return;
     var bestMatch = null, bestScore = 0;
     pool.forEach(function(other) {
       if (other === name) return;
       var pairKey = _makePairKey(name, other);
-      if (dismissed.has(pairKey)) return;
+      if (dismissedPairs.has(pairKey)) return;
       var score = _diceCoeff(name, other);
       // Also check substring containment for longer names
       var shorter = name.length <= other.length ? name : other;
@@ -2488,7 +2504,7 @@ function getDuplicateMap() {
       if (shorter.length >= 8 && longer.toLowerCase().indexOf(shorter.toLowerCase()) >= 0) {
         score = Math.max(score, 0.80);
       }
-      if (score >= 0.72 && score > bestScore) {
+      if (score >= 0.80 && score > bestScore) {
         bestScore = score;
         bestMatch = other;
       }
@@ -2589,13 +2605,10 @@ function hideDupePopover() {
 }
 
 function dismissDupe(itemName) {
-  var dupeMap = getDuplicateMap();
-  var info = dupeMap[itemName];
-  if (!info) { hideDupePopover(); return; }
-  var pairKey = _makePairKey(itemName, info.match);
-  var dismissed = loadDupeDismissals();
-  if (dismissed.indexOf(pairKey) === -1) dismissed.push(pairKey);
-  saveDupeDismissals(dismissed);
+  // Dismiss the entire item — no future matches will flag it
+  var dismissals = loadDupeDismissals();
+  if (dismissals.items.indexOf(itemName) === -1) dismissals.items.push(itemName);
+  saveDupeDismissals(dismissals);
   invalidateDupeCache();
   hideDupePopover();
   renderTable();
