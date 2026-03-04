@@ -2462,7 +2462,10 @@ function saveDupeDismissals(data) {
   var _isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
   var key = "dupeDismissed_" + ctx.monthKey;
   if (_isDemo) demoSet(key, JSON.stringify(data));
-  else localStorage.setItem(key, JSON.stringify(data));
+  else {
+    localStorage.setItem(key, JSON.stringify(data));
+    if (typeof syncToCloud === 'function') syncToCloud();
+  }
 }
 
 function getDuplicateMap() {
