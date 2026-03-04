@@ -1254,6 +1254,7 @@ function renderReview() {
     groupsHtml += `<table class="review-table"><thead><tr>
       <th>Receipt Name</th><th>Full Name</th><th>Category</th><th>Qty</th><th>Unit $</th><th>Total</th><th>Non-Groc</th>
       ${items[0]?._confidence !== undefined ? '<th>Conf</th>' : ''}
+      <th></th>
     </tr></thead><tbody>`;
 
     for (const item of items) {
@@ -1269,6 +1270,7 @@ function renderReview() {
         <td><input type="number" class="num-input" value="${item.t.toFixed(2)}" step="0.01" min="0" onchange="updateItemNum(${idx},'t',this.value)"></td>
         <td style="text-align:center"><input type="checkbox" ${item.ng?'checked':''} onchange="updateItem(${idx},'ng',this.checked)"></td>
         ${item._confidence !== undefined ? `<td>${lowConf ? '<span class="low-confidence" title="Low OCR confidence">&#9888;</span>' : ''}${Math.round(item._confidence)}%</td>` : ''}
+        <td style="text-align:center"><button class="line-item-remove" onclick="removeLineItem(${idx})" title="Remove item">&#10005;</button></td>
       </tr>`;
     }
     groupsHtml += `</tbody></table></div></div>`;
@@ -1315,6 +1317,28 @@ function updateGroupField(fileName, field, value) {
   extractedData.forEach(item => {
     if (item._file === fileName) item[field] = value;
   });
+}
+
+function removeLineItem(idx) {
+  if (idx < 0 || idx >= extractedData.length) return;
+  const item = extractedData[idx];
+  extractedData.splice(idx, 1);
+
+  // Update successfulFiles counts for this file
+  const sf = successfulFiles.find(f => f.name === item._file);
+  if (sf) {
+    sf.itemCount = extractedData.filter(i => i._file === item._file).length;
+    sf.total = extractedData.filter(i => i._file === item._file).reduce((s, i) => s + (i.t || 0), 0);
+
+    // If no items left for this file, remove it from successful and add to removed
+    if (sf.itemCount === 0) {
+      const sfIdx = successfulFiles.indexOf(sf);
+      if (sfIdx !== -1) successfulFiles.splice(sfIdx, 1);
+      removedFiles.push({ name: item._file, source: 'successful' });
+    }
+  }
+
+  renderReview();
 }
 
 function daysInMonth(month) {
