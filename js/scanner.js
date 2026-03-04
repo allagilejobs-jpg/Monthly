@@ -5,6 +5,9 @@ let uploadedFiles = [];      // Array of { file, dataUrl, name }
 let extractedData = [];      // Array of items per plan data model
 let processingCancelled = false;
 let tesseractWorker = null;
+let successfulFiles = []; // { name, itemCount, total }
+let failedFiles = [];     // { name, reason, uploadIndex }
+let removedFiles = [];    // { name, source } - source: 'successful' or 'failed'
 
 // ============================================================
 // ABBREVIATION DICTIONARY
@@ -722,6 +725,9 @@ async function startProcessing() {
   if (!uploadedFiles.length) return;
   processingCancelled = false;
   extractedData = [];
+  successfulFiles = [];
+  failedFiles = [];
+  removedFiles = [];
   goToStep(2);
   document.getElementById('logBox').innerHTML = '';
 
@@ -775,11 +781,14 @@ async function startProcessing() {
       if (items.length) {
         log(`  Found ${items.length} item(s)`, 'success');
         extractedData.push(...items);
+        successfulFiles.push({ name: uf.name, itemCount: items.length, total: items.reduce((s, it) => s + (it.t || 0), 0) });
       } else {
         log(`  No items detected`, 'error');
+        failedFiles.push({ name: uf.name, reason: 'No items detected', uploadIndex: i });
       }
     } catch(e) {
       log(`  Error: ${e.message}`, 'error');
+      failedFiles.push({ name: uf.name, reason: e.message, uploadIndex: i });
     }
   }
 
@@ -799,7 +808,7 @@ async function startProcessing() {
 
   log(`\nScan complete: ${extractedData.length} total items from ${total} receipt(s)`, 'success');
 
-  if (extractedData.length > 0) {
+  if (extractedData.length > 0 || failedFiles.length > 0) {
     setTimeout(() => {
       goToStep(3);
       renderReview();
@@ -981,7 +990,228 @@ const ALL_CATEGORIES = [
   "Kitchen & Home","Laundry","Electronics & Misc","Other Non-Grocery"
 ];
 
+// ============================================================
+// SCAN RESULTS SUMMARY
+// ============================================================
+const scanSectionCollapsed = { secSuccess: false, secFailed: false, secRemoved: true };
+
+function renderScanSummary() {
+  const container = document.getElementById('scanResultsSummary');
+  if (!container) return;
+
+  // Save current collapse state from DOM if sections exist
+  ['secSuccess', 'secFailed', 'secRemoved'].forEach(id => {
+    const body = document.getElementById(id);
+    if (body) scanSectionCollapsed[id] = body.classList.contains('collapsed');
+  });
+
+  const sCount = successfulFiles.length;
+  const fCount = failedFiles.length;
+  const rCount = removedFiles.length;
+
+  if (sCount + fCount + rCount === 0) { container.innerHTML = ''; return; }
+
+  let html = '<div class="scan-results-summary">';
+
+  // Badge row
+  html += '<div class="scan-results-badges">';
+  html += `<div class="scan-badge success" onclick="toggleScanSection('secSuccess')"><span class="badge-count">${sCount}</span> Successful</div>`;
+  html += `<div class="scan-badge failed" onclick="toggleScanSection('secFailed')"><span class="badge-count">${fCount}</span> Failed</div>`;
+  html += `<div class="scan-badge removed" onclick="toggleScanSection('secRemoved')"><span class="badge-count">${rCount}</span> Removed</div>`;
+  html += '</div>';
+
+  // Successful section
+  html += '<div class="scan-section">';
+  html += `<div class="scan-section-header${scanSectionCollapsed.secSuccess ? ' collapsed' : ''}" id="secSuccessHeader" onclick="toggleScanSection('secSuccess')">
+    <span>Successful (${sCount})</span><span class="sec-chevron">&#9660;</span>
+  </div>`;
+  html += `<div class="scan-section-body${scanSectionCollapsed.secSuccess ? ' collapsed' : ''}" id="secSuccess">`;
+  if (sCount === 0) {
+    html += '<div class="scan-empty-state">No successful receipts</div>';
+  } else {
+    successfulFiles.forEach((f, i) => {
+      html += `<div class="scan-file-entry" id="scanSucc_${i}">
+        <div class="scan-file-info">
+          <div class="scan-file-name">&#128206; ${escHtml(f.name)}</div>
+          <div class="scan-file-detail">${f.itemCount} item(s) &middot; $${fmt(f.total)}</div>
+        </div>
+        <div class="scan-file-actions">
+          <button class="scan-btn-remove" onclick="confirmRemoveReceipt(${i},'successful')" title="Remove receipt">&#10005;</button>
+        </div>
+      </div>`;
+    });
+  }
+  html += '</div></div>';
+
+  // Failed section
+  html += '<div class="scan-section">';
+  html += `<div class="scan-section-header${scanSectionCollapsed.secFailed ? ' collapsed' : ''}" id="secFailedHeader" onclick="toggleScanSection('secFailed')">
+    <span>Failed (${fCount})</span><span class="sec-chevron">&#9660;</span>
+  </div>`;
+  html += `<div class="scan-section-body${scanSectionCollapsed.secFailed ? ' collapsed' : ''}" id="secFailed">`;
+  if (fCount === 0) {
+    html += '<div class="scan-empty-state">No failed receipts</div>';
+  } else {
+    failedFiles.forEach((f, i) => {
+      html += `<div class="scan-file-entry" id="scanFail_${i}">
+        <div class="scan-file-info">
+          <div class="scan-file-name">&#128206; ${escHtml(f.name)}</div>
+          <div class="scan-file-detail">${escHtml(f.reason)}</div>
+        </div>
+        <div class="scan-file-actions">
+          <button class="scan-btn-retry" onclick="retryFailedReceipt(${i})" title="Retry scan">&#8635;</button>
+          <button class="scan-btn-remove" onclick="confirmRemoveReceipt(${i},'failed')" title="Dismiss">&#10005;</button>
+        </div>
+      </div>`;
+    });
+  }
+  html += '</div></div>';
+
+  // Removed section (starts collapsed if empty)
+  html += '<div class="scan-section">';
+  html += `<div class="scan-section-header${scanSectionCollapsed.secRemoved ? ' collapsed' : ''}" id="secRemovedHeader" onclick="toggleScanSection('secRemoved')">
+    <span>Removed (${rCount})</span><span class="sec-chevron">&#9660;</span>
+  </div>`;
+  html += `<div class="scan-section-body${scanSectionCollapsed.secRemoved ? ' collapsed' : ''}" id="secRemoved">`;
+  if (rCount === 0) {
+    html += '<div class="scan-empty-state">No removed receipts</div>';
+  } else {
+    removedFiles.forEach((f, i) => {
+      html += `<div class="scan-file-entry">
+        <div class="scan-file-info">
+          <div class="scan-file-name" style="color:var(--muted)">&#128206; ${escHtml(f.name)}</div>
+          <div class="scan-file-detail">Removed from ${escHtml(f.source)}</div>
+        </div>
+      </div>`;
+    });
+  }
+  html += '</div></div>';
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function toggleScanSection(sectionId) {
+  const body = document.getElementById(sectionId);
+  const header = document.getElementById(sectionId + 'Header');
+  if (body && header) {
+    body.classList.toggle('collapsed');
+    header.classList.toggle('collapsed');
+  }
+}
+
+function confirmRemoveReceipt(index, source) {
+  const prefix = source === 'successful' ? 'scanSucc' : 'scanFail';
+  const entry = document.getElementById(`${prefix}_${index}`);
+  if (!entry) return;
+
+  // Don't show duplicate confirmation
+  if (entry.querySelector('.scan-confirm-row')) return;
+
+  const confirmHtml = `<div class="scan-confirm-row">
+    <span>Remove this receipt?</span>
+    <button class="scan-confirm-yes" onclick="executeRemoveReceipt(${index},'${source}')">Yes</button>
+    <button class="scan-confirm-no" onclick="cancelRemoveReceipt(${index},'${source}')">No</button>
+  </div>`;
+
+  entry.insertAdjacentHTML('beforeend', confirmHtml);
+}
+
+function cancelRemoveReceipt(index, source) {
+  const prefix = source === 'successful' ? 'scanSucc' : 'scanFail';
+  const entry = document.getElementById(`${prefix}_${index}`);
+  if (!entry) return;
+  const confirmRow = entry.querySelector('.scan-confirm-row');
+  if (confirmRow) confirmRow.remove();
+}
+
+function executeRemoveReceipt(index, source) {
+  let removedFile;
+
+  if (source === 'successful') {
+    removedFile = successfulFiles.splice(index, 1)[0];
+    if (removedFile) {
+      extractedData = extractedData.filter(item => item._file !== removedFile.name);
+      removedFiles.push({ name: removedFile.name, source: 'successful' });
+    }
+  } else if (source === 'failed') {
+    removedFile = failedFiles.splice(index, 1)[0];
+    if (removedFile) {
+      removedFiles.push({ name: removedFile.name, source: 'failed' });
+    }
+  }
+
+  renderReview();
+}
+
+async function retryFailedReceipt(index) {
+  const failedFile = failedFiles[index];
+  if (!failedFile) return;
+
+  const uf = uploadedFiles[failedFile.uploadIndex];
+  if (!uf) {
+    showToast('Original file not found for retry.', 'warning');
+    return;
+  }
+
+  const entry = document.getElementById(`scanFail_${index}`);
+  const retryBtn = entry?.querySelector('.scan-btn-retry');
+  if (retryBtn) {
+    retryBtn.disabled = true;
+    retryBtn.textContent = '...';
+  }
+
+  const doPreprocess = document.getElementById('chkPreprocess')?.checked ?? false;
+  const doAutoDetect = document.getElementById('chkAutoDetect')?.checked ?? true;
+  const useGemini = scanMode === 'ai';
+
+  try {
+    let items;
+    if (useGemini) {
+      items = await processWithGemini(uf, doAutoDetect);
+    } else {
+      tesseractWorker = await Tesseract.createWorker('eng', 1, {});
+      items = await processWithTesseract(uf, doPreprocess, doAutoDetect);
+      try { await tesseractWorker.terminate(); } catch(e) {}
+      tesseractWorker = null;
+    }
+
+    if (items.length) {
+      const currentIdx = failedFiles.indexOf(failedFile);
+      if (currentIdx !== -1) failedFiles.splice(currentIdx, 1);
+      extractedData.push(...items);
+      successfulFiles.push({
+        name: uf.name,
+        itemCount: items.length,
+        total: items.reduce((s, it) => s + (it.t || 0), 0)
+      });
+      showToast(`Retry successful: ${items.length} item(s) found`, 'success');
+      renderReview();
+    } else {
+      showToast('Retry found no items. File remains in Failed list.', 'warning');
+      const btn = document.getElementById(`scanFail_${index}`)?.querySelector('.scan-btn-retry');
+      if (btn) { btn.disabled = false; btn.innerHTML = '&#8635;'; }
+    }
+  } catch(e) {
+    showToast('Retry error: ' + e.message, 'error');
+    const btn = document.getElementById(`scanFail_${index}`)?.querySelector('.scan-btn-retry');
+    if (btn) { btn.disabled = false; btn.innerHTML = '&#8635;'; }
+  }
+}
+
 function renderReview() {
+  renderScanSummary();
+
+  // If all successful receipts removed, show empty state
+  if (successfulFiles.length === 0 && extractedData.length === 0) {
+    document.getElementById('reviewSummary').innerHTML = `
+      <div class="scan-empty-state" style="grid-column:1/-1; padding:32px;">
+        No receipts to review. Go back to upload and scan more receipts.
+      </div>`;
+    document.getElementById('reviewGroups').innerHTML = '';
+    return;
+  }
+
   // Summary stats
   const totalItems = extractedData.length;
   const totalAmount = extractedData.reduce((s,i) => s + (i.t || 0), 0);
