@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIFA World Cup 2026 - USA Games</title>
+    <style>
+        :root {
+            --bg-primary: #0a0f1a;
+            --bg-secondary: #111827;
+            --bg-card: #1f2937;
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --border: #374151;
+            --gold: #fbbf24;
+            --red: #ef4444;
+            --blue: #3b82f6;
+            --green: #22c55e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, #1e3a5f 0%, #0a1628 100%);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #fff, var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .filter-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: var(--border);
+        }
+
+        .filter-btn.active {
+            background: var(--blue);
+            border-color: var(--blue);
+        }
+
+        .date-section {
+            margin-bottom: 30px;
+        }
+
+        .date-header {
+            background: var(--bg-secondary);
+            padding: 15px 20px;
+            border-radius: 10px 10px 0 0;
+            border: 1px solid var(--border);
+            border-bottom: none;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .date-badge {
+            background: var(--gold);
+            color: #000;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .date-info {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .games-list {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 0 0 10px 10px;
+        }
+
+        .game-card {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: 100px 1fr 150px;
+            gap: 20px;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .game-card:last-child {
+            border-bottom: none;
+        }
+
+        .game-card:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .game-time {
+            text-align: center;
+        }
+
+        .game-time .time {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .game-time .timezone {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .game-details {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .matchup {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .matchup .vs {
+            color: var(--text-secondary);
+            font-weight: 400;
+            margin: 0 8px;
+        }
+
+        .game-meta {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .game-venue {
+            text-align: right;
+        }
+
+        .venue-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+        }
+
+        .venue-city {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .stage-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .stage-group { background: var(--blue); }
+        .stage-r32 { background: var(--green); }
+        .stage-r16 { background: #8b5cf6; }
+        .stage-qf { background: #f59e0b; }
+        .stage-sf { background: #ef4444; }
+        .stage-final { background: linear-gradient(90deg, #fbbf24, #f59e0b); color: #000; }
+        .stage-3rd { background: #78716c; }
+
+        .usa-game {
+            border-left: 4px solid var(--gold);
+        }
+
+        .city-tag {
+            display: inline-block;
+            background: var(--bg-secondary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            margin-left: 10px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .stats {
+                gap: 15px;
+            }
+
+            .stat-value {
+                font-size: 1.4rem;
+            }
+
+            .game-card {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .game-time {
+                text-align: left;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .game-venue {
+                text-align: left;
+            }
+
+            .filters {
+                gap: 6px;
+            }
+
+            .filter-btn {
+                padding: 8px 12px;
+                font-size: 0.75rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 1.3rem;
+            }
+
+            .date-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .matchup {
+                font-size: 0.95rem;
+            }
+
+            .game-meta {
+                gap: 8px;
+            }
+
+            .meta-item {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏆 FIFA World Cup 2026</h1>
+        <p>Games in the United States • June 11 - July 19, 2026</p>
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value">78</div>
+                <div class="stat-label">USA Games</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">11</div>
+                <div class="stat-label">Host Cities</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">39</div>
+                <div class="stat-label">Days</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="filters">
+        <button class="filter-btn active" onclick="filterByCity('all')">All Cities</button>
+        <button class="filter-btn" onclick="filterByCity('atlanta')">Atlanta</button>
+        <button class="filter-btn" onclick="filterByCity('boston')">Boston</button>
+        <button class="filter-btn" onclick="filterByCity('dallas')">Dallas</button>
+        <button class="filter-btn" onclick="filterByCity('houston')">Houston</button>
+        <button class="filter-btn" onclick="filterByCity('kansas')">Kansas City</button>
+        <button class="filter-btn" onclick="filterByCity('los angeles')">Los Angeles</button>
+        <button class="filter-btn" onclick="filterByCity('miami')">Miami</button>
+        <button class="filter-btn" onclick="filterByCity('new york')">NY/NJ</button>
+        <button class="filter-btn" onclick="filterByCity('philadelphia')">Philadelphia</button>
+        <button class="filter-btn" onclick="filterByCity('san francisco')">San Francisco</button>
+        <button class="filter-btn" onclick="filterByCity('seattle')">Seattle</button>
+    </div>
+
+    <div id="schedule"></div>
+
+    <script>
+        const games = [
+            // Group Stage
+            { date: "2026-06-12", time: "21:00", timeLocal: "18:00", matchup: "USA vs Paraguay", group: "D", stage: "Group", venue: "SoFi Stadium", city: "Los Angeles", usaGame: true },
+            { date: "2026-06-13", time: "21:00", timeLocal: "21:00", matchup: "Haiti vs Scotland", group: "C", stage: "Group", venue: "Gillette Stadium", city: "Boston" },
+            { date: "2026-06-13", time: "18:00", timeLocal: "18:00", matchup: "Brazil vs Morocco", group: "C", stage: "Group", venue: "MetLife Stadium", city: "New York/New Jersey" },
+            { date: "2026-06-13", time: "15:00", timeLocal: "12:00", matchup: "Qatar vs Switzerland", group: "B", stage: "Group", venue: "Levi's Stadium", city: "San Francisco Bay Area" },
+            { date: "2026-06-14", time: "19:00", timeLocal: "19:00", matchup: "Ivory Coast vs Ecuador", group: "E", stage: "Group", venue: "Lincoln Financial Field", city: "Philadelphia" },
+            { date: "2026-06-14", time: "13:00", timeLocal: "12:00", matchup: "Germany vs Curaçao", group: "E", stage: "Group", venue: "NRG Stadium", city: "Houston" },
+            { date: "2026-06-14", time: "16:00", timeLocal: "15:00", matchup: "Netherlands vs Japan", group: "F", stage: "Group", venue: "AT&T Stadium", city: "Dallas" },
+            { date: "2026-06-15", time: "18:00", timeLocal: "18:00", matchup: "Saudi Arabia vs Uruguay", group: "H", stage: "Group", venue: "Hard Rock Stadium", city: "Miami" },
+            { date: "2026-06-15", time: "12:00", timeLocal: "12:00", matchup: "Spain vs Cape Verde", group: "H", stage: "Group", venue: "Mercedes-Benz Stadium", city: "Atlanta" },
+            { date: "2026-06-15", time: "21:00", timeLocal: "18:00", matchup: "Iran vs New Zealand", group: "G", stage: "Group", venue: "SoFi Stadium", city: "Los Angeles" },
+            { date: "2026-06-15", time: "15:00", timeLocal: "12:00", matchup: "Belgium vs Egypt", group: "G", stage: "Group", venue: "Lumen Field", city: "Seattle" },
+            { date: "2026-06-16", time: "15:00", timeLocal: "15:00", matchup: "France vs Senegal", group: "I", stage: "Group", venue: "MetLife Stadium", city: "New York/New Jersey" },
+            { date: "2026-06-16", time: "18:00", timeLocal: "18:00", matchup: "IC Winner 2 vs Norway", group: "I", stage: "Group", venue: "Gillette Stadium", city: "Boston" },
+            { date: "2026-06-16", time: "21:00", timeLocal: "20:00", matchup: "Argentina vs Algeria", group: "J", stage: "Group", venue: "Arrowhead Stadium", city: "Kansas City" },
+            { date: "2026-06-16", time: "00:00", timeLocal: "21:00", matchup: "Austria vs Jordan", group: "J", stage: "Group", venue: "Levi's Stadium", city: "San Francisco Bay Area" },
+            { date: "2026-06-17", time: "16:00", timeLocal: "15:00", matchup: "England vs Croatia", group: "L", stage: "Group", venue: "AT&T Stadium", city: "Dallas" },
+            { date: "2026-06-17", time: "13:00", timeLocal: "12:00", matchup: "Portugal vs IC Winner 1", group: "K", stage: "Group", venue: "NRG Stadium", city: "Houston" },
+            { date: "2026-06-18", time: "12:00", timeLocal: "12:00", matchup: "UEFA Winner D vs South Africa", group: "A", stage: "Group", venue: "Mercedes-Benz Stadium", city: "Atlanta" },
+            { date: "2026-06-18", time: "15:00", timeLocal: "12:00", matchup: "Switzerland vs UEFA Winner A", group: "B", stage: "Group", venue: "SoFi Stadium", city: "Los Angeles" },
+            { date: "2026-06-19", time: "21:00", timeLocal: "21:00", matchup: "Brazil vs Haiti", group: "C", stage: "Group", venue: "Lincoln Financial Field", city: "Philadelphia" },
+            { date: "2026-06-19", time: "18:00", timeLocal: "18:00", matchup: "Scotland vs Morocco", group: "C", stage: "Group", venue: "Gillette Stadium", city: "Boston" },
+            { date: "2026-06-19", time: "00:00", timeLocal: "21:00", matchup: "UEFA Winner C vs Paraguay", group: "D", stage: "Group", venue: "Levi's Stadium", city: "San Francisco Bay Area" },
+            { date: "2026-06-19", time: "15:00", timeLocal: "12:00", matchup: "USA vs Australia", group: "D", stage: "Group", venue: "Lumen Field", city: "Seattle", usaGame: true },
+            { date: "2026-06-20", time: "20:00", timeLocal: "19:00", matchup: "Ecuador vs Curaçao", group: "E", stage: "Group", venue: "Arrowhead Stadium", city: "Kansas City" },
+            { date: "2026-06-20", time: "13:00", timeLocal: "12:00", matchup: "Netherlands vs UEFA Winner B", group: "F", stage: "Group", venue: "NRG Stadium", city: "Houston" },
+            { date: "2026-06-21", time: "18:00", timeLocal: "18:00", matchup: "Uruguay vs Cape Verde", group: "H", stage: "Group", venue: "Hard Rock Stadium", city: "Miami" },
+            { date: "2026-06-21", time: "12:00", timeLocal: "12:00", matchup: "Spain vs Saudi Arabia", group: "H", stage: "Group", venue: "Mercedes-Benz Stadium", city: "Atlanta" },
+            { date: "2026-06-21", time: "15:00", timeLocal: "12:00", matchup: "Belgium vs Iran", group: "G", stage: "Group", venue: "SoFi Stadium", city: "Los Angeles" },
+            { date: "2026-06-22", time: "20:00", timeLocal: "20:00", matchup: "Norway vs Senegal", group: "I", stage: "Group", venue: "MetLife Stadium", city: "New York/New Jersey" },
+            { date: "2026-06-22", time: "17:00", timeLocal: "17:00", matchup: "France vs IC Winner 2", group: "I", stage: "Group", venue: "Lincoln Financial Field", city: "Philadelphia" },
+            { date: "2026-06-22", time: "13:00", timeLocal: "12:00", matchup: "Argentina vs Austria", group: "J", stage: "Group", venue: "AT&T Stadium", city: "Dallas" },
+            { date: "2026-06-22", time: "23:00", timeLocal: "20:00", matchup: "Jordan vs Algeria", group: "J", stage: "Group", venue: "Levi's Stadium", city: "San Francisco Bay Area" },
+            { date: "2026-06-23", time: "16:00", timeLocal: "16:00", matchup: "England vs Ghana", group: "L", stage: "Group", venue: "Gillette Stadium", city: "Boston" },
+            { date: "2026-06-23", time: "13:00", timeLocal: "12:00", matchup: "Portugal vs Uzbekistan", group: "K", stage: "Group", venue: "NRG Stadium", city: "Houston" },
+            { date: "2026-06-24", time: "18:00", timeLocal: "18:00", matchup: "Scotland vs Brazil", group: "C", stage: "Group", venue: "Hard Rock Stadium", city: "Miami" },
+            { date: "2026-06-24", time: "18:00", timeLocal: "18:00", matchup: "Morocco vs Haiti", group: "C", stage: "Group", venue: "Mercedes-Benz Stadium", city: "Atlanta" },
+            { date: "2026-06-24", time: "15:00", timeLocal: "12:00", matchup: "UEFA Winner A vs Qatar", group: "B", stage: "Group", venue: "Lumen Field", city: "Seattle" },
+            { date: "2026-06-25", time: "16:00", timeLocal: "16:00", matchup: "Curaçao vs Ivory Coast", group: "E", stage: "Group", venue: "Lincoln Financial Field", city: "Philadelphia" },
+            { date: "2026-06-25", time: "16:00", timeLocal: "16:00", matchup: "Ecuador vs Germany", group: "E", stage: "Group", venue: "MetLife Stadium", city: "New York/New Jersey" },
+            { date: "2026-06-25", time: "19:00", timeLocal: "18:00", matchup: "Japan vs UEFA Winner B", group: "F", stage: "Group", venue: "AT&T Stadium", city: "Dallas" },
+            { date: "2026-06-25", time: "19:00", timeLocal: "18:00", matchup: "Tunisia vs Netherlands", group: "F", stage: "Group", venue: "Arrowhead Stadium", city: "Kansas City" },
+            { date: "2026-06-25", time: "22:00", timeLocal: "19:00", matchup: "UEFA Winner C vs USA", group: "D", stage: "Group", venue: "SoFi Stadium", city: "Los Angeles", usaGame: true },
+            { date: "2026-06-25", time: "22:00", timeLocal: "19:00", matchup: "Paraguay vs Australia", group: "D", stage: "Group", venue: "Levi's Stadium", city: "San Francisco Bay Area" },
+            { date: "2026-06-26", time: "15:00", timeLocal: "15:00", matchup: "Norway vs France", group: "I", stage: "Group", venue: "Gillette Stadium", city: "Boston" },
+            { date: "2026-06-26", time: "23:00", timeLocal: "20:00", matchup: "Egypt vs Iran", group: "G", stage: "Group", venue: "Lumen Field", city: "Seattle" },
+            { date: "2026-06-26", time: "20:00", timeLocal: "19:00", matchup: "Cape Verde vs Saudi Arabia", group: "H", stage: "Group", venue: "NRG Stadium", city: "Houston" },
+            { date: "2026-06-27", time: "17:00", timeLocal: "17:00", matchup: "Panama vs England", group: "L", stage: "Group", venue: "MetLife Stadium", city: "New York/New Jersey" },
+            { date: "2026-06-27", time: "17:00", timeLocal: "17:00", matchup: "Croatia vs Ghana", group: "L", stage: "Group", venue: "Lincoln Financial Field", city: "Philadelphia" },
+            { date: "2026-06-27", time: "22:00", timeLocal: "21:00", matchup: "Algeria vs Austria", group: "J", stage: "Group", venue: "Arrowhead Stadium", city: "Kansas City" },
+            { date: "2026-06-27", time: "22:00", timeLocal: "21:00", matchup: "Jordan vs Argentina", group: "J", stage: "Group", venue: "AT&T Stadium", city: "Dallas" },
+            { date: "2026-06-27", time: "19:30", timeLocal: "19:30", matchup: "Colombia vs Portugal", group: "K", stage: "Group", venue: "Hard Rock Stadium", city: "Miami" },
+            { date: "2026-06-27", time: "19:30", timeLocal: "19:30", matchup: "IC Winner 1 vs Uzbekistan", group: "K", stage: "Group", venue: "Mercedes-Benz Stadium", city: "Atlanta" },
+            // Round of 32
+            { date: "2026-06-28", time: "15:00", timeLocal: "12:00", matchup: "Group A Runner-Up vs Group B Runner-Up", group: "", stage: "R32", venue: "SoFi Stadium", city: "Los Angeles" },
+            { date: "2026-06-29", time: "16:30", timeLocal: "16:30", matchup: "Group E Winner vs 3rd Place", group: "", stage: "R32", venue: "Gillette Stadium", city: "Boston" },
+            { date: "2026-06-29", time: "13:00", timeLocal: "12:00", matchup: "Group C Winner vs Group F Runner-Up", group: "", stage: "R32", venue: "NRG Stadium", city: "Houston" },
+            { date: "2026-06-30", time: "17:00", timeLocal: "17:00", matchup: "Group I Winner vs 3rd Place", group: "", stage: "R32", venue: "MetLife Stadium", city: "New York/New Jersey" },
+            { date: "2026-06-30", time: "13:00", timeLocal: "12:00", matchup: "Group E Runner-Up vs Group I Runner-Up", group: "", stage: "R32", venue: "AT&T Stadium", city: "Dallas" },
+            { date: "2026-07-01", time: "12:00", timeLocal: "12:00", matchup: "Group L Winner vs 3rd Place", group: "", stage: "R32", venue: "Mercedes-Benz Stadium", city: "Atlanta" },
+            { date: "2026-07-01", time: "20:00", timeLocal: "17:00", matchup: "Group D Winner vs 3rd Place", group: "", stage: "R32", venue: "Levi's Stadium", city: "San Francisco Bay Area" },
+            { date: "2026-07-01", time: "16:00", timeLocal: "13:00", matchup: "Group G Winner vs 3rd Place", group: "", stage: "R32", venue: "Lumen Field", city: "Seattle" },
+            { date: "2026-07-02", time: "15:00", timeLocal: "12:00", matchup: "Group H Winner vs Group J Runner-Up", group: "", stage: "R32", venue: "SoFi Stadium", city: "Los Angeles" },
+            { date: "2026-07-03", time: "18:00", timeLocal: "18:00", matchup: "Group J Winner vs Group H Runner-Up", group: "", stage: "R32", venue: "Hard Rock Stadium", city: "Miami" },
+            { date: "2026-07-03", time: "21:30", timeLocal: "20:30", matchup: "Group K Winner vs 3rd Place", group: "", stage: "R32", venue: "Arrowhead Stadium", city: "Kansas City" },
+            { date: "2026-07-03", time: "14:00", timeLocal: "13:00", matchup: "Group D Runner-Up vs Group G Runner-Up", group: "", stage: "R32", venue: "AT&T Stadium", city: "Dallas" },
+            // Round of 16
+            { date: "2026-07-04", time: "17:00", timeLocal: "17:00", matchup: "R32 Winner vs R32 Winner", group: "", stage: "R16", venue: "Lincoln Financial Field", city: "Philadelphia" },
+            { date: "2026-07-04", time: "13:00", timeLocal: "12:00", matchup: "R32 Winner vs R32 Winner", group: "", stage: "R16", venue: "NRG Stadium", city: "Houston" },
+            { date: "2026-07-05", time: "16:00", timeLocal: "16:00", matchup: "R32 Winner vs R32 Winner", group: "", stage: "R16", venue: "MetLife Stadium", city: "New York/New Jersey" },
+            { date: "2026-07-06", time: "15:00", timeLocal: "14:00", matchup: "R32 Winner vs R32 Winner", group: "", stage: "R16", venue: "AT&T Stadium", city: "Dallas" },
+            { date: "2026-07-06", time: "20:00", timeLocal: "17:00", matchup: "R32 Winner vs R32 Winner", group: "", stage: "R16", venue: "Lumen Field", city: "Seattle" },
+            { date: "2026-07-07", time: "12:00", timeLocal: "12:00", matchup: "R32 Winner vs R32 Winner", group: "", stage: "R16", venue: "Mercedes-Benz Stadium", city: "Atlanta" },
+            // Quarter-finals
+            { date: "2026-07-09", time: "16:00", timeLocal: "16:00", matchup: "Quarter-Final 1", group: "", stage: "QF", venue: "Gillette Stadium", city: "Boston" },
+            { date: "2026-07-10", time: "15:00", timeLocal: "12:00", matchup: "Quarter-Final 2", group: "", stage: "QF", venue: "SoFi Stadium", city: "Los Angeles" },
+            { date: "2026-07-11", time: "17:00", timeLocal: "17:00", matchup: "Quarter-Final 3", group: "", stage: "QF", venue: "Hard Rock Stadium", city: "Miami" },
+            { date: "2026-07-11", time: "21:00", timeLocal: "20:00", matchup: "Quarter-Final 4", group: "", stage: "QF", venue: "Arrowhead Stadium", city: "Kansas City" },
+            // Semi-finals
+            { date: "2026-07-14", time: "15:00", timeLocal: "14:00", matchup: "Semi-Final 1", group: "", stage: "SF", venue: "AT&T Stadium", city: "Dallas" },
+            { date: "2026-07-15", time: "15:00", timeLocal: "15:00", matchup: "Semi-Final 2", group: "", stage: "SF", venue: "Mercedes-Benz Stadium", city: "Atlanta" },
+            // Third Place
+            { date: "2026-07-18", time: "17:00", timeLocal: "17:00", matchup: "Third Place Match", group: "", stage: "3rd", venue: "Hard Rock Stadium", city: "Miami" },
+            // Final
+            { date: "2026-07-19", time: "15:00", timeLocal: "15:00", matchup: "🏆 FINAL", group: "", stage: "Final", venue: "MetLife Stadium", city: "New York/New Jersey" }
+        ];
+
+        function getStageClass(stage) {
+            const map = {
+                'Group': 'stage-group',
+                'R32': 'stage-r32',
+                'R16': 'stage-r16',
+                'QF': 'stage-qf',
+                'SF': 'stage-sf',
+                'Final': 'stage-final',
+                '3rd': 'stage-3rd'
+            };
+            return map[stage] || 'stage-group';
+        }
+
+        function getStageName(stage) {
+            const map = {
+                'Group': 'Group Stage',
+                'R32': 'Round of 32',
+                'R16': 'Round of 16',
+                'QF': 'Quarter-Final',
+                'SF': 'Semi-Final',
+                'Final': 'Final',
+                '3rd': '3rd Place'
+            };
+            return map[stage] || stage;
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr + 'T12:00:00');
+            return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        }
+
+        function renderSchedule(filteredGames) {
+            const container = document.getElementById('schedule');
+            const grouped = {};
+            
+            filteredGames.forEach(game => {
+                if (!grouped[game.date]) {
+                    grouped[game.date] = [];
+                }
+                grouped[game.date].push(game);
+            });
+
+            let html = '';
+            Object.keys(grouped).sort().forEach(date => {
+                const dayGames = grouped[date];
+                html += `
+                    <div class="date-section" data-date="${date}">
+                        <div class="date-header">
+                            <span class="date-badge">${formatDate(date)}</span>
+                            <span class="date-info">${dayGames.length} game${dayGames.length > 1 ? 's' : ''}</span>
+                        </div>
+                        <div class="games-list">
+                            ${dayGames.map(game => `
+                                <div class="game-card ${game.usaGame ? 'usa-game' : ''}" data-city="${game.city.toLowerCase()}">
+                                    <div class="game-time">
+                                        <div class="time">${game.time}</div>
+                                        <div class="timezone">ET</div>
+                                    </div>
+                                    <div class="game-details">
+                                        <div class="matchup">
+                                            ${game.matchup}
+                                            ${game.usaGame ? '<span class="city-tag">🇺🇸 USA</span>' : ''}
+                                        </div>
+                                        <div class="game-meta">
+                                            <span class="stage-badge ${getStageClass(game.stage)}">${getStageName(game.stage)}</span>
+                                            ${game.group ? `<span class="meta-item">Group ${game.group}</span>` : ''}
+                                            <span class="meta-item">📍 ${game.city}</span>
+                                        </div>
+                                    </div>
+                                    <div class="game-venue">
+                                        <div class="venue-name">${game.venue}</div>
+                                        <div class="venue-city">${game.city}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function filterByCity(city) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (city === 'all') {
+                renderSchedule(games);
+            } else {
+                const filtered = games.filter(g => g.city.toLowerCase().includes(city.toLowerCase()));
+                renderSchedule(filtered);
+            }
+        }
+
+        // Initial render
+        renderSchedule(games);
+    </script>
+</body>
+</html>

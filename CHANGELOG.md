@@ -135,3 +135,45 @@ When continuing work on this project:
 ---
 
 *Last updated: 2026-02-24 23:30 EST by Clawdbot*
+
+---
+
+## 2026-03-03 — Store Detail Pages
+
+### `TBD` — Add Store Detail View
+
+**New Feature: Clickable Store Pages**
+
+Each vendor/store option in the Groceries dashboard is now clickable and has its own dedicated detail page, similar to how Category Detail and Product Detail pages work.
+
+**Changes Made:**
+
+- **Groceries/index.html**: Added new `view-store-detail` section with back button and content container
+
+- **js/groceries.js**:
+  - Added `showStoreDetail(storeName, source)` function (~170 lines) that renders:
+    - Header with store name, color, and stats
+    - KPIs: Total spent, Shopping trips, Items purchased, Top category
+    - Type breakdown (Groceries/Toiletries/Other) with click-through
+    - Category pie chart for the store
+    - Daily spending bar chart for the store
+    - Trip history table (clickable to trip detail)
+    - Categories table (clickable to category detail)
+    - Top products table (clickable to product detail)
+    - Full items table with all purchases
+  - Added `goToTripFromStore(tripKey)` helper function
+  - Updated store breakdown rows to navigate to `showStoreDetail()` instead of filtering items
+  - Updated store pie chart click handler to navigate to store detail
+  - Updated store bar chart click handler to navigate to store detail
+  - Updated toiletry store chart click handler to navigate to store detail
+  - Updated `showCategoryDetail` backMap to include 'store-detail'
+  - Updated `showProductDetail` backMap to include 'store-detail'
+  - Added arrow indicator to store breakdown rows
+
+**User Experience:**
+- Click any store in the "By Store" tab → opens Store Detail page
+- Click any store in pie/bar charts → opens Store Detail page
+- Navigate seamlessly between Store → Category → Product → Trip views
+- Back buttons correctly return to the source view
+
+*Updated: 2026-03-03 19:10 EST by Clawdbot*

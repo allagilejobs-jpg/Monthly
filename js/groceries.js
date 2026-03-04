@@ -569,7 +569,7 @@ function showCategoryDetail(categoryName, source) {
   const container = document.getElementById('category-detail-content');
   const backBtn = document.getElementById('category-detail-back');
 
-  const backMap = { overview: ['overview','Overview'], groceries: ['groceries','Groceries'], toiletries: ['toiletries','Toiletries'], items: ['items','All Items'] };
+  const backMap = { overview: ['overview','Overview'], groceries: ['groceries','Groceries'], toiletries: ['toiletries','Toiletries'], items: ['items','All Items'], 'store-detail': ['stores','By Store'] };
   const [backTab, backLabel] = backMap[categoryDetailSource] || backMap.overview;
   backBtn.onclick = () => showView(backTab);
   backBtn.textContent = '\u2190 Back to ' + backLabel;
@@ -697,6 +697,237 @@ function showCategoryDetail(categoryName, source) {
   }
 
   showView('category-detail');
+}
+
+// ─────────── STORE DETAIL VIEW ───────────
+let storeDetailSource = 'stores';
+function showStoreDetail(storeName, source) {
+  storeDetailSource = source || 'stores';
+  const container = document.getElementById('store-detail-content');
+  const backBtn = document.getElementById('store-detail-back');
+
+  const backMap = { stores: ['stores','By Store'], overview: ['overview','Overview'], items: ['items','All Items'], trips: ['trips','Trips'] };
+  const [backTab, backLabel] = backMap[storeDetailSource] || backMap.stores;
+  backBtn.onclick = () => showView(backTab);
+  backBtn.textContent = '\u2190 Back to ' + backLabel;
+
+  const items = activeData.filter(i => i.s === storeName).sort((a, b) => a.d.localeCompare(b.d));
+  if (items.length === 0) { container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">No items found for this store</div>'; showView('store-detail'); return; }
+
+  const total = items.reduce((s, i) => s + i.t, 0);
+  const totalQty = items.reduce((s, i) => s + i.q, 0);
+  const storePctOfAll = ((total / grandTotal) * 100).toFixed(1);
+  const storeColor = STORE_COLORS[storeName] || '#888';
+
+  // Calculate trips for this store
+  const tripDates = [...new Set(items.map(i => i.d))];
+  const numTrips = tripDates.length;
+  const avgPerTrip = total / numTrips;
+
+  // Group by category
+  const categories = {};
+  items.forEach(i => {
+    if (!categories[i.c]) categories[i.c] = { name: i.c, total: 0, qty: 0, count: 0, items: [] };
+    categories[i.c].total += i.t;
+    categories[i.c].qty += i.q;
+    categories[i.c].count++;
+    categories[i.c].items.push(i);
+  });
+  const catList = Object.values(categories).sort((a, b) => b.total - a.total);
+
+  // Group by product
+  const products = {};
+  items.forEach(i => {
+    if (!products[i.n]) products[i.n] = { name: i.n, cat: i.c, total: 0, qty: 0, count: 0, dates: new Set() };
+    products[i.n].total += i.t;
+    products[i.n].qty += i.q;
+    products[i.n].count++;
+    products[i.n].dates.add(i.d);
+  });
+  const prodList = Object.values(products).sort((a, b) => b.total - a.total);
+
+  // Type breakdown (grocery/toiletry/other)
+  const groceryItems = items.filter(i => itemType(i) === 'grocery');
+  const toiletryItems = items.filter(i => itemType(i) === 'toiletry');
+  const otherItems = items.filter(i => itemType(i) === 'other');
+  const grocerySum = groceryItems.reduce((s, i) => s + i.t, 0);
+  const toiletrySum = toiletryItems.reduce((s, i) => s + i.t, 0);
+  const otherSum = otherItems.reduce((s, i) => s + i.t, 0);
+
+  const dates = [...new Set(items.map(i => i.d))].sort();
+  const dateRange = dates.length > 1 ? (ctx.monthAbbr + ' ' + parseInt(dates[0].split('/')[1]) + ' \u2014 ' + ctx.monthAbbr + ' ' + parseInt(dates[dates.length - 1].split('/')[1])) : ctx.monthAbbr + ' ' + parseInt(dates[0].split('/')[1]);
+
+  let html = '';
+
+  // Header card
+  html += '<div class="card" style="border-left:4px solid ' + storeColor + '">';
+  html += '<div style="font-size:22px;font-weight:700;margin-bottom:4px;color:' + storeColor + '">' + storeName + '</div>';
+  html += '<div style="font-size:13px;color:var(--text-muted)">' + numTrips + ' trip' + (numTrips !== 1 ? 's' : '') + ' \u2022 ' + prodList.length + ' products \u2022 ' + catList.length + ' categories \u2022 ' + dateRange + '</div>';
+  html += '</div>';
+
+  // KPIs
+  html += '<div class="kpi-grid">';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Total Spent</div><div class="kpi-value amt">' + fmt(total) + '</div><div class="kpi-sub">' + storePctOfAll + '% of all spending</div></div>';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Shopping Trips</div><div class="kpi-value" style="color:var(--cyan)">' + numTrips + '</div><div class="kpi-sub">avg ' + fmt(avgPerTrip) + '/trip</div></div>';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Items Purchased</div><div class="kpi-value" style="color:var(--amber)">' + totalQty + '</div><div class="kpi-sub">' + items.length + ' line items</div></div>';
+  html += '<div class="kpi-card" style="cursor:default"><div class="kpi-label">Top Category</div><div class="kpi-value" style="font-size:18px;color:var(--green)">' + catList[0].name + '</div><div class="kpi-sub">' + fmt(catList[0].total) + ' (' + ((catList[0].total / total) * 100).toFixed(0) + '%)</div></div>';
+  html += '</div>';
+
+  // Type breakdown card
+  html += '<div class="card"><div class="card-title">Spending Breakdown</div>';
+  html += '<div class="grid-3" style="margin-top:12px">';
+  html += '<div class="insight" style="cursor:pointer" onclick="showView(\'items\',\'Grocery\',{store:\'' + storeName.replace(/'/g, "\\'") + '\'})">';
+  html += '<div class="insight-title" style="color:var(--green)">Groceries</div>';
+  html += '<div class="insight-text"><span class="insight-val">' + fmt(grocerySum) + '</span> (' + ((grocerySum / total) * 100).toFixed(0) + '%)</div>';
+  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + groceryItems.length + ' items</div></div>';
+  html += '<div class="insight" style="cursor:pointer" onclick="showView(\'items\',\'Toiletry\',{store:\'' + storeName.replace(/'/g, "\\'") + '\'})">';
+  html += '<div class="insight-title" style="color:var(--purple)">Toiletries</div>';
+  html += '<div class="insight-text"><span class="insight-val">' + fmt(toiletrySum) + '</span> (' + ((toiletrySum / total) * 100).toFixed(0) + '%)</div>';
+  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + toiletryItems.length + ' items</div></div>';
+  html += '<div class="insight" style="cursor:pointer" onclick="showView(\'items\',\'Other\',{store:\'' + storeName.replace(/'/g, "\\'") + '\'})">';
+  html += '<div class="insight-title" style="color:var(--rose)">Other</div>';
+  html += '<div class="insight-text"><span class="insight-val">' + fmt(otherSum) + '</span> (' + ((otherSum / total) * 100).toFixed(0) + '%)</div>';
+  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + otherItems.length + ' items</div></div>';
+  html += '</div></div>';
+
+  // Charts row
+  html += '<div class="grid-2">';
+  
+  // Category pie chart
+  html += '<div class="card"><div class="card-title">Spending by Category</div>';
+  html += '<div class="chart-wrap"><canvas id="chart-store-detail-cat"></canvas></div></div>';
+
+  // Daily spending chart
+  html += '<div class="card"><div class="card-title">Daily Spending at ' + storeName + '</div>';
+  html += '<div class="chart-wrap"><canvas id="chart-store-detail-daily"></canvas></div></div>';
+  html += '</div>';
+
+  // Trip history
+  html += '<div class="card"><div class="card-title">Trip History</div>';
+  html += '<table><thead><tr><th>Date</th><th class="text-center">Items</th><th class="text-right">Total</th><th class="text-right">% of Monthly</th></tr></thead><tbody>';
+  tripDates.sort().forEach(d => {
+    const tripItems = items.filter(i => i.d === d);
+    const tripTotal = tripItems.reduce((s, i) => s + i.t, 0);
+    const tripQty = tripItems.reduce((s, i) => s + i.q, 0);
+    const tripPct = ((tripTotal / grandTotal) * 100).toFixed(1);
+    const dayNum = parseInt(d.split('/')[1]);
+    const dateLabel = ctx.monthName ? ctx.monthName + ' ' + dayNum + ', ' + ctx.year : d;
+    const tripKey = d + '|' + storeName;
+    html += '<tr style="cursor:pointer" onclick="goToTripFromStore(\'' + tripKey + '\')">';
+    html += '<td class="mono" style="color:var(--green)">' + dateLabel + '</td>';
+    html += '<td class="text-center">' + tripQty + ' (' + tripItems.length + ' lines)</td>';
+    html += '<td class="text-right mono amt">' + fmt(tripTotal) + '</td>';
+    html += '<td class="text-right">' + tripPct + '%</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // Categories table
+  html += '<div class="card"><div class="card-title">Categories at ' + storeName + '</div>';
+  html += '<table><thead><tr><th>Category</th><th class="text-center">Items</th><th class="text-right">Total</th><th class="text-right">Share</th></tr></thead><tbody>';
+  catList.forEach(c => {
+    const cPct = ((c.total / total) * 100).toFixed(1);
+    const catIdx = ALL_CATEGORIES.indexOf(c.name);
+    const catColor = PALETTE[(catIdx >= 0 ? catIdx : 0) % PALETTE.length];
+    const escaped = c.name.replace(/'/g, "\\'");
+    html += '<tr style="cursor:pointer" onclick="showCategoryDetail(\'' + escaped + '\',\'store-detail\')">';
+    html += '<td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + catColor + ';margin-right:8px;vertical-align:middle"></span><span style="font-weight:600">' + c.name + '</span></td>';
+    html += '<td class="text-center">' + c.qty + '</td>';
+    html += '<td class="text-right amt">' + fmt(c.total) + '</td>';
+    html += '<td class="text-right">' + cPct + '%</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // Top products table
+  html += '<div class="card"><div class="card-title">Top Products at ' + storeName + '</div>';
+  html += '<table><thead><tr><th>Product</th><th>Category</th><th class="text-center">Qty</th><th class="text-right">Total</th><th class="text-right">Avg/Unit</th></tr></thead><tbody>';
+  prodList.slice(0, 20).forEach(p => {
+    const escaped = p.name.replace(/'/g, "\\'");
+    html += '<tr style="cursor:pointer" onclick="showProductDetail(\'' + escaped + '\',\'store-detail\')">';
+    html += '<td style="font-weight:600">' + p.name + ' <span style="float:right;color:var(--text-muted);font-size:11px">\u2192</span></td>';
+    html += '<td style="font-size:12px;color:var(--text-muted)">' + p.cat + '</td>';
+    html += '<td class="text-center">' + p.qty + '</td>';
+    html += '<td class="text-right amt">' + fmt(p.total) + '</td>';
+    html += '<td class="text-right mono">' + fmt(p.total / p.qty) + '</td></tr>';
+  });
+  if (prodList.length > 20) {
+    html += '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);font-size:12px;padding:12px">... and ' + (prodList.length - 20) + ' more products</td></tr>';
+  }
+  html += '</tbody></table></div>';
+
+  // All items table
+  html += '<div class="card"><div class="card-title">All Items (' + items.length + ')</div>';
+  html += '<table><thead><tr><th>Date</th><th>Product</th><th>Category</th><th class="text-center">Qty</th><th class="text-right">Unit $</th><th class="text-right">Total</th></tr></thead><tbody>';
+  items.forEach(i => {
+    const escaped = i.n.replace(/'/g, "\\'");
+    const dayNum = parseInt(i.d.split('/')[1]);
+    const dateLabel = ctx.monthName ? ctx.monthName + ' ' + dayNum : i.d;
+    html += '<tr style="cursor:pointer" onclick="showProductDetail(\'' + escaped + '\',\'store-detail\')">';
+    html += '<td class="mono">' + dateLabel + '</td>';
+    html += '<td class="bold">' + i.n + '</td>';
+    html += '<td style="color:var(--text-muted)">' + i.c + '</td>';
+    html += '<td class="text-center">' + i.q + '</td>';
+    html += '<td class="text-right mono">' + fmt(i.u) + '</td>';
+    html += '<td class="text-right mono amt">' + fmt(i.t) + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  container.innerHTML = html;
+
+  // Render charts
+  if (ctx.daysInMonth) {
+    // Category pie chart
+    if (charts.storeDetailCat) charts.storeDetailCat.destroy();
+    charts.storeDetailCat = new Chart(document.getElementById('chart-store-detail-cat'), {
+      type: 'doughnut',
+      data: {
+        labels: catList.map(c => c.name),
+        datasets: [{
+          data: catList.map(c => +c.total.toFixed(2)),
+          backgroundColor: catList.map((c, i) => {
+            const catIdx = ALL_CATEGORIES.indexOf(c.name);
+            return PALETTE[(catIdx >= 0 ? catIdx : i) % PALETTE.length];
+          }),
+          borderWidth: 0
+        }]
+      },
+      options: withChartAnimation({
+        responsive: true, maintainAspectRatio: false, cutout: '50%',
+        plugins: {
+          legend: { position: 'right', labels: { font: { size: 10 }, padding: 6 } },
+          tooltip: { callbacks: { label: ctx => ctx.label + ': ' + fmt(ctx.raw) + ' (' + ((ctx.raw / total) * 100).toFixed(1) + '%)' } }
+        }
+      })
+    });
+
+    // Daily spending bar chart
+    const dailyData = new Array(ctx.daysInMonth).fill(0);
+    items.forEach(i => { const day = parseInt(i.d.split('/')[1]); if (day >= 1 && day <= ctx.daysInMonth) dailyData[day - 1] += i.t; });
+    const labels = Array.from({ length: ctx.daysInMonth }, (_, idx) => ctx.monthAbbr + ' ' + (idx + 1));
+    if (charts.storeDetailDaily) charts.storeDetailDaily.destroy();
+    charts.storeDetailDaily = new Chart(document.getElementById('chart-store-detail-daily'), {
+      type: 'bar',
+      data: { labels, datasets: [{ data: dailyData, backgroundColor: storeColor + '80', borderRadius: 3 }] },
+      options: withChartAnimation({ 
+        responsive: true, maintainAspectRatio: false, 
+        plugins: { legend: { display: false } },
+        scales: { 
+          x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 10 }, maxRotation: 45 } },
+          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#71717a', callback: v => '$' + v } } 
+        } 
+      })
+    });
+  }
+
+  showView('store-detail');
+}
+
+// Helper to navigate to a trip from store detail
+function goToTripFromStore(tripKey) {
+  const [date, store] = tripKey.split('|');
+  const tripIdx = allTrips.findIndex(t => t.date === date && t.store === store);
+  if (tripIdx !== -1) {
+    showTripDetail(tripIdx);
+  }
 }
 
 // ─────────── ANOMALY DETECTION ───────────
@@ -974,7 +1205,17 @@ function renderOverview() {
     })
   });
 
-  makeChartClickable(charts.storePie, document.getElementById("chart-store-pie"), storeGroups.map(g => g.name), "store");
+  // Make store pie chart navigate to store detail
+  const storePieCanvas = document.getElementById("chart-store-pie");
+  storePieCanvas.style.cursor = "pointer";
+  storePieCanvas.addEventListener("click", (evt) => {
+    const points = charts.storePie.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
+    if (points.length > 0) {
+      const idx = points[0].index;
+      const storeName = storeGroups[idx].name;
+      showStoreDetail(storeName, 'overview');
+    }
+  });
 
   // Weekly bar
   const weeks = ctx.weeks;
@@ -1350,7 +1591,17 @@ function renderToiletries() {
     })
   });
 
-  makeChartClickable(charts.toilStore, document.getElementById("chart-toiletry-store"), stores.map(s => s.name), "store");
+  // Make toiletry store chart navigate to store detail
+  const toilStoreCanvas = document.getElementById("chart-toiletry-store");
+  toilStoreCanvas.style.cursor = "pointer";
+  toilStoreCanvas.addEventListener("click", (evt) => {
+    const points = charts.toilStore.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
+    if (points.length > 0) {
+      const idx = points[0].index;
+      const storeName = stores[idx].name;
+      showStoreDetail(storeName, 'toiletries');
+    }
+  });
 
   // All toiletry items table
   let html = `<thead><tr><th>Date</th><th>Store</th><th>Product</th><th>Category</th><th class="text-center">Qty</th><th class="text-right">Unit $</th><th class="text-right">Total</th></tr></thead><tbody>`;
@@ -1403,7 +1654,17 @@ function renderStores() {
     })
   });
 
-  makeChartClickable(charts.storeBar, document.getElementById("chart-store-bar"), storeGroups.map(s => s.name), "store");
+  // Make store bar chart navigate to store detail
+  const storeBarCanvas = document.getElementById("chart-store-bar");
+  storeBarCanvas.style.cursor = "pointer";
+  storeBarCanvas.addEventListener("click", (evt) => {
+    const points = charts.storeBar.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
+    if (points.length > 0) {
+      const idx = points[0].index;
+      const storeName = storeGroups[idx].name;
+      showStoreDetail(storeName, 'stores');
+    }
+  });
 
   // Store breakdown
   const trips = {};
@@ -1415,8 +1676,9 @@ function renderStores() {
     const pctVal = (s.total / grandTotal * 100).toFixed(1);
     const storeTrips = tripsByStore[s.name] || 0;
     const color = STORE_COLORS[s.name] || "#888";
+    const escaped = s.name.replace(/'/g, "\\'");
     return `
-      <div class="store-row" onclick="showView('items',null,{store:'${s.name}'})" style="cursor:pointer">
+      <div class="store-row" onclick="showStoreDetail('${escaped}','stores')" style="cursor:pointer">
         <div class="store-info">
           <div class="store-name"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${color};margin-right:8px;vertical-align:middle"></span>${s.name}</div>
           <div class="store-meta">${storeTrips} trip${storeTrips>1?"s":""} &bull; ${s.qty} items</div>
@@ -1424,6 +1686,7 @@ function renderStores() {
         </div>
         <div class="store-pct">${pctVal}%</div>
         <div class="store-amount">${fmt(s.total)}</div>
+        <div class="store-arrow" style="color:var(--text-muted);font-size:14px;margin-left:8px">&rarr;</div>
       </div>`;
   }).join("");
 }
@@ -1672,7 +1935,7 @@ function showProductDetail(productName, source) {
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
 
-  const backMap = { groceries: ['groceries','Groceries'], toiletries: ['toiletries','Toiletries'], overview: ['overview','Overview'], items: ['items','All Items'], 'category-detail': ['overview','Overview'], trips: ['trips','Trips'] };
+  const backMap = { groceries: ['groceries','Groceries'], toiletries: ['toiletries','Toiletries'], overview: ['overview','Overview'], items: ['items','All Items'], 'category-detail': ['overview','Overview'], 'store-detail': ['stores','By Store'], trips: ['trips','Trips'] };
   const [backTab, backLabel] = backMap[productDetailSource] || backMap.items;
   document.getElementById("product-detail-back").onclick = () => showView(backTab);
   document.getElementById("product-detail-back").textContent = "\u2190 Back to " + backLabel;
