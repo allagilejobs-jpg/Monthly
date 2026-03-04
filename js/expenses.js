@@ -10,7 +10,7 @@ const CATEGORY_LIST = [
   "Housing","Utilities","Groceries","Dining & Restaurants","Transportation",
   "Gas & Fuel","Shopping","Entertainment","Subscriptions","Health & Medical",
   "Insurance","Personal Care","Education","Gifts & Donations","Travel",
-  "Fees & Charges","ATM & Cash","Transfers","Other"
+  "Fees & Charges","ATM & Cash","Transfers","Payment","Other"
 ];
 const CATEGORY_COLORS = {};
 const CAT_PALETTE = [
@@ -745,9 +745,9 @@ function parseCSV(text) {
   if (negCount > transactions.length / 2) {
     transactions.forEach(function(t) { t.amount = -t.amount; });
   }
-  // Re-categorize credits (negative amounts) as Refund after sign flip
+  // Re-categorize credits (negative amounts) as Payment after sign flip
   transactions.forEach(function(t) {
-    if (t.amount < 0) { t.category = 'Refund'; t._origCategory = 'Refund'; }
+    if (t.amount < 0) { t.category = 'Payment'; t._origCategory = 'Payment'; }
   });
   return transactions;
 }
@@ -974,7 +974,7 @@ async function parsePDF(arrayBuffer) {
           if (distToCredit < distToCharge) {
             tx.amount = -Math.abs(tx.amount);
             tx.isCredit = true;
-            tx.category = 'Refund';
+            tx.category = 'Payment';
           }
         }
       }
@@ -1079,9 +1079,9 @@ function parseExcel(arrayBuffer) {
   if (negCount > transactions.length / 2) {
     transactions.forEach(function(t) { t.amount = -t.amount; });
   }
-  // Re-categorize credits (negative amounts) as Refund after sign flip
+  // Re-categorize credits (negative amounts) as Payment after sign flip
   transactions.forEach(function(t) {
-    if (t.amount < 0) { t.category = 'Refund'; t._origCategory = 'Refund'; }
+    if (t.amount < 0) { t.category = 'Payment'; t._origCategory = 'Payment'; }
   });
   return transactions;
 }
