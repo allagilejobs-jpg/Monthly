@@ -232,12 +232,44 @@ function getLoadedMonths() {
   return JSON.parse(localStorage.getItem("grocery_months") || '[]').sort();
 }
 
+// Canonical store names — matches against common variations to prevent duplicates
+const STORE_NORM = [
+  [/walmart|wal[\s-]*mart|wm\s*supercenter/i, "Walmart"],
+  [/publix/i, "Publix"], [/target/i, "Target"], [/costco/i, "Costco"],
+  [/kroger/i, "Kroger"], [/aldi/i, "Aldi"], [/h[\s-]*e[\s-]*b\b/i, "HEB"],
+  [/trader\s*joe/i, "Trader Joes"], [/whole\s*foods/i, "Whole Foods"],
+  [/safeway/i, "Safeway"], [/albertson/i, "Albertsons"], [/meijer/i, "Meijer"],
+  [/food\s*lion/i, "Food Lion"], [/winco/i, "WinCo"], [/wegman/i, "Wegmans"],
+  [/sprout/i, "Sprouts"], [/sam'?s\s*club/i, "Sams Club"], [/bj'?s/i, "BJs"],
+  [/dollar\s*(tree|general)/i, "Dollar Store"], [/cvs/i, "CVS"], [/walgreen/i, "Walgreens"],
+  [/instacart/i, null] // keep original for Instacart (includes sub-store)
+];
+function normalizeStore(name) {
+  if (!name) return name;
+  for (const [re, canonical] of STORE_NORM) {
+    if (re.test(name)) return canonical || name;
+  }
+  return name;
+}
+
 function loadMonthData(monthKey) {
   const stored = (typeof DEMO_MODE !== 'undefined' && DEMO_MODE)
     ? demoGet("data_" + monthKey)
     : localStorage.getItem("data_" + monthKey);
-  if (stored) return JSON.parse(stored);
-  return null;
+  if (!stored) return null;
+  const data = JSON.parse(stored);
+  // Normalize store names to prevent duplicates like "Costco" vs "Costco WHOLESALE"
+  let changed = false;
+  data.forEach(item => {
+    const norm = normalizeStore(item.s);
+    if (norm !== item.s) { item.s = norm; changed = true; }
+  });
+  // Persist fix so it only runs once per month
+  if (changed) {
+    if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) demoSet("data_" + monthKey, JSON.stringify(data));
+    else localStorage.setItem("data_" + monthKey, JSON.stringify(data));
+  }
+  return data;
 }
 
 function initMonthData(data) {

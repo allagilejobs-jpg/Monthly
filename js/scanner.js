@@ -178,6 +178,15 @@ const STORE_PATTERNS = [
   { regex: /walgreen/i, name: "Walgreens" }
 ];
 
+function normalizeStoreName(name) {
+  if (!name) return 'Unknown Store';
+  for (const sp of STORE_PATTERNS) {
+    if (sp.regex.test(name)) return sp.name;
+  }
+  // Title case fallback for unknown stores
+  return name.trim().replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
 function getKnownStores() {
   const stores = new Set(STORE_PATTERNS.map(sp => sp.name));
   // Add stores from current scan
@@ -986,7 +995,9 @@ async function processWithGemini(uf, doAutoDetect) {
   if (!jsonMatch) throw new Error('No JSON in Gemini response');
 
   const parsed = JSON.parse(jsonMatch[0]);
-  const store = (doAutoDetect && parsed.store) || 'Unknown Store';
+  const rawStore = (doAutoDetect && parsed.store) || 'Unknown Store';
+  // Normalize store name against known patterns to prevent duplicates (e.g. "Costco WHOLESALE" → "Costco")
+  const store = normalizeStoreName(rawStore);
   const date = (doAutoDetect && parsed.date) || '';
 
   // Filter out discount/savings/subtotal lines Gemini may still return
