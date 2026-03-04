@@ -177,6 +177,9 @@ body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var
 .date-select { min-width:60px; cursor:pointer; }
 .date-slash { color:var(--muted); font-weight:600; margin:0 2px; }
 
+.store-date-row.validation-error { background:rgba(239,68,68,0.08); border-bottom-color:var(--red); }
+.validation-error-field { border-color:var(--red) !important; box-shadow:0 0 0 2px rgba(239,68,68,0.2); }
+
 /* Export panel */
 .export-cards { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px; }
 .export-card { background:var(--surface); border:2px solid var(--border); border-radius:var(--radius); padding:28px 24px; text-align:center; cursor:pointer; transition:all .2s; }

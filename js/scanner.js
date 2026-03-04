@@ -1317,6 +1317,7 @@ function updateGroupField(fileName, field, value) {
   extractedData.forEach(item => {
     if (item._file === fileName) item[field] = value;
   });
+  clearValidationError(fileName);
 }
 
 function removeLineItem(idx) {
@@ -1339,6 +1340,83 @@ function removeLineItem(idx) {
   }
 
   renderReview();
+}
+
+function clearValidationError(fileName) {
+  document.querySelectorAll('.store-date-row').forEach(row => {
+    const storeInput = row.querySelector('input[type="text"]');
+    const dateSel = row.querySelector('.date-select');
+    if (!storeInput || !dateSel) return;
+    const rowFile = dateSel.dataset.file;
+    if (rowFile === fileName || rowFile === escHtml(fileName)) {
+      row.classList.remove('validation-error');
+      row.querySelectorAll('.validation-error-field').forEach(el => el.classList.remove('validation-error-field'));
+    }
+  });
+}
+
+function validateAndExport() {
+  const fileGroups = {};
+  extractedData.forEach(item => {
+    if (!fileGroups[item._file]) fileGroups[item._file] = [];
+    fileGroups[item._file].push(item);
+  });
+
+  const missing = [];
+  for (const [fileName, items] of Object.entries(fileGroups)) {
+    const store = (items[0]?.s || '').trim();
+    const date = (items[0]?.d || '').trim();
+    const hasStore = store && store !== 'Unknown Store' && store !== 'Unknown';
+    const hasDate = date && date.includes('/') && !date.startsWith('/') && !date.endsWith('/');
+
+    if (!hasStore || !hasDate) {
+      const fields = [];
+      if (!hasStore) fields.push('store name');
+      if (!hasDate) fields.push('date');
+      missing.push({ fileName, fields });
+    }
+  }
+
+  if (missing.length > 0) {
+    // Highlight the missing fields in the UI
+    document.querySelectorAll('.store-date-row').forEach(row => row.classList.remove('validation-error'));
+    document.querySelectorAll('.store-date-row input, .store-date-row select').forEach(el => el.classList.remove('validation-error-field'));
+
+    let globalIdx = 0;
+    for (const [fileName] of Object.entries(fileGroups)) {
+      const problem = missing.find(m => m.fileName === fileName);
+      if (problem) {
+        const metaRow = document.getElementById('grp_' + globalIdx + '_meta');
+        if (metaRow) {
+          metaRow.classList.add('validation-error');
+          if (problem.fields.includes('store name')) {
+            const storeInput = metaRow.querySelector('input[type="text"]');
+            if (storeInput) storeInput.classList.add('validation-error-field');
+          }
+          if (problem.fields.includes('date')) {
+            metaRow.querySelectorAll('.date-select').forEach(sel => sel.classList.add('validation-error-field'));
+          }
+        }
+        // Expand the group if collapsed
+        const body = document.getElementById('grp_' + globalIdx);
+        if (body?.classList.contains('collapsed')) {
+          body.classList.remove('collapsed');
+          body.previousElementSibling?.previousElementSibling?.classList.remove('collapsed');
+        }
+      }
+      globalIdx++;
+    }
+
+    const names = missing.map(m => `${m.fileName} (missing ${m.fields.join(' & ')})`).join(', ');
+    showToast(`Please fill in required fields: ${names}`, 'warning');
+
+    // Scroll to first problem
+    const firstError = document.querySelector('.validation-error');
+    if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  goToStep(4);
 }
 
 function daysInMonth(month) {
@@ -1396,6 +1474,7 @@ function updateDateFromDropdowns(fileName) {
   const day = daySel?.value || '';
   const date = (month && day) ? month + '/' + day : '';
   updateGroupField(fileName, 'd', date);
+  clearValidationError(fileName);
 }
 
 function escHtml(s) {
