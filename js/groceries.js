@@ -158,6 +158,7 @@ function itemType(item) {
 }
 function isWeighed(item) { return item.q !== Math.floor(item.q); }
 function displayQty(item) { return item.w ? Math.ceil(item.q) : item.q; }
+function lbBadge(w) { return w ? ' <span style="display:inline-block;font-size:8px;font-style:italic;font-weight:600;color:var(--text-muted);border:1px solid var(--text-muted);border-radius:50%;width:14px;height:14px;line-height:13px;text-align:center;margin-left:3px;vertical-align:middle" title="Sold by weight">lb</span>' : ''; }
 
 // ─────────── UTILITIES ───────────
 const fmt = v => "$" + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -376,10 +377,11 @@ function groupBy(arr, key) {
 function groupProducts(arr) {
   const m = {};
   arr.forEach(i => {
-    if (!m[i.n]) m[i.n] = { name: i.n, cat: i.c, total: 0, qty: 0, count: 0 };
+    if (!m[i.n]) m[i.n] = { name: i.n, cat: i.c, total: 0, qty: 0, count: 0, w: false };
     m[i.n].total += i.t;
     m[i.n].qty += displayQty(i);
     m[i.n].count++;
+    if (i.w) m[i.n].w = true;
   });
   return Object.values(m).sort((a, b) => b.total - a.total);
 }
@@ -617,12 +619,13 @@ function showCategoryDetail(categoryName, source) {
   // Group by product
   const products = {};
   items.forEach(i => {
-    if (!products[i.n]) products[i.n] = { name: i.n, total: 0, qty: 0, count: 0, stores: new Set(), dates: new Set() };
+    if (!products[i.n]) products[i.n] = { name: i.n, total: 0, qty: 0, count: 0, stores: new Set(), dates: new Set(), w: false };
     products[i.n].total += i.t;
     products[i.n].qty += i.q;
     products[i.n].count++;
     products[i.n].stores.add(i.s);
     products[i.n].dates.add(i.d);
+    if (i.w) products[i.n].w = true;
   });
   const prodList = Object.values(products).sort((a, b) => b.total - a.total);
 
@@ -663,7 +666,7 @@ function showCategoryDetail(categoryName, source) {
     const pPct = ((p.total / total) * 100).toFixed(1);
     const escaped = p.name.replace(/'/g, "\\'");
     html += '<tr style="cursor:pointer" onclick="showProductDetail(\'' + escaped + '\',\'category-detail\')">';
-    html += '<td style="font-weight:600">' + p.name + ' <span style="float:right;color:var(--text-muted);font-size:11px">\u2192</span></td>';
+    html += '<td style="font-weight:600">' + p.name + lbBadge(p.w) + ' <span style="float:right;color:var(--text-muted);font-size:11px">\u2192</span></td>';
     html += '<td style="font-size:12px;color:var(--text-muted)">' + [...p.stores].join(', ') + '</td>';
     html += '<td class="text-center">' + p.qty + '</td>';
     html += '<td class="text-right amt">' + fmt(p.total) + '</td>';
@@ -699,10 +702,10 @@ function showCategoryDetail(categoryName, source) {
     const escaped = i.n.replace(/'/g, "\\'");
     const dayNum = parseInt(i.d.split('/')[1]);
     const dateLabel = ctx.monthName ? ctx.monthName + ' ' + dayNum + ', ' + ctx.year : i.d;
-    html += '<tr style="cursor:pointer' + (i.w ? ';background:rgba(59,130,246,0.06)' : '') + '" onclick="showProductDetail(\'' + escaped + '\',\'category-detail\')">';
+    html += '<tr style="cursor:pointer" onclick="showProductDetail(\'' + escaped + '\',\'category-detail\')">';
     html += '<td class="mono">' + dateLabel + '</td>';
     html += '<td>' + i.s + '</td>';
-    html += '<td class="bold">' + i.n + (i.w ? ' <span style="display:inline-block;font-size:8px;font-style:italic;font-weight:600;color:var(--text-muted);border:1px solid var(--text-muted);border-radius:50%;width:14px;height:14px;line-height:13px;text-align:center;margin-left:3px;vertical-align:middle" title="Sold by weight">lb</span>' : '') + '</td>';
+    html += '<td class="bold">' + i.n + lbBadge(i.w) + '</td>';
     html += '<td class="text-center">' + displayQty(i) + '</td>';
     html += '<td class="text-right mono">' + fmt(i.u) + '</td>';
     html += '<td class="text-right mono amt">' + fmt(i.t) + '</td></tr>';
@@ -768,11 +771,12 @@ function showStoreDetail(storeName, source) {
   // Group by product
   const products = {};
   items.forEach(i => {
-    if (!products[i.n]) products[i.n] = { name: i.n, cat: i.c, total: 0, qty: 0, count: 0, dates: new Set() };
+    if (!products[i.n]) products[i.n] = { name: i.n, cat: i.c, total: 0, qty: 0, count: 0, dates: new Set(), w: false };
     products[i.n].total += i.t;
     products[i.n].qty += i.q;
     products[i.n].count++;
     products[i.n].dates.add(i.d);
+    if (i.w) products[i.n].w = true;
   });
   const prodList = Object.values(products).sort((a, b) => b.total - a.total);
 
@@ -867,7 +871,7 @@ function showStoreDetail(storeName, source) {
   prodList.slice(0, 20).forEach(p => {
     const escaped = p.name.replace(/'/g, "\\'");
     html += '<tr style="cursor:pointer" onclick="showProductDetail(\'' + escaped + '\',\'store-detail\')">';
-    html += '<td style="font-weight:600">' + p.name + ' <span style="float:right;color:var(--text-muted);font-size:11px">\u2192</span></td>';
+    html += '<td style="font-weight:600">' + p.name + lbBadge(p.w) + ' <span style="float:right;color:var(--text-muted);font-size:11px">\u2192</span></td>';
     html += '<td style="font-size:12px;color:var(--text-muted)">' + p.cat + '</td>';
     html += '<td class="text-center">' + p.qty + '</td>';
     html += '<td class="text-right amt">' + fmt(p.total) + '</td>';
@@ -885,9 +889,9 @@ function showStoreDetail(storeName, source) {
     const escaped = i.n.replace(/'/g, "\\'");
     const dayNum = parseInt(i.d.split('/')[1]);
     const dateLabel = ctx.monthName ? ctx.monthName + ' ' + dayNum : i.d;
-    html += '<tr style="cursor:pointer' + (i.w ? ';background:rgba(59,130,246,0.06)' : '') + '" onclick="showProductDetail(\'' + escaped + '\',\'store-detail\')">';
+    html += '<tr style="cursor:pointer" onclick="showProductDetail(\'' + escaped + '\',\'store-detail\')">';
     html += '<td class="mono">' + dateLabel + '</td>';
-    html += '<td class="bold">' + i.n + (i.w ? ' <span style="display:inline-block;font-size:8px;font-style:italic;font-weight:600;color:var(--text-muted);border:1px solid var(--text-muted);border-radius:50%;width:14px;height:14px;line-height:13px;text-align:center;margin-left:3px;vertical-align:middle" title="Sold by weight">lb</span>' : '') + '</td>';
+    html += '<td class="bold">' + i.n + lbBadge(i.w) + '</td>';
     html += '<td style="color:var(--text-muted)">' + i.c + '</td>';
     html += '<td class="text-center">' + displayQty(i) + '</td>';
     html += '<td class="text-right mono">' + fmt(i.u) + '</td>';
@@ -1561,7 +1565,7 @@ function renderGroceries() {
   let html = `<thead><tr><th>Product</th><th>Category</th><th class="text-center">Qty Bought</th><th class="text-right">Total Spent</th><th class="text-right">Avg/Unit</th></tr></thead><tbody>`;
   freq.forEach(p => {
     const escaped = p.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-    html += `<tr style="cursor:pointer" onclick="showProductDetail('${escaped}','groceries')"><td class="bold">${p.name}<span style="float:right;color:var(--text-muted);font-size:11px">&rarr;</span></td><td style="color:var(--text-muted)">${p.cat}</td><td class="text-center">${p.qty}</td><td class="text-right mono amt">${fmt(p.total)}</td><td class="text-right mono">${fmt(p.total / p.qty)}</td></tr>`;
+    html += `<tr style="cursor:pointer" onclick="showProductDetail('${escaped}','groceries')"><td class="bold">${p.name}${lbBadge(p.w)}<span style="float:right;color:var(--text-muted);font-size:11px">&rarr;</span></td><td style="color:var(--text-muted)">${p.cat}</td><td class="text-center">${p.qty}</td><td class="text-right mono amt">${fmt(p.total)}</td><td class="text-right mono">${fmt(p.total / p.qty)}</td></tr>`;
   });
   html += `</tbody>`;
   document.getElementById("table-grocery-freq").innerHTML = html;
@@ -1632,7 +1636,7 @@ function renderNonGroceries() {
     html += `<tr style="cursor:pointer" onclick="showProductDetail('${escaped}','nongrocery')">
       <td class="mono">${i.d}</td>
       <td>${i.s}</td>
-      <td class="bold">${i.n}<span style="float:right;color:var(--text-muted);font-size:11px">&rarr;</span></td>
+      <td class="bold">${i.n}${lbBadge(i.w)}<span style="float:right;color:var(--text-muted);font-size:11px">&rarr;</span></td>
       <td style="color:var(--text-muted)">${i.c}</td>
       <td class="text-center">${displayQty(i)}</td>
       <td class="text-right mono">${fmt(i.u)}</td>
@@ -2132,7 +2136,7 @@ function showProductDetail(productName, source) {
     const dayNum = parseInt(i.d.split("/")[1]);
     const dateLabel = ctx.monthName ? ctx.monthName + " " + dayNum + ", " + ctx.year : i.d;
     const tripKey = i.d + "|" + i.s;
-    html += `<tr style="cursor:pointer${i.w ? ';background:rgba(59,130,246,0.06)' : ''}" onclick="goToTripFromProduct('${tripKey}')">
+    html += `<tr style="cursor:pointer" onclick="goToTripFromProduct('${tripKey}')">
       <td class="mono" style="color:var(--green)">${dateLabel}</td>
       <td>${i.s}</td>
       <td class="text-center">${displayQty(i)}</td>
@@ -2205,8 +2209,8 @@ function showTripDetail(tripIdx) {
         </tr></thead><tbody>`;
     items.sort((a, b) => b.t - a.t).forEach(i => {
       var nameEsc = i.n.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-      g += `<tr style="border-bottom:1px solid rgba(255,255,255,0.03);cursor:pointer${i.w ? ';background:rgba(59,130,246,0.06)' : ''}" onclick="showProductDetail('${nameEsc}','trips')">
-        <td style="padding:10px 12px;font-weight:500;color:var(--green)">${i.n}${i.w ? ' <span style="display:inline-block;font-size:8px;font-style:italic;font-weight:600;color:var(--text-muted);border:1px solid var(--text-muted);border-radius:50%;width:14px;height:14px;line-height:13px;text-align:center;margin-left:3px;vertical-align:middle" title="Sold by weight">lb</span>' : ''} <span style="font-size:10px;color:var(--text-muted);margin-left:4px">${i.c}</span></td>
+      g += `<tr style="border-bottom:1px solid rgba(255,255,255,0.03);cursor:pointer" onclick="showProductDetail('${nameEsc}','trips')">
+        <td style="padding:10px 12px;font-weight:500;color:var(--green)">${i.n}${lbBadge(i.w)} <span style="font-size:10px;color:var(--text-muted);margin-left:4px">${i.c}</span></td>
         <td style="padding:10px 12px;text-align:center">${displayQty(i)}</td>
         <td style="padding:10px 12px;text-align:right;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px">${fmt(i.u)}</td>
         <td style="padding:10px 12px;text-align:right;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px;font-weight:700;color:var(--amber)">${fmt(i.t)}</td>
@@ -2349,11 +2353,11 @@ function renderTable() {
     const dupeInfo = dupeMap[i.n];
     const dupeFlag = dupeInfo ? '<span class="dupe-flag" onclick="event.stopPropagation();showDupePopover(this,' + i._idx + ')" title="Possible duplicate of: ' + dupeInfo.match.replace(/"/g, '&quot;') + '">&#9873;</span>' : '';
     const escaped = i.n.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-    html += `<tr onclick="showProductDetail('${escaped}','items')" style="cursor:pointer${i.w ? ';background:rgba(59,130,246,0.06)' : ''}" title="View purchase history">
+    html += `<tr onclick="showProductDetail('${escaped}','items')" style="cursor:pointer" title="View purchase history">
       <td class="tx-check-col"><input type="checkbox" class="tx-check" data-idx="${i._idx}" onclick="event.stopPropagation()" onchange="updateGrocBulkBar()"></td>
       <td class="mono">${i.d}</td>
       <td>${i.s}</td>
-      <td class="bold">${i.n}${i.w ? ' <span style="display:inline-block;font-size:8px;font-style:italic;font-weight:600;color:var(--text-muted);border:1px solid var(--text-muted);border-radius:50%;width:14px;height:14px;line-height:13px;text-align:center;margin-left:3px;vertical-align:middle" title="Sold by weight">lb</span>' : ''}${editDot}${dupeFlag} <span class="tag ${tagClass}">${tagLabel}</span></td>
+      <td class="bold">${i.n}${lbBadge(i.w)}${editDot}${dupeFlag} <span class="tag ${tagClass}">${tagLabel}</span></td>
       <td style="color:var(--text-muted)">${i.c}</td>
       <td class="text-center">${displayQty(i)}</td>
       <td class="text-right mono">${fmt(i.u)}</td>
