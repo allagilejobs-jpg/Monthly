@@ -209,6 +209,7 @@
         <option value="All">All Types</option>
         <option value="Grocery">Grocery Only</option>
         <option value="Non-Grocery">Non-Grocery Only</option>
+        <option value="Weighed">Weighed Items</option>
         <option value="Other">Other Non-Grocery</option>
       </select>
       <input type="text" id="filter-search" placeholder="Search items..." style="min-width:180px">
@@ -476,6 +477,13 @@
       <select class="modal-select" id="edit-type">
         <option value="false">Grocery</option>
         <option value="true">Non-Grocery</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Weighed?</label>
+      <select class="modal-select" id="edit-weighed">
+        <option value="false">No (counted item)</option>
+        <option value="true">Yes (sold by weight)</option>
       </select>
     </div>
     <div class="modal-actions">

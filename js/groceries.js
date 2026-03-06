@@ -156,6 +156,8 @@ const SEED_DATA = [
 function itemType(item) {
   return item.ng ? "nongrocery" : "grocery";
 }
+function isWeighed(item) { return item.q !== Math.floor(item.q); }
+function displayQty(item) { return item.w ? Math.ceil(item.q) : item.q; }
 
 // ─────────── UTILITIES ───────────
 const fmt = v => "$" + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -269,7 +271,7 @@ function loadMonthData(monthKey) {
 }
 
 function initMonthData(data) {
-  data.forEach((item, idx) => { item._idx = idx; item._origName = item.n; item._origCat = item.c; item._origNg = item.ng; });
+  data.forEach((item, idx) => { item._idx = idx; item._origName = item.n; item._origCat = item.c; item._origNg = item.ng; item.w = isWeighed(item); item._origW = item.w; });
   const editsStr = (typeof DEMO_MODE !== 'undefined' && DEMO_MODE)
     ? (demoGet(ctx.editsKey) || "{}")
     : (localStorage.getItem(ctx.editsKey) || "{}");
@@ -280,6 +282,7 @@ function initMonthData(data) {
       if (edits.n !== undefined) data[i].n = edits.n;
       if (edits.c !== undefined) data[i].c = edits.c;
       if (edits.ng !== undefined) data[i].ng = edits.ng;
+      if (edits.w !== undefined) data[i].w = edits.w;
     }
   });
 }
@@ -365,7 +368,7 @@ function groupBy(arr, key) {
     if (!m[k]) m[k] = { items: [], total: 0, qty: 0 };
     m[k].items.push(i);
     m[k].total += i.t;
-    m[k].qty += i.q;
+    m[k].qty += displayQty(i);
   });
   return Object.entries(m).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.total - a.total);
 }
@@ -375,7 +378,7 @@ function groupProducts(arr) {
   arr.forEach(i => {
     if (!m[i.n]) m[i.n] = { name: i.n, cat: i.c, total: 0, qty: 0, count: 0 };
     m[i.n].total += i.t;
-    m[i.n].qty += i.q;
+    m[i.n].qty += displayQty(i);
     m[i.n].count++;
   });
   return Object.values(m).sort((a, b) => b.total - a.total);
@@ -606,7 +609,7 @@ function showCategoryDetail(categoryName, source) {
   if (items.length === 0) { container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">No items found in this category</div>'; showView('category-detail'); return; }
 
   const total = items.reduce((s, i) => s + i.t, 0);
-  const totalQty = items.reduce((s, i) => s + i.q, 0);
+  const totalQty = items.reduce((s, i) => s + displayQty(i), 0);
   const catPctOfAll = ((total / grandTotal) * 100).toFixed(1);
   const isGrocery = items.some(i => itemType(i) === 'grocery');
   const typeLabel = isGrocery ? 'Grocery' : 'Non-Grocery';
@@ -696,11 +699,11 @@ function showCategoryDetail(categoryName, source) {
     const escaped = i.n.replace(/'/g, "\\'");
     const dayNum = parseInt(i.d.split('/')[1]);
     const dateLabel = ctx.monthName ? ctx.monthName + ' ' + dayNum + ', ' + ctx.year : i.d;
-    html += '<tr style="cursor:pointer" onclick="showProductDetail(\'' + escaped + '\',\'category-detail\')">';
+    html += '<tr style="cursor:pointer' + (i.w ? ';background:rgba(59,130,246,0.06)' : '') + '" onclick="showProductDetail(\'' + escaped + '\',\'category-detail\')">';
     html += '<td class="mono">' + dateLabel + '</td>';
     html += '<td>' + i.s + '</td>';
     html += '<td class="bold">' + i.n + '</td>';
-    html += '<td class="text-center">' + i.q + '</td>';
+    html += '<td class="text-center">' + displayQty(i) + '</td>';
     html += '<td class="text-right mono">' + fmt(i.u) + '</td>';
     html += '<td class="text-right mono amt">' + fmt(i.t) + '</td></tr>';
   });
@@ -742,7 +745,7 @@ function showStoreDetail(storeName, source) {
   if (items.length === 0) { container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">No items found for this store</div>'; showView('store-detail'); return; }
 
   const total = items.reduce((s, i) => s + i.t, 0);
-  const totalQty = items.reduce((s, i) => s + i.q, 0);
+  const totalQty = items.reduce((s, i) => s + displayQty(i), 0);
   const storePctOfAll = ((total / grandTotal) * 100).toFixed(1);
   const storeColor = STORE_COLORS[storeName] || '#888';
 
@@ -829,7 +832,7 @@ function showStoreDetail(storeName, source) {
   tripDates.sort().forEach(d => {
     const tripItems = items.filter(i => i.d === d);
     const tripTotal = tripItems.reduce((s, i) => s + i.t, 0);
-    const tripQty = tripItems.reduce((s, i) => s + i.q, 0);
+    const tripQty = tripItems.reduce((s, i) => s + displayQty(i), 0);
     const tripPct = ((tripTotal / grandTotal) * 100).toFixed(1);
     const dayNum = parseInt(d.split('/')[1]);
     const dateLabel = ctx.monthName ? ctx.monthName + ' ' + dayNum + ', ' + ctx.year : d;
@@ -882,11 +885,11 @@ function showStoreDetail(storeName, source) {
     const escaped = i.n.replace(/'/g, "\\'");
     const dayNum = parseInt(i.d.split('/')[1]);
     const dateLabel = ctx.monthName ? ctx.monthName + ' ' + dayNum : i.d;
-    html += '<tr style="cursor:pointer" onclick="showProductDetail(\'' + escaped + '\',\'store-detail\')">';
+    html += '<tr style="cursor:pointer' + (i.w ? ';background:rgba(59,130,246,0.06)' : '') + '" onclick="showProductDetail(\'' + escaped + '\',\'store-detail\')">';
     html += '<td class="mono">' + dateLabel + '</td>';
     html += '<td class="bold">' + i.n + '</td>';
     html += '<td style="color:var(--text-muted)">' + i.c + '</td>';
-    html += '<td class="text-center">' + i.q + '</td>';
+    html += '<td class="text-center">' + displayQty(i) + '</td>';
     html += '<td class="text-right mono">' + fmt(i.u) + '</td>';
     html += '<td class="text-right mono amt">' + fmt(i.t) + '</td></tr>';
   });
@@ -1505,7 +1508,7 @@ function renderGroceries() {
 
   document.getElementById("kpi-grocery").innerHTML = [
     { label: "Total Grocery Spend", value: fmt(groceryTotal), color: "var(--green)", sub: `${pct(groceryTotal, grandTotal)} of all spend`, nav: "items", filter: "Grocery" },
-    { label: "Grocery Items", value: groceries.reduce((s,i)=>s+i.q,0), color: "var(--cyan)", sub: `${groceries.length} line items`, nav: "items", filter: "Grocery" },
+    { label: "Grocery Items", value: groceries.reduce((s,i)=>s+displayQty(i),0), color: "var(--cyan)", sub: `${groceries.length} line items`, nav: "items", filter: "Grocery" },
     { label: "Categories", value: cats.length, color: "var(--amber)", sub: `Top: ${cats[0].name}`, nav: "overview" },
     { label: "Avg Per Grocery Trip", value: fmt(groceryTotal / trips), color: "var(--teal)", sub: `${trips} trips with groceries`, nav: "trends" },
   ].map(k => `<div class="kpi-card" onclick="showView('${k.nav}'${k.filter ? ",'" + k.filter + "'" : ''})"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:${k.color}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join("");
@@ -1572,9 +1575,9 @@ function renderNonGroceries() {
 
   document.getElementById("kpi-nongrocery").innerHTML = [
     { label: "Total Non-Grocery Spend", value: fmt(nonGroceryTotal), color: "var(--purple)", sub: `${pct(nonGroceryTotal, grandTotal)} of all spend`, nav: "items", filter: "Non-Grocery" },
-    { label: "Items Purchased", value: nonGroceries.reduce((s,i)=>s+i.q,0), color: "var(--cyan)", sub: `${nonGroceries.length} line items`, nav: "items", filter: "Non-Grocery" },
+    { label: "Items Purchased", value: nonGroceries.reduce((s,i)=>s+displayQty(i),0), color: "var(--cyan)", sub: `${nonGroceries.length} line items`, nav: "items", filter: "Non-Grocery" },
     { label: "Categories", value: cats.length, color: "var(--amber)", sub: cats.map(c => c.name).join(", "), nav: "overview" },
-    { label: "Avg Item Cost", value: fmt(nonGroceryTotal / (nonGroceries.reduce((s,i)=>s+i.q,0) || 1)), color: "var(--teal)", sub: "per unit", nav: "stores" },
+    { label: "Avg Item Cost", value: fmt(nonGroceryTotal / (nonGroceries.reduce((s,i)=>s+displayQty(i),0) || 1)), color: "var(--teal)", sub: "per unit", nav: "stores" },
   ].map(k => `<div class="kpi-card" onclick="showView('${k.nav}'${k.filter ? ",'" + k.filter + "'" : ''})"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:${k.color}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join("");
   animateKPICards('#kpi-nongrocery');
 
@@ -1631,7 +1634,7 @@ function renderNonGroceries() {
       <td>${i.s}</td>
       <td class="bold">${i.n}<span style="float:right;color:var(--text-muted);font-size:11px">&rarr;</span></td>
       <td style="color:var(--text-muted)">${i.c}</td>
-      <td class="text-center">${i.q}</td>
+      <td class="text-center">${displayQty(i)}</td>
       <td class="text-right mono">${fmt(i.u)}</td>
       <td class="text-right mono amt">${fmt(i.t)}</td>
     </tr>`;
@@ -1870,7 +1873,7 @@ function buildTrips() {
     if (!tripMap[key]) tripMap[key] = { date: i.d, store: i.s, items: [], total: 0, qty: 0 };
     tripMap[key].items.push(i);
     tripMap[key].total += i.t;
-    tripMap[key].qty += i.q;
+    tripMap[key].qty += displayQty(i);
   });
   return Object.values(tripMap).sort((a, b) => a.date.localeCompare(b.date) || a.store.localeCompare(b.store));
 }
@@ -1941,7 +1944,7 @@ function showProductDetail(productName, source) {
   const items = activeData.filter(i => i.n === productName).sort((a, b) => a.d.localeCompare(b.d));
   if (!items.length) return;
   const total = items.reduce((s, i) => s + i.t, 0);
-  const totalQty = items.reduce((s, i) => s + i.q, 0);
+  const totalQty = items.reduce((s, i) => s + displayQty(i), 0);
   const cat = items[0].c;
   const stores = [...new Set(items.map(i => i.s))];
   const dates = [...new Set(items.map(i => i.d))];
@@ -2095,7 +2098,7 @@ function showProductDetail(productName, source) {
     items.forEach(i => {
       if (!storeStats[i.s]) storeStats[i.s] = { prices: [], qty: 0, total: 0 };
       storeStats[i.s].prices.push(i.u);
-      storeStats[i.s].qty += i.q;
+      storeStats[i.s].qty += displayQty(i);
       storeStats[i.s].total += i.t;
     });
     const storeArr = Object.entries(storeStats).map(([name, s]) => ({
@@ -2129,10 +2132,10 @@ function showProductDetail(productName, source) {
     const dayNum = parseInt(i.d.split("/")[1]);
     const dateLabel = ctx.monthName ? ctx.monthName + " " + dayNum + ", " + ctx.year : i.d;
     const tripKey = i.d + "|" + i.s;
-    html += `<tr style="cursor:pointer" onclick="goToTripFromProduct('${tripKey}')">
+    html += `<tr style="cursor:pointer${i.w ? ';background:rgba(59,130,246,0.06)' : ''}" onclick="goToTripFromProduct('${tripKey}')">
       <td class="mono" style="color:var(--green)">${dateLabel}</td>
       <td>${i.s}</td>
-      <td class="text-center">${i.q}</td>
+      <td class="text-center">${displayQty(i)}</td>
       <td class="text-right mono">${fmt(i.u)}</td>
       <td class="text-right mono amt">${fmt(i.t)}</td>
     </tr>`;
@@ -2202,9 +2205,9 @@ function showTripDetail(tripIdx) {
         </tr></thead><tbody>`;
     items.sort((a, b) => b.t - a.t).forEach(i => {
       var nameEsc = i.n.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-      g += `<tr style="border-bottom:1px solid rgba(255,255,255,0.03);cursor:pointer" onclick="showProductDetail('${nameEsc}','trips')">
+      g += `<tr style="border-bottom:1px solid rgba(255,255,255,0.03);cursor:pointer${i.w ? ';background:rgba(59,130,246,0.06)' : ''}" onclick="showProductDetail('${nameEsc}','trips')">
         <td style="padding:10px 12px;font-weight:500;color:var(--green)">${i.n} <span style="font-size:10px;color:var(--text-muted);margin-left:4px">${i.c}</span></td>
-        <td style="padding:10px 12px;text-align:center">${i.q}</td>
+        <td style="padding:10px 12px;text-align:center">${displayQty(i)}</td>
         <td style="padding:10px 12px;text-align:right;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px">${fmt(i.u)}</td>
         <td style="padding:10px 12px;text-align:right;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px;font-weight:700;color:var(--amber)">${fmt(i.t)}</td>
       </tr>`;
@@ -2295,6 +2298,7 @@ function renderTable() {
     if (cat !== "All" && i.c !== cat) return false;
     if (type === "Grocery" && itemType(i) !== "grocery") return false;
     if (type === "Non-Grocery" && itemType(i) !== "nongrocery") return false;
+    if (type === "Weighed" && !i.w) return false;
     if (search && !i.n.toLowerCase().includes(search) && !i.r.toLowerCase().includes(search)) return false;
     return true;
   });
@@ -2340,18 +2344,18 @@ function renderTable() {
     const typ = itemType(i);
     const tagClass = typ === "grocery" ? "tag-grocery" : "tag-nongrocery";
     const tagLabel = typ === "grocery" ? "GROCERY" : "NON-GROC";
-    const isEdited = i.n !== i._origName || i.c !== i._origCat || i.ng !== i._origNg;
+    const isEdited = i.n !== i._origName || i.c !== i._origCat || i.ng !== i._origNg || i.w !== i._origW;
     const editDot = isEdited ? '<span class="edit-dot" title="Edited"></span>' : '';
     const dupeInfo = dupeMap[i.n];
     const dupeFlag = dupeInfo ? '<span class="dupe-flag" onclick="event.stopPropagation();showDupePopover(this,' + i._idx + ')" title="Possible duplicate of: ' + dupeInfo.match.replace(/"/g, '&quot;') + '">&#9873;</span>' : '';
     const escaped = i.n.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-    html += `<tr onclick="showProductDetail('${escaped}','items')" style="cursor:pointer" title="View purchase history">
+    html += `<tr onclick="showProductDetail('${escaped}','items')" style="cursor:pointer${i.w ? ';background:rgba(59,130,246,0.06)' : ''}" title="View purchase history">
       <td class="tx-check-col"><input type="checkbox" class="tx-check" data-idx="${i._idx}" onclick="event.stopPropagation()" onchange="updateGrocBulkBar()"></td>
       <td class="mono">${i.d}</td>
       <td>${i.s}</td>
       <td class="bold">${i.n}${editDot}${dupeFlag} <span class="tag ${tagClass}">${tagLabel}</span></td>
       <td style="color:var(--text-muted)">${i.c}</td>
-      <td class="text-center">${i.q}</td>
+      <td class="text-center">${displayQty(i)}</td>
       <td class="text-right mono">${fmt(i.u)}</td>
       <td class="text-right mono amt">${fmt(i.t)}</td>
       <td class="text-center"><span onclick="event.stopPropagation();openEditModal(${i._idx})" title="Edit item" style="cursor:pointer;font-size:14px;color:var(--text-muted);padding:4px 8px;border-radius:6px;transition:all 0.2s" onmouseover="this.style.color='var(--green)';this.style.background='rgba(34,197,94,0.1)'" onmouseout="this.style.color='var(--text-muted)';this.style.background='none'">&#9998;</span></td>
@@ -2715,6 +2719,7 @@ function openEditModal(idx, fromProductDetail) {
   catSelect.innerHTML = ALL_CATEGORIES.map(c => `<option value="${c}"${c === item.c ? " selected" : ""}>${c}</option>`).join("");
 
   document.getElementById("edit-type").value = String(item.ng);
+  document.getElementById("edit-weighed").value = String(!!item.w);
 
   // Show original values
   const hasNameEdit = item.n !== item._origName;
@@ -2723,7 +2728,7 @@ function openEditModal(idx, fromProductDetail) {
   document.getElementById("edit-original-cat").textContent = hasCatEdit ? `Original: ${item._origCat}` : "";
 
   // Show/hide reset button
-  const hasAnyEdit = hasNameEdit || hasCatEdit || item.ng !== item._origNg;
+  const hasAnyEdit = hasNameEdit || hasCatEdit || item.ng !== item._origNg || item.w !== item._origW;
   document.getElementById("edit-reset-btn").style.display = hasAnyEdit ? "" : "none";
 
   // Clear old autocomplete state and re-attach
@@ -2754,19 +2759,21 @@ function saveEdit() {
   const newName = document.getElementById("edit-name").value.trim();
   const newCat = document.getElementById("edit-category").value;
   const newNg = document.getElementById("edit-type").value === "true";
+  const newW = document.getElementById("edit-weighed").value === "true";
 
   if (!newName) return;
 
   item.n = newName;
   item.c = newCat;
   item.ng = newNg;
+  item.w = newW;
 
   // Save edits
   const _isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
   const edits = JSON.parse((_isDemo ? demoGet(ctx.editsKey) : localStorage.getItem(ctx.editsKey)) || "{}");
-  const hasChanges = newName !== item._origName || newCat !== item._origCat || newNg !== item._origNg;
+  const hasChanges = newName !== item._origName || newCat !== item._origCat || newNg !== item._origNg || newW !== item._origW;
   if (hasChanges) {
-    edits[editIdx] = { n: newName, c: newCat, ng: newNg };
+    edits[editIdx] = { n: newName, c: newCat, ng: newNg, w: newW };
   } else {
     delete edits[editIdx];
   }
@@ -2791,6 +2798,7 @@ function resetEdit() {
   item.n = item._origName;
   item.c = item._origCat;
   item.ng = item._origNg;
+  item.w = item._origW;
 
   const _isDemo = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
   const edits = JSON.parse((_isDemo ? demoGet(ctx.editsKey) : localStorage.getItem(ctx.editsKey)) || "{}");
@@ -2919,9 +2927,9 @@ function applyGrocBulkCategory(newCat) {
     var item = activeData[idx];
     if (!item) return;
     item.c = newCat;
-    var hasChanges = item.n !== item._origName || item.c !== item._origCat || item.ng !== item._origNg;
+    var hasChanges = item.n !== item._origName || item.c !== item._origCat || item.ng !== item._origNg || item.w !== item._origW;
     if (hasChanges) {
-      edits[idx] = { n: item.n, c: item.c, ng: item.ng };
+      edits[idx] = { n: item.n, c: item.c, ng: item.ng, w: item.w };
     } else {
       delete edits[idx];
     }
@@ -3279,17 +3287,17 @@ async function exportToExcel() {
 
   exportData.forEach(i => {
     if (!byStore[i.s]) byStore[i.s] = { items: 0, total: 0, trips: new Set() };
-    byStore[i.s].items += i.q;
+    byStore[i.s].items += displayQty(i);
     byStore[i.s].total += i.t;
     byStore[i.s].trips.add(i.d + '|' + i.s);
     tripSet.add(i.d + '|' + i.s);
     if (!byCat[i.c]) byCat[i.c] = { items: 0, total: 0 };
-    byCat[i.c].items += i.q;
+    byCat[i.c].items += displayQty(i);
     byCat[i.c].total += i.t;
     const k = i.n;
     if (!byProduct[k]) byProduct[k] = { cat: i.c, total: 0, count: 0 };
     byProduct[k].total += i.t;
-    byProduct[k].count += i.q;
+    byProduct[k].count += displayQty(i);
   });
 
   // Sheet 1: Summary
@@ -3325,11 +3333,12 @@ async function exportToExcel() {
     { header: 'Qty', key: 'q', width: 6 },
     { header: 'Unit Price', key: 'u', width: 12 },
     { header: 'Line Total', key: 't', width: 12 },
-    { header: 'Non-Grocery?', key: 'ng', width: 13 }
+    { header: 'Non-Grocery?', key: 'ng', width: 13 },
+    { header: 'Weighed?', key: 'w', width: 10 }
   ];
   ws2.getRow(1).eachCell(cell => { cell.fill = headerFill; cell.font = headerFont; cell.border = thinBorder; });
   exportData.forEach(item => {
-    const row = ws2.addRow({ d: item.d, s: item.s, r: item.r || '', n: item.n, c: item.c, q: item.q, u: item.u, t: item.t, ng: item.ng ? 'Yes' : 'No' });
+    const row = ws2.addRow({ d: item.d, s: item.s, r: item.r || '', n: item.n, c: item.c, q: item.q, u: item.u, t: item.t, ng: item.ng ? 'Yes' : 'No', w: item.w ? 'Yes' : 'No' });
     row.getCell('u').numFmt = currFmt;
     row.getCell('t').numFmt = currFmt;
     row.eachCell(cell => { cell.border = thinBorder; });
