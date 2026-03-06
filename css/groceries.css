@@ -504,6 +504,7 @@
   body.light .search-result-name mark { background: rgba(34,197,94,0.25); color: #1a1a2e; }
   body.light .dupe-popover-btn.dismiss { background: rgba(0,0,0,0.06); }
   body.light .dupe-popover::before { background: rgba(0,0,0,0.15); }
+  body.light .clickable-row:hover { background: rgba(0,0,0,0.04); }
 
   /* Theme toggle */
   .theme-toggle {

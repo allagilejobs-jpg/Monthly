@@ -1390,7 +1390,7 @@ function renderOverview() {
         var arrow = isUp ? '<span style="color:var(--rose)">&#9650;</span>' : '<span style="color:var(--green)">&#9660;</span>';
         var pctColor = isUp ? 'var(--rose)' : 'var(--green)';
         var escaped = pc.name.replace(/'/g, "\\'");
-        pcHtml += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;gap:10px" onclick="showProductDetail(\'' + escaped + '\',\'overview\')">';
+        pcHtml += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--card-border);cursor:pointer;gap:10px" onclick="showProductDetail(\'' + escaped + '\',\'overview\')">';
         pcHtml += '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">' + pc.name + '</div>';
         pcHtml += '<div style="font-size:11px;color:var(--text-muted)">' + pc.category + ' &bull; ' + pc.store + '</div></div>';
         pcHtml += '<div style="text-align:right;white-space:nowrap">';
@@ -1415,11 +1415,11 @@ function renderOverview() {
     let rHtml = '<div class="card"><div class="card-title">Regular Purchases</div>';
     recurring.forEach(r => {
       const confColor = r.confidence === 'high' ? 'var(--green)' : r.confidence === 'medium' ? 'var(--amber)' : 'var(--text-muted)';
-      const confBg = r.confidence === 'high' ? 'rgba(34,197,94,0.12)' : r.confidence === 'medium' ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.05)';
+      const confBg = r.confidence === 'high' ? 'rgba(34,197,94,0.12)' : r.confidence === 'medium' ? 'rgba(245,158,11,0.12)' : 'var(--card-border)';
       const catIdx = ALL_CATEGORIES.indexOf(r.category);
       const catClr = PALETTE[(catIdx >= 0 ? catIdx : 0) % PALETTE.length];
       const escaped = r.name.replace(/'/g, "\\'");
-      rHtml += `<div class="clickable-row" style="display:flex;justify-content:space-between;align-items:center;padding:12px 8px;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;gap:10px" onclick="showProductDetail('${escaped}','overview')">`;
+      rHtml += `<div class="clickable-row" style="display:flex;justify-content:space-between;align-items:center;padding:12px 8px;border-bottom:1px solid var(--card-border);cursor:pointer;gap:10px" onclick="showProductDetail('${escaped}','overview')">`;
       rHtml += `<div style="flex:1;min-width:0">`;
       rHtml += `<div style="font-weight:600;font-size:14px;margin-bottom:3px">${r.name}</div>`;
       rHtml += `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">`;
