@@ -3179,6 +3179,13 @@ function openDataManager() {
   });
   document.getElementById("manager-list").innerHTML = html;
   document.getElementById("manager-usage").textContent = "Total storage: " + formatBytes(totalBytes) + " of ~5 MB available";
+  // Populate Excel export month selector
+  const excelSel = document.getElementById("excel-export-month");
+  excelSel.innerHTML = months.map(key => {
+    const [y, m] = key.split("_");
+    const label = MONTH_NAMES[parseInt(m) - 1] + " " + y;
+    return '<option value="' + key + '"' + (key === ctx.monthKey ? ' selected' : '') + '>' + label + '</option>';
+  }).join('');
   document.getElementById("manager-modal").classList.add("open");
 }
 
@@ -3242,7 +3249,12 @@ function downloadAllData() {
 
 async function exportToExcel() {
   if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) { showDemoUpgradePrompt("Sign up to export your grocery data."); return; }
-  if (!activeData || activeData.length === 0) { showToast("No data to export.", "error"); return; }
+  const selKey = document.getElementById("excel-export-month").value;
+  const exportData = selKey && selKey !== ctx.monthKey ? loadMonthData(selKey) : activeData;
+  if (!exportData || exportData.length === 0) { showToast("No data to export.", "error"); return; }
+  const [ey, em] = selKey.split("_");
+  const exportMonthName = MONTH_NAMES[parseInt(em) - 1];
+  const exportYear = ey;
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Groceries Dashboard';
@@ -3262,10 +3274,10 @@ async function exportToExcel() {
   const byStore = {};
   const byCat = {};
   const byProduct = {};
-  const grandTotal = activeData.reduce((s, i) => s + i.t, 0);
+  const grandTotal = exportData.reduce((s, i) => s + i.t, 0);
   const tripSet = new Set();
 
-  activeData.forEach(i => {
+  exportData.forEach(i => {
     if (!byStore[i.s]) byStore[i.s] = { items: 0, total: 0, trips: new Set() };
     byStore[i.s].items += i.q;
     byStore[i.s].total += i.t;
@@ -3284,17 +3296,17 @@ async function exportToExcel() {
   const ws1 = workbook.addWorksheet('Summary');
   ws1.getColumn(1).width = 35;
   ws1.getColumn(2).width = 20;
-  const titleRow = ws1.addRow([ctx.monthName.toUpperCase() + ' ' + ctx.year + ' \u2013 FAMILY GROCERY SPEND ANALYSIS']);
+  const titleRow = ws1.addRow([exportMonthName.toUpperCase() + ' ' + exportYear + ' \u2013 FAMILY GROCERY SPEND ANALYSIS']);
   titleRow.getCell(1).font = { bold: true, size: 14, color: { argb: 'FF2F5496' } };
   ws1.addRow([]);
   [
     ['Total Spend', grandTotal],
-    ['Total Items', activeData.length],
+    ['Total Items', exportData.length],
     ['Unique Products', Object.keys(byProduct).length],
     ['Stores Visited', Object.keys(byStore).length],
     ['Shopping Trips', tripSet.size],
     ['Categories', Object.keys(byCat).length],
-    ['Avg per Item', grandTotal / (activeData.length || 1)],
+    ['Avg per Item', grandTotal / (exportData.length || 1)],
     ['Avg per Trip', grandTotal / (tripSet.size || 1)]
   ].forEach(r => {
     const row = ws1.addRow(r);
@@ -3316,7 +3328,7 @@ async function exportToExcel() {
     { header: 'Non-Grocery?', key: 'ng', width: 13 }
   ];
   ws2.getRow(1).eachCell(cell => { cell.fill = headerFill; cell.font = headerFont; cell.border = thinBorder; });
-  activeData.forEach(item => {
+  exportData.forEach(item => {
     const row = ws2.addRow({ d: item.d, s: item.s, r: item.r || '', n: item.n, c: item.c, q: item.q, u: item.u, t: item.t, ng: item.ng ? 'Yes' : 'No' });
     row.getCell('u').numFmt = currFmt;
     row.getCell('t').numFmt = currFmt;
@@ -3351,7 +3363,7 @@ async function exportToExcel() {
   ];
   ws4.getRow(1).eachCell(cell => { cell.fill = headerFill; cell.font = headerFont; cell.border = thinBorder; });
   Object.entries(byCat).sort((a, b) => b[1].total - a[1].total).forEach(([cat, data]) => {
-    const isNg = activeData.some(i => i.c === cat && i.ng);
+    const isNg = exportData.some(i => i.c === cat && i.ng);
     const row = ws4.addRow({ cat, items: data.items, total: data.total, pct: (data.total / grandTotal * 100).toFixed(1) + '%', type: isNg ? 'Non-Grocery' : 'Grocery' });
     row.getCell('total').numFmt = currFmt;
     row.eachCell(cell => { cell.border = thinBorder; });
@@ -3396,10 +3408,10 @@ async function exportToExcel() {
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = ctx.monthName + '_' + ctx.year + '_Grocery_Analysis.xlsx';
+  a.download = exportMonthName + '_' + exportYear + '_Grocery_Analysis.xlsx';
   a.click();
   URL.revokeObjectURL(a.href);
-  showToast('Excel exported \u2014 ' + activeData.length + ' items across 6 sheets', 'success');
+  showToast('Excel exported \u2014 ' + exportData.length + ' items across 6 sheets', 'success');
 }
 
 function loadDataFile(event) {

@@ -286,7 +286,10 @@
     <div id="manager-usage" style="margin-top:12px;font-size:11px;color:var(--text-muted)"></div>
     <div class="modal-actions" style="margin-top:16px;flex-wrap:wrap">
       <button class="modal-btn modal-btn-save" onclick="downloadAllData()" style="margin-right:auto">&#11015; Download Data</button>
-      <button class="modal-btn modal-btn-save" onclick="exportToExcel()" style="margin-right:auto;background:rgba(59,130,246,0.15);color:var(--blue)">&#128196; Export Excel</button>
+      <div style="display:flex;align-items:center;gap:6px;margin-right:auto">
+        <select id="excel-export-month" style="background:var(--card);border:1px solid var(--card-border);border-radius:6px;padding:6px 8px;color:var(--text);font-family:inherit;font-size:11px"></select>
+        <button class="modal-btn modal-btn-save" onclick="exportToExcel()" style="background:rgba(59,130,246,0.15);color:var(--blue)">&#128196; Export Excel</button>
+      </div>
       <label class="modal-btn modal-btn-cancel" style="cursor:pointer">&#11014; Load Data <input type="file" accept=".json" onchange="loadDataFile(event)" style="display:none"></label>
       <button class="modal-btn modal-btn-cancel" onclick="closeDataManager()">Close</button>
     </div>
