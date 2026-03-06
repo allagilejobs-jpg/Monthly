@@ -702,7 +702,7 @@ function showCategoryDetail(categoryName, source) {
     html += '<tr style="cursor:pointer' + (i.w ? ';background:rgba(59,130,246,0.06)' : '') + '" onclick="showProductDetail(\'' + escaped + '\',\'category-detail\')">';
     html += '<td class="mono">' + dateLabel + '</td>';
     html += '<td>' + i.s + '</td>';
-    html += '<td class="bold">' + i.n + '</td>';
+    html += '<td class="bold">' + i.n + (i.w ? ' <span style="font-size:11px;opacity:0.6" title="Sold by weight">\u2696</span>' : '') + '</td>';
     html += '<td class="text-center">' + displayQty(i) + '</td>';
     html += '<td class="text-right mono">' + fmt(i.u) + '</td>';
     html += '<td class="text-right mono amt">' + fmt(i.t) + '</td></tr>';
@@ -887,7 +887,7 @@ function showStoreDetail(storeName, source) {
     const dateLabel = ctx.monthName ? ctx.monthName + ' ' + dayNum : i.d;
     html += '<tr style="cursor:pointer' + (i.w ? ';background:rgba(59,130,246,0.06)' : '') + '" onclick="showProductDetail(\'' + escaped + '\',\'store-detail\')">';
     html += '<td class="mono">' + dateLabel + '</td>';
-    html += '<td class="bold">' + i.n + '</td>';
+    html += '<td class="bold">' + i.n + (i.w ? ' <span style="font-size:11px;opacity:0.6" title="Sold by weight">\u2696</span>' : '') + '</td>';
     html += '<td style="color:var(--text-muted)">' + i.c + '</td>';
     html += '<td class="text-center">' + displayQty(i) + '</td>';
     html += '<td class="text-right mono">' + fmt(i.u) + '</td>';
@@ -2206,7 +2206,7 @@ function showTripDetail(tripIdx) {
     items.sort((a, b) => b.t - a.t).forEach(i => {
       var nameEsc = i.n.replace(/'/g, "\\'").replace(/"/g, '&quot;');
       g += `<tr style="border-bottom:1px solid rgba(255,255,255,0.03);cursor:pointer${i.w ? ';background:rgba(59,130,246,0.06)' : ''}" onclick="showProductDetail('${nameEsc}','trips')">
-        <td style="padding:10px 12px;font-weight:500;color:var(--green)">${i.n} <span style="font-size:10px;color:var(--text-muted);margin-left:4px">${i.c}</span></td>
+        <td style="padding:10px 12px;font-weight:500;color:var(--green)">${i.n}${i.w ? ' <span style="font-size:11px;opacity:0.6" title="Sold by weight">\u2696</span>' : ''} <span style="font-size:10px;color:var(--text-muted);margin-left:4px">${i.c}</span></td>
         <td style="padding:10px 12px;text-align:center">${displayQty(i)}</td>
         <td style="padding:10px 12px;text-align:right;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px">${fmt(i.u)}</td>
         <td style="padding:10px 12px;text-align:right;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px;font-weight:700;color:var(--amber)">${fmt(i.t)}</td>
@@ -2353,7 +2353,7 @@ function renderTable() {
       <td class="tx-check-col"><input type="checkbox" class="tx-check" data-idx="${i._idx}" onclick="event.stopPropagation()" onchange="updateGrocBulkBar()"></td>
       <td class="mono">${i.d}</td>
       <td>${i.s}</td>
-      <td class="bold">${i.n}${editDot}${dupeFlag} <span class="tag ${tagClass}">${tagLabel}</span></td>
+      <td class="bold">${i.n}${i.w ? ' <span style="font-size:11px;opacity:0.6" title="Sold by weight">\u2696</span>' : ''}${editDot}${dupeFlag} <span class="tag ${tagClass}">${tagLabel}</span></td>
       <td style="color:var(--text-muted)">${i.c}</td>
       <td class="text-center">${displayQty(i)}</td>
       <td class="text-right mono">${fmt(i.u)}</td>
