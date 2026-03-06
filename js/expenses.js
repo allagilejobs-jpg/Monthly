@@ -2190,7 +2190,7 @@ function renderOverview() {
 // ══════════════════════════════════════════════════════════
 function renderCategories() {
   const el = document.getElementById('view-categories');
-  if (activeData.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128194;</div><div class="empty-state-title">No Data</div><div class="empty-state-text">Upload a statement to see category breakdowns.</div></div>'; return; }
+  if (activeData.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128194;</div><div class="empty-state-title">No Data</div><div class="empty-state-text">Upload a statement to see category breakdowns.</div><button class="empty-state-btn" onclick="openUploadModal()">Upload a Statement</button></div>'; return; }
 
   let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">';
   catGroups.forEach(g => {
@@ -2212,7 +2212,7 @@ function renderCategories() {
 // ══════════════════════════════════════════════════════════
 function renderMerchants() {
   const el = document.getElementById('view-merchants');
-  if (activeData.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#127978;</div><div class="empty-state-title">No Data</div><div class="empty-state-text">Upload a statement to see merchant breakdowns.</div></div>'; return; }
+  if (activeData.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#127978;</div><div class="empty-state-title">No Data</div><div class="empty-state-text">Upload a statement to see merchant breakdowns.</div><button class="empty-state-btn" onclick="openUploadModal()">Upload a Statement</button></div>'; return; }
 
   let html = '<div class="filter-bar"><input type="text" placeholder="Search merchants..." id="merchant-search" oninput="filterMerchantTable()"></div>';
   html += '<div class="card"><table id="merchant-table"><thead><tr>';
@@ -2281,7 +2281,7 @@ function filterMerchantTable() {
 function renderTrends() {
   const el = document.getElementById('view-trends');
   if (activeData.length === 0 || !ctx.daysInMonth) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128200;</div><div class="empty-state-title">No Data</div><div class="empty-state-text">Upload a statement to see spending trends.</div></div>';
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128200;</div><div class="empty-state-title">No Data</div><div class="empty-state-text">Upload a statement to see spending trends.</div><button class="empty-state-btn" onclick="openUploadModal()">Upload a Statement</button></div>';
     return;
   }
 
@@ -2423,7 +2423,7 @@ let txPerPage = 100, txCurrentPage = 1;
 function renderTransactions() {
   const el = document.getElementById('view-transactions');
   if (activeData.length === 0) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128203;</div><div class="empty-state-title">No Transactions</div><div class="empty-state-text">Upload a statement or <a href="#" onclick="event.preventDefault();openAddModal()" style="color:var(--blue)">add an expense manually</a>.</div></div>';
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128203;</div><div class="empty-state-title">No Transactions</div><div class="empty-state-text">Upload a statement or <a href="#" onclick="event.preventDefault();openAddModal()" style="color:var(--blue)">add an expense manually</a>.</div><button class="empty-state-btn" onclick="openUploadModal()">Upload a Statement</button></div>';
     return;
   }
 
@@ -2894,7 +2894,7 @@ function showMerchantDetail(merchantName, source) {
 
   // Get transactions for this merchant
   const txs = activeData.filter(t => t.merchant === merchantName).sort((a, b) => a.date < b.date ? -1 : 1);
-  if (txs.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-state-title">No transactions found</div></div>'; return; }
+  if (txs.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128194;</div><div class="empty-state-title">No Transactions Found</div><div class="empty-state-text">No transactions match this selection.</div></div>'; return; }
 
   const total = txs.reduce((s, t) => s + t.amount, 0);
   const avg = total / txs.length;
@@ -2965,7 +2965,7 @@ function showCategoryDetail(categoryName, source) {
   backBtn.onclick = () => showView(backMap[source] || 'categories');
 
   const txs = activeData.filter(t => t.category === categoryName).sort((a, b) => a.date < b.date ? -1 : 1);
-  if (txs.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-state-title">No transactions found</div></div>'; return; }
+  if (txs.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128194;</div><div class="empty-state-title">No Transactions Found</div><div class="empty-state-text">No transactions match this selection.</div></div>'; return; }
 
   const total = txs.reduce((s, t) => s + t.amount, 0);
   const avg = total / txs.length;

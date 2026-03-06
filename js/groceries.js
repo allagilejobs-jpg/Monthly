@@ -158,6 +158,9 @@ function itemType(item) {
 }
 function isWeighed(item) { return item.q !== Math.floor(item.q); }
 function displayQty(item) { return item.w ? Math.ceil(item.q) : item.q; }
+function emptyState(icon, title, text, btnLabel, btnAction) {
+  return '<div class="empty-state"><div class="empty-state-icon">' + icon + '</div><div class="empty-state-title">' + title + '</div><div class="empty-state-text">' + text + '</div>' + (btnLabel ? '<button class="empty-state-btn" onclick="' + btnAction + '">' + btnLabel + '</button>' : '') + '</div>';
+}
 function lbBadge(w) { return w ? ' <span style="display:inline-block;font-size:8px;font-style:italic;font-weight:600;color:var(--text-muted);border:1px solid var(--text-muted);border-radius:50%;width:14px;height:14px;line-height:13px;text-align:center;margin-left:3px;vertical-align:middle" title="Sold by weight">lb</span>' : ''; }
 
 // ─────────── UTILITIES ───────────
@@ -471,7 +474,7 @@ window.addEventListener("DOMContentLoaded", () => {
     buildMonthSelector();
     const main = document.getElementById("main-content") || document.querySelector(".tabs")?.parentElement;
     if (main) {
-      main.innerHTML = '<div style="text-align:center;padding:80px 20px"><div style="font-size:48px;margin-bottom:16px">&#128722;</div><div style="font-size:20px;font-weight:700;margin-bottom:8px">No Grocery Data Yet</div><div style="color:var(--text-muted);font-size:14px;margin-bottom:24px">Upload an Excel file or import from the Receipt Scanner to get started.</div><button onclick="openUploadModal()" class="month-nav-btn" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3);padding:10px 24px;font-size:14px">+ Upload Month</button></div>';
+      main.innerHTML = emptyState('&#128722;', 'No Grocery Data Yet', 'Upload an Excel file or import from the Receipt Scanner to get started.', '+ Upload Month', 'openUploadModal()');
     }
   }
   // Demo mode: inject banner and update links
@@ -1177,6 +1180,10 @@ function toggleTheme() {
 
 // ─────────── OVERVIEW ───────────
 function renderOverview() {
+  if (!activeData || activeData.length === 0) {
+    document.getElementById("kpi-overview").innerHTML = emptyState('&#128202;', 'No Data to Show', 'Upload grocery data to see your spending overview.', '+ Upload Month', 'openUploadModal()');
+    return;
+  }
   const stores = [...new Set(activeData.map(i => i.s))];
   const trips = [...new Set(activeData.map(i => i.d + "|" + i.s))].length;
 
@@ -1506,6 +1513,10 @@ function renderOverview() {
 
 // ─────────── GROCERIES TAB ───────────
 function renderGroceries() {
+  if (!groceries || groceries.length === 0) {
+    document.getElementById("kpi-grocery").innerHTML = emptyState('&#128722;', 'No Grocery Items', 'Upload data or scan receipts to see grocery breakdowns.', '+ Upload Month', 'openUploadModal()');
+    return;
+  }
   const cats = groupBy(groceries, "c");
   const products = groupProducts(groceries);
   const trips = [...new Set(groceries.map(i => i.d + "|" + i.s))].length;
@@ -1573,6 +1584,11 @@ function renderGroceries() {
 
 // ─────────── NON-GROCERY TAB ───────────
 function renderNonGroceries() {
+  if (!nonGroceries || nonGroceries.length === 0) {
+    document.getElementById("kpi-nongrocery").innerHTML = emptyState('&#127991;', 'No Non-Grocery Items', 'Items like toiletries and household supplies will appear here.', '+ Upload Month', 'openUploadModal()');
+    document.getElementById("table-nongrocery-all").innerHTML = '';
+    return;
+  }
   const cats = groupBy(nonGroceries, "c");
   const stores = groupBy(nonGroceries, "s");
   const products = groupProducts(nonGroceries);
@@ -1649,6 +1665,10 @@ function renderNonGroceries() {
 
 // ─────────── STORES TAB ───────────
 function renderStores() {
+  if (!activeData || activeData.length === 0) {
+    document.getElementById("store-breakdown").innerHTML = emptyState('&#127978;', 'No Store Data', 'Upload grocery data to see spending by store.', '+ Upload Month', 'openUploadModal()');
+    return;
+  }
   const storeGroups = groupBy(activeData, "s");
 
   charts.storeBar = new Chart(document.getElementById("chart-store-bar"), {
@@ -1714,6 +1734,10 @@ function renderStores() {
 
 // ─────────── TRENDS TAB ───────────
 function renderTrends() {
+  if (!activeData || activeData.length === 0) {
+    document.getElementById("chart-daily").parentElement.innerHTML = emptyState('&#128200;', 'No Trend Data', 'Upload grocery data to see spending patterns over time.', '+ Upload Month', 'openUploadModal()');
+    return;
+  }
   // Daily spending
   const dailyMap = {};
   activeData.forEach(i => { dailyMap[i.d] = (dailyMap[i.d] || 0) + i.t; });
@@ -1883,6 +1907,10 @@ function buildTrips() {
 }
 
 function renderTrips() {
+  if (!activeData || activeData.length === 0) {
+    document.getElementById("kpi-trips").innerHTML = emptyState('&#129534;', 'No Trips Found', 'Shopping trips are grouped by date and store from your data.', '+ Upload Month', 'openUploadModal()');
+    return;
+  }
   const totalTrips = allTrips.length;
   const avgPerTrip = grandTotal / totalTrips;
   const bigTrip = allTrips.reduce((max, t) => t.total > max.total ? t : max, allTrips[0]);
@@ -2247,6 +2275,10 @@ let itemsPerPage = 100;
 let itemsCurrentPage = 1;
 
 function renderAllItems() {
+  if (!activeData || activeData.length === 0) {
+    document.getElementById("table-all").innerHTML = emptyState('&#128203;', 'No Items Found', 'Upload grocery data to browse and filter all purchases.', '+ Upload Month', 'openUploadModal()');
+    return;
+  }
   // Populate filter dropdowns (clear first for month switches)
   const dateSelect = document.getElementById("filter-date");
   const storeSelect = document.getElementById("filter-store");
@@ -3458,10 +3490,7 @@ function renderCompare() {
   const container = document.getElementById("compare-content");
 
   if (months.length < 2) {
-    container.innerHTML = '<div class="card" style="text-align:center;padding:60px 20px">' +
-      '<div style="font-size:16px;font-weight:700;color:var(--text-muted);margin-bottom:8px">No Comparison Data Yet</div>' +
-      '<div style="font-size:13px;color:var(--text-muted)">Upload a second month\'s data to see month-over-month comparisons.</div>' +
-      '<button onclick="openUploadModal()" class="month-nav-btn" style="margin-top:16px;background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3)">+ Upload Month</button></div>';
+    container.innerHTML = emptyState('&#9878;', 'Need More Data', 'Upload at least 2 months to compare spending side by side.', '+ Upload Month', 'openUploadModal()');
     return;
   }
 
