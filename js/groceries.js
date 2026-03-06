@@ -3359,6 +3359,37 @@ function renderCompare() {
   html += deltaHtml("Avg Per Trip", curr.total / curr.trips, prev.total / prev.trips, true);
   html += '</div>';
 
+  // Commentary insights
+  html += '<div class="card" style="margin-bottom:20px">';
+  html += '<div class="card-title">Summary</div>';
+  var cDiff = curr.total - prev.total;
+  var cDir = cDiff > 0 ? 'more' : 'less';
+  html += '<div class="insight"><div class="insight-text">Spent <span class="insight-val">' + fmt(Math.abs(cDiff)) + ' ' + cDir + '</span> in ' + curr.fullLabel + ' than ' + prev.fullLabel + '</div></div>';
+  var gDiff = curr.groceryTotal - prev.groceryTotal;
+  var gDir = gDiff > 0 ? 'more' : 'less';
+  html += '<div class="insight"><div class="insight-text">Grocery spending was <span class="insight-val">' + fmt(Math.abs(gDiff)) + ' ' + gDir + '</span> in ' + curr.fullLabel + '</div></div>';
+  var ngDiff = curr.nonGroceryTotal - prev.nonGroceryTotal;
+  var ngDir = ngDiff > 0 ? 'more' : 'less';
+  html += '<div class="insight"><div class="insight-text">Non-grocery spending was <span class="insight-val">' + fmt(Math.abs(ngDiff)) + ' ' + ngDir + '</span> in ' + curr.fullLabel + '</div></div>';
+  var tDiff = curr.trips - prev.trips;
+  if (tDiff !== 0) {
+    var tDir = tDiff > 0 ? 'more' : 'fewer';
+    html += '<div class="insight"><div class="insight-text">Made <span class="insight-val">' + Math.abs(tDiff) + ' ' + tDir + '</span> shopping trip' + (Math.abs(tDiff) !== 1 ? 's' : '') + ' in ' + curr.fullLabel + ' than ' + prev.fullLabel + '</div></div>';
+  } else {
+    html += '<div class="insight"><div class="insight-text">Same number of shopping trips in both months (<span class="insight-val">' + curr.trips + '</span>)</div></div>';
+  }
+  var iDiff = curr.items - prev.items;
+  if (iDiff !== 0) {
+    var iDir = iDiff > 0 ? 'more' : 'fewer';
+    html += '<div class="insight"><div class="insight-text">Bought <span class="insight-val">' + Math.abs(iDiff) + ' ' + iDir + '</span> item' + (Math.abs(iDiff) !== 1 ? 's' : '') + ' in ' + curr.fullLabel + '</div></div>';
+  }
+  var avgCurrTrip = curr.trips ? curr.total / curr.trips : 0;
+  var avgPrevTrip = prev.trips ? prev.total / prev.trips : 0;
+  var aDiff = avgCurrTrip - avgPrevTrip;
+  var aDir = aDiff > 0 ? 'higher' : 'lower';
+  html += '<div class="insight"><div class="insight-text">Average spend per trip was <span class="insight-val">' + fmt(Math.abs(aDiff)) + ' ' + aDir + '</span> in ' + curr.fullLabel + '</div></div>';
+  html += '</div>';
+
   // Spend trend chart
   html += '<div class="card"><div class="card-title">Monthly Spend Trend</div><div class="chart-wrap"><canvas id="chart-compare-trend"></canvas></div></div>';
 

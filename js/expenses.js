@@ -2655,6 +2655,30 @@ function renderCompare() {
   html += '<div class="delta-card"><div class="kpi-label">Avg / Transaction</div><div style="font-size:11px;color:var(--blue);margin-bottom:4px">' + currLabel + '</div><div class="delta-value">' + fmt(avgCurr) + '</div><div class="delta-change ' + (avgChange > 0 ? 'delta-up' : 'delta-down') + '">' + avgArrow + (avgChange > 0 ? '+' : '') + fmt(avgChange) + '</div>' + vsLine + '</div>';
   html += '</div>';
 
+  // Commentary insights
+  var currFull = curr.ctx.monthName + ' ' + curr.ctx.year;
+  var prevFull = prev.ctx.monthName + ' ' + prev.ctx.year;
+  html += '<div class="card" style="margin-bottom:20px">';
+  html += '<div class="card-title">Summary</div>';
+  var sDir = spendChange > 0 ? 'more' : 'less';
+  html += '<div class="insight"><div class="insight-text">Spent <span class="insight-val">' + fmt(Math.abs(spendChange)) + ' ' + sDir + '</span> in ' + currFull + ' than ' + prevFull + '</div></div>';
+  if (countChange !== 0) {
+    var cDir = countChange > 0 ? 'more' : 'fewer';
+    html += '<div class="insight"><div class="insight-text">Made <span class="insight-val">' + Math.abs(countChange) + ' ' + cDir + '</span> transaction' + (Math.abs(countChange) !== 1 ? 's' : '') + ' in ' + currFull + ' than ' + prevFull + '</div></div>';
+  } else {
+    html += '<div class="insight"><div class="insight-text">Same number of transactions in both months (<span class="insight-val">' + curr.count + '</span>)</div></div>';
+  }
+  var aDir = avgChange > 0 ? 'higher' : 'lower';
+  html += '<div class="insight"><div class="insight-text">Average transaction was <span class="insight-val">' + fmt(Math.abs(avgChange)) + ' ' + aDir + '</span> in ' + currFull + '</div></div>';
+  // Top category change
+  var catNames = [...new Set([...Object.keys(curr.cats), ...Object.keys(prev.cats)])];
+  var topCatMover = catNames.map(function(cat) { return { name: cat, diff: (curr.cats[cat] || 0) - (prev.cats[cat] || 0) }; }).sort(function(a, b) { return Math.abs(b.diff) - Math.abs(a.diff); })[0];
+  if (topCatMover && topCatMover.diff !== 0) {
+    var tcDir = topCatMover.diff > 0 ? 'increase' : 'decrease';
+    html += '<div class="insight"><div class="insight-text">Biggest category change: <span class="insight-val">' + topCatMover.name + '</span> with a <span class="insight-val">' + fmt(Math.abs(topCatMover.diff)) + ' ' + tcDir + '</span></div></div>';
+  }
+  html += '</div>';
+
   html += '<div class="grid-2">';
   html += '<div class="card"><div class="card-title">Monthly Totals</div><div class="chart-wrap"><canvas id="chart-compare-totals"></canvas></div></div>';
   html += '<div class="card"><div class="card-title">Category Comparison</div><div class="chart-wrap-tall"><canvas id="chart-compare-cats"></canvas></div></div>';
