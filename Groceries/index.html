@@ -238,11 +238,14 @@
         <div class="upload-choice-name">Scan Receipts</div>
         <div class="upload-choice-desc">Upload receipt photos &mdash; items, prices and stores are extracted automatically</div>
       </div>
+      <!-- Excel upload disabled but preserved for future use -->
+      <!--
       <div class="upload-choice-card upload-choice-secondary" onclick="closeUploadChoice();openUploadModal()">
         <div class="upload-choice-icon">&#128196;</div>
         <div class="upload-choice-name">Upload Excel</div>
         <div class="upload-choice-desc">Import from a formatted Excel spreadsheet</div>
       </div>
+      -->
     </div>
   </div>
 </div>
@@ -301,7 +304,7 @@
         The Groceries Dashboard helps you track every item you buy from grocery stores each month. It breaks down your spending by store, category, and item &mdash; so you can see exactly where your money goes.
       </div>
       <div class="help-text" style="margin-top:8px">
-        <strong>What you need:</strong> An Excel file (.xlsx) with your monthly grocery receipts entered as line items. Each row represents one product purchased.
+        <strong>What you need:</strong> Photos of your grocery receipts. The Receipt Scanner will extract items, prices, and stores automatically.
       </div>
     </div>
 
@@ -314,89 +317,26 @@
       </div>
       <div class="help-step">
         <div class="help-step-num">2</div>
-        <div class="help-step-text">Choose one of the two import options below</div>
-      </div>
-    </div>
-
-    <!-- Option A: Scan Receipts -->
-    <div class="help-section">
-      <div class="help-section-title">Option A: Scan Receipts</div>
-      <div class="help-text" style="margin-bottom:10px">
-        The fastest way to add grocery data. Upload photos of your receipts and items are extracted automatically.
-      </div>
-      <div class="help-step">
-        <div class="help-step-num">1</div>
         <div class="help-step-text">Select <strong>"Scan Receipts"</strong> &mdash; this opens the Receipt Scanner</div>
       </div>
       <div class="help-step">
-        <div class="help-step-num">2</div>
+        <div class="help-step-num">3</div>
         <div class="help-step-text">Upload your receipt photos (JPG, PNG, HEIC, PDF). You can upload multiple receipts at once</div>
       </div>
       <div class="help-step">
-        <div class="help-step-num">3</div>
+        <div class="help-step-num">4</div>
         <div class="help-step-text">Choose a scan mode &mdash; <strong>AI-Powered</strong> (recommended, more accurate) or <strong>Offline OCR</strong> (no internet needed)</div>
       </div>
       <div class="help-step">
-        <div class="help-step-num">4</div>
+        <div class="help-step-num">5</div>
         <div class="help-step-text">Review the extracted items &mdash; correct any names, categories, prices, or dates as needed</div>
       </div>
       <div class="help-step">
-        <div class="help-step-num">5</div>
+        <div class="help-step-num">6</div>
         <div class="help-step-text">Choose <strong>"Import to Dashboard"</strong>, select the month and year, then import. Your data appears immediately in the Groceries dashboard</div>
       </div>
       <div class="help-text" style="margin-top:10px">
         <strong>Tip:</strong> If the scanner can't detect the date from a receipt, you'll need to select it manually before importing. The month and year are required fields.
-      </div>
-    </div>
-
-    <!-- Option B: Upload Excel -->
-    <div class="help-section">
-      <div class="help-section-title">Option B: Upload Excel</div>
-      <div class="help-text" style="margin-bottom:10px">
-        Import data from a formatted Excel spreadsheet if you prefer to enter items manually or have existing spreadsheet data.
-      </div>
-      <div class="help-step">
-        <div class="help-step-num">1</div>
-        <div class="help-step-text">Select <strong>"Upload Excel"</strong> to open the file upload area</div>
-      </div>
-      <div class="help-step">
-        <div class="help-step-num">2</div>
-        <div class="help-step-text">Drag and drop your Excel file, or click to browse for it</div>
-      </div>
-      <div class="help-step">
-        <div class="help-step-num">3</div>
-        <div class="help-step-text">The dashboard reads <strong>Sheet 1</strong> and imports all line items automatically</div>
-      </div>
-      <div class="help-step">
-        <div class="help-step-num">4</div>
-        <div class="help-step-text">Review the data in the dashboard tabs &mdash; Overview, By Store, By Category, All Items</div>
-      </div>
-      <div class="help-text" style="margin-top:10px">
-        <strong>Tip:</strong> Only Sheet 1 (All Transactions) is required. Sheets 2&ndash;6 are optional reference sheets for your own analysis.
-      </div>
-    </div>
-
-    <!-- Excel File Format -->
-    <div class="help-section">
-      <div class="help-section-title">Excel File Format</div>
-      <div class="help-text" style="margin-bottom:10px">
-        Your spreadsheet must have these columns on Sheet 1 (the first sheet):
-      </div>
-      <div style="overflow-x:auto">
-        <table class="help-table">
-          <thead><tr><th>Column</th><th>Field</th><th>Description</th><th>Example</th></tr></thead>
-          <tbody>
-            <tr><td>A</td><td>Date</td><td>Purchase date (MM/DD format)</td><td>01/14</td></tr>
-            <tr><td>B</td><td>Store</td><td>Store name</td><td>Publix</td></tr>
-            <tr><td>C</td><td>Receipt Name</td><td>Name as printed on receipt</td><td>OV GRASSMILK HG</td></tr>
-            <tr><td>D</td><td>Full Product Name</td><td>Decoded readable name</td><td>Organic Valley Grassmilk Half Gallon</td></tr>
-            <tr><td>E</td><td>Category</td><td>Product category</td><td>Dairy &amp; Eggs</td></tr>
-            <tr><td>F</td><td>Qty</td><td>Quantity purchased</td><td>2</td></tr>
-            <tr><td>G</td><td>Unit Price</td><td>Price per unit</td><td>$7.19</td></tr>
-            <tr><td>H</td><td>Line Total</td><td>Qty &times; Unit Price</td><td>$14.38</td></tr>
-            <tr><td>I</td><td>Non-Grocery?</td><td>TRUE if not food/drink</td><td>FALSE</td></tr>
-          </tbody>
-        </table>
       </div>
     </div>
 
@@ -486,17 +426,11 @@
     <div class="help-section" style="margin-bottom:0">
       <div class="help-section-title">Frequently Asked Questions</div>
       <div class="help-text">
-        <strong>Q: Do I need all 6 sheets in my Excel file?</strong><br>
-        No. Only Sheet 1 (All Transactions) is required. Sheets 2&ndash;6 are optional reference sheets.<br><br>
-
-        <strong>Q: Can I add a new store?</strong><br>
-        Yes. Just include the store name in column B. The dashboard auto-detects new stores.<br><br>
-
-        <strong>Q: What if I bought multiple of the same item?</strong><br>
-        Enter the quantity in column F (Qty) and the unit price in column G. The Line Total (column H) should be Qty &times; Unit Price.<br><br>
+        <strong>Q: What file types can I scan?</strong><br>
+        JPG, PNG, HEIC, and PDF files are all supported. You can upload multiple receipts at once.<br><br>
 
         <strong>Q: How do I mark non-food items (like batteries or toys)?</strong><br>
-        Set column I (Non-Grocery?) to TRUE. These items are tracked separately and highlighted in yellow in the spreadsheet.<br><br>
+        After scanning, edit the item category or mark it as Non-Grocery. These items are tracked separately in the dashboard.<br><br>
 
         <strong>Q: Where is my data stored?</strong><br>
         All data is stored locally on your device (in your browser's localStorage). Nothing is sent to any server. Use "Manage Data" to download a backup.<br><br>
@@ -505,7 +439,7 @@
         Yes. The dashboard is fully responsive and works on mobile browsers. Upload and view your data from any device.<br><br>
 
         <strong>Q: What if a receipt name is hard to decode?</strong><br>
-        Use the UPC barcode number (printed on many receipts) to look up the exact product online. For weight-based produce, just record the total line price.
+        The AI scan mode automatically decodes receipt abbreviations into readable product names. You can also manually edit any item name after scanning.
       </div>
     </div>
 
