@@ -2646,13 +2646,13 @@ function renderCompare() {
   var currLabel = curr.ctx.monthAbbr + ' ' + curr.ctx.year;
   var prevLabel = prev.ctx.monthAbbr + ' ' + prev.ctx.year;
   html += '<div class="delta-grid">';
-  var vsSpan = ' <span style="color:var(--text-muted)">vs</span> <span style="color:var(--cyan)">' + prevLabel + '</span>';
+  var vsLine = '<div style="font-size:11px;margin-top:2px;color:var(--text-muted)">vs <span style="color:var(--cyan)">' + prevLabel + '</span></div>';
   var spendArrow = spendChange > 0 ? '&#9650; ' : spendChange < 0 ? '&#9660; ' : '';
   var countArrow = countChange > 0 ? '&#9650; ' : countChange < 0 ? '&#9660; ' : '';
   var avgArrow = avgChange > 0 ? '&#9650; ' : avgChange < 0 ? '&#9660; ' : '';
-  html += '<div class="delta-card"><div class="kpi-label">Total Spend</div><div style="font-size:11px;color:var(--blue);margin-bottom:4px">' + currLabel + '</div><div class="delta-value amt">' + fmt(curr.total) + '</div><div class="delta-change ' + (spendChange > 0 ? 'delta-up' : 'delta-down') + '">' + spendArrow + (spendChange > 0 ? '+' : '') + fmt(spendChange) + ' (' + (spendChange > 0 ? '+' : '') + spendPct + '%)' + vsSpan + '</div></div>';
-  html += '<div class="delta-card"><div class="kpi-label">Transactions</div><div style="font-size:11px;color:var(--blue);margin-bottom:4px">' + currLabel + '</div><div class="delta-value">' + curr.count + '</div><div class="delta-change ' + (countChange > 0 ? 'delta-up' : 'delta-down') + '">' + countArrow + (countChange > 0 ? '+' : '') + countChange + vsSpan + '</div></div>';
-  html += '<div class="delta-card"><div class="kpi-label">Avg / Transaction</div><div style="font-size:11px;color:var(--blue);margin-bottom:4px">' + currLabel + '</div><div class="delta-value">' + fmt(avgCurr) + '</div><div class="delta-change ' + (avgChange > 0 ? 'delta-up' : 'delta-down') + '">' + avgArrow + (avgChange > 0 ? '+' : '') + fmt(avgChange) + vsSpan + '</div></div>';
+  html += '<div class="delta-card"><div class="kpi-label">Total Spend</div><div style="font-size:11px;color:var(--blue);margin-bottom:4px">' + currLabel + '</div><div class="delta-value amt">' + fmt(curr.total) + '</div><div class="delta-change ' + (spendChange > 0 ? 'delta-up' : 'delta-down') + '">' + spendArrow + (spendChange > 0 ? '+' : '') + fmt(spendChange) + ' (' + (spendChange > 0 ? '+' : '') + spendPct + '%)</div>' + vsLine + '</div>';
+  html += '<div class="delta-card"><div class="kpi-label">Transactions</div><div style="font-size:11px;color:var(--blue);margin-bottom:4px">' + currLabel + '</div><div class="delta-value">' + curr.count + '</div><div class="delta-change ' + (countChange > 0 ? 'delta-up' : 'delta-down') + '">' + countArrow + (countChange > 0 ? '+' : '') + countChange + '</div>' + vsLine + '</div>';
+  html += '<div class="delta-card"><div class="kpi-label">Avg / Transaction</div><div style="font-size:11px;color:var(--blue);margin-bottom:4px">' + currLabel + '</div><div class="delta-value">' + fmt(avgCurr) + '</div><div class="delta-change ' + (avgChange > 0 ? 'delta-up' : 'delta-down') + '">' + avgArrow + (avgChange > 0 ? '+' : '') + fmt(avgChange) + '</div>' + vsLine + '</div>';
   html += '</div>';
 
   html += '<div class="grid-2">';
