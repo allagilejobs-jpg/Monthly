@@ -1377,10 +1377,10 @@ function renderNetWorth() {
 
   document.getElementById('nw-kpis').innerHTML =
     '<div class="kpi"><div class="kpi-label">Current Net Worth</div><div class="kpi-value" style="color:var(--accent)">'+fmt(current.netWorth)+'</div></div>'
-    + '<div class="kpi"><div class="kpi-label">Net Worth Change</div><div class="kpi-value '+(nwChange>=0?'delta-up':'delta-down')+'">'+(nwChange>=0?'+':'')+fmt(nwChange)+'</div>'
+    + '<div class="kpi"><div class="kpi-label">Net Worth Change</div><div class="kpi-value '+(nwChange>=0?'delta-up':'delta-down')+'">'+(nwChange>0?'&#9650; ':nwChange<0?'&#9660; ':'')+''+(nwChange>=0?'+':'')+fmt(nwChange)+'</div>'
     + (prev ? '<div class="kpi-sub">vs '+prev.ctx.monthAbbr+'</div>' : '')+'</div>'
     + '<div class="kpi"><div class="kpi-label">Investment Value</div><div class="kpi-value" style="color:var(--green)">'+fmt(current.investment)+'</div></div>'
-    + '<div class="kpi"><div class="kpi-label">Investment Growth</div><div class="kpi-value '+(invChange>=0?'delta-up':'delta-down')+'">'+(invChange>=0?'+':'')+fmt(invChange)+'</div>'
+    + '<div class="kpi"><div class="kpi-label">Investment Growth</div><div class="kpi-value '+(invChange>=0?'delta-up':'delta-down')+'">'+(invChange>0?'&#9650; ':invChange<0?'&#9660; ':'')+''+(invChange>=0?'+':'')+fmt(invChange)+'</div>'
     + (prev ? '<div class="kpi-sub">vs '+prev.ctx.monthAbbr+'</div>' : '')+'</div>';
   animateKPICards('#nw-kpis');
 

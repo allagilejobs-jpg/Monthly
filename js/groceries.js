@@ -3339,13 +3339,14 @@ function renderCompare() {
     const diff = currVal - prevVal;
     const pctChange = prevVal > 0 ? ((diff / prevVal) * 100).toFixed(1) : "0";
     const cls = diff > 0 ? "delta-up" : diff < 0 ? "delta-down" : "delta-same";
+    const arrow = diff > 0 ? "&#9650; " : diff < 0 ? "&#9660; " : "";
     const sign = diff > 0 ? "+" : "";
     const valStr = isMoney ? fmt(currVal) : currVal;
     const diffStr = isMoney ? sign + fmt(Math.abs(diff)) : sign + diff;
     return '<div class="delta-card"><div class="kpi-label">' + label + '</div>' +
       '<div style="font-size:11px;color:var(--blue);margin-bottom:4px">' + curr.label + '</div>' +
       '<div class="delta-value" style="color:var(--text)">' + valStr + '</div>' +
-      '<div class="delta-change ' + cls + '">' + diffStr + ' (' + (diff > 0 ? "+" : "") + pctChange + '%) <span style="color:var(--text-muted)">vs</span> <span style="color:var(--cyan)">' + prev.label + '</span></div></div>';
+      '<div class="delta-change ' + cls + '">' + arrow + diffStr + ' (' + (diff > 0 ? "+" : "") + pctChange + '%) <span style="color:var(--text-muted)">vs</span> <span style="color:var(--cyan)">' + prev.label + '</span></div></div>';
   }
 
   html += '<div class="delta-grid">';
