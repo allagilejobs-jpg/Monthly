@@ -3240,6 +3240,168 @@ function downloadAllData() {
   URL.revokeObjectURL(a.href);
 }
 
+async function exportToExcel() {
+  if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) { showDemoUpgradePrompt("Sign up to export your grocery data."); return; }
+  if (!activeData || activeData.length === 0) { showToast("No data to export.", "error"); return; }
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Groceries Dashboard';
+
+  const headerFill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF2F5496'} };
+  const headerFont = { bold:true, color:{argb:'FFFFFFFF'}, size:11 };
+  const currFmt = '$#,##0.00';
+  const yellowFill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFF2CC'} };
+  const thinBorder = {
+    top:{style:'thin',color:{argb:'FFD0D0D0'}},
+    bottom:{style:'thin',color:{argb:'FFD0D0D0'}},
+    left:{style:'thin',color:{argb:'FFD0D0D0'}},
+    right:{style:'thin',color:{argb:'FFD0D0D0'}}
+  };
+
+  // Aggregate data
+  const byStore = {};
+  const byCat = {};
+  const byProduct = {};
+  const grandTotal = activeData.reduce((s, i) => s + i.t, 0);
+  const tripSet = new Set();
+
+  activeData.forEach(i => {
+    if (!byStore[i.s]) byStore[i.s] = { items: 0, total: 0, trips: new Set() };
+    byStore[i.s].items += i.q;
+    byStore[i.s].total += i.t;
+    byStore[i.s].trips.add(i.d + '|' + i.s);
+    tripSet.add(i.d + '|' + i.s);
+    if (!byCat[i.c]) byCat[i.c] = { items: 0, total: 0 };
+    byCat[i.c].items += i.q;
+    byCat[i.c].total += i.t;
+    const k = i.n;
+    if (!byProduct[k]) byProduct[k] = { cat: i.c, total: 0, count: 0 };
+    byProduct[k].total += i.t;
+    byProduct[k].count += i.q;
+  });
+
+  // Sheet 1: Summary
+  const ws1 = workbook.addWorksheet('Summary');
+  ws1.getColumn(1).width = 35;
+  ws1.getColumn(2).width = 20;
+  const titleRow = ws1.addRow([ctx.monthName.toUpperCase() + ' ' + ctx.year + ' \u2013 FAMILY GROCERY SPEND ANALYSIS']);
+  titleRow.getCell(1).font = { bold: true, size: 14, color: { argb: 'FF2F5496' } };
+  ws1.addRow([]);
+  [
+    ['Total Spend', grandTotal],
+    ['Total Items', activeData.length],
+    ['Unique Products', Object.keys(byProduct).length],
+    ['Stores Visited', Object.keys(byStore).length],
+    ['Shopping Trips', tripSet.size],
+    ['Categories', Object.keys(byCat).length],
+    ['Avg per Item', grandTotal / (activeData.length || 1)],
+    ['Avg per Trip', grandTotal / (tripSet.size || 1)]
+  ].forEach(r => {
+    const row = ws1.addRow(r);
+    row.getCell(1).font = { bold: true };
+    if (typeof r[1] === 'number') row.getCell(2).numFmt = currFmt;
+  });
+
+  // Sheet 2: All Transactions
+  const ws2 = workbook.addWorksheet('All Transactions');
+  ws2.columns = [
+    { header: 'Date', key: 'd', width: 12 },
+    { header: 'Store', key: 's', width: 16 },
+    { header: 'Receipt Name', key: 'r', width: 22 },
+    { header: 'Full Product Name', key: 'n', width: 30 },
+    { header: 'Category', key: 'c', width: 18 },
+    { header: 'Qty', key: 'q', width: 6 },
+    { header: 'Unit Price', key: 'u', width: 12 },
+    { header: 'Line Total', key: 't', width: 12 },
+    { header: 'Non-Grocery?', key: 'ng', width: 13 }
+  ];
+  ws2.getRow(1).eachCell(cell => { cell.fill = headerFill; cell.font = headerFont; cell.border = thinBorder; });
+  activeData.forEach(item => {
+    const row = ws2.addRow({ d: item.d, s: item.s, r: item.r || '', n: item.n, c: item.c, q: item.q, u: item.u, t: item.t, ng: item.ng ? 'Yes' : 'No' });
+    row.getCell('u').numFmt = currFmt;
+    row.getCell('t').numFmt = currFmt;
+    row.eachCell(cell => { cell.border = thinBorder; });
+    if (item.ng) row.eachCell(cell => { cell.fill = yellowFill; });
+  });
+
+  // Sheet 3: By Store
+  const ws3 = workbook.addWorksheet('By Store');
+  ws3.columns = [
+    { header: 'Store', key: 'store', width: 20 },
+    { header: 'Total Items', key: 'items', width: 12 },
+    { header: 'Number of Trips', key: 'trips', width: 16 },
+    { header: 'Total Spent', key: 'total', width: 14 },
+    { header: '% of Total Spend', key: 'pct', width: 16 }
+  ];
+  ws3.getRow(1).eachCell(cell => { cell.fill = headerFill; cell.font = headerFont; cell.border = thinBorder; });
+  Object.entries(byStore).sort((a, b) => b[1].total - a[1].total).forEach(([store, data]) => {
+    const row = ws3.addRow({ store, items: data.items, trips: data.trips.size, total: data.total, pct: (data.total / grandTotal * 100).toFixed(1) + '%' });
+    row.getCell('total').numFmt = currFmt;
+    row.eachCell(cell => { cell.border = thinBorder; });
+  });
+
+  // Sheet 4: By Category
+  const ws4 = workbook.addWorksheet('By Category');
+  ws4.columns = [
+    { header: 'Category', key: 'cat', width: 22 },
+    { header: 'Total Items', key: 'items', width: 12 },
+    { header: 'Total Spent', key: 'total', width: 14 },
+    { header: '% of Total Spend', key: 'pct', width: 16 },
+    { header: 'Type', key: 'type', width: 16 }
+  ];
+  ws4.getRow(1).eachCell(cell => { cell.fill = headerFill; cell.font = headerFont; cell.border = thinBorder; });
+  Object.entries(byCat).sort((a, b) => b[1].total - a[1].total).forEach(([cat, data]) => {
+    const isNg = activeData.some(i => i.c === cat && i.ng);
+    const row = ws4.addRow({ cat, items: data.items, total: data.total, pct: (data.total / grandTotal * 100).toFixed(1) + '%', type: isNg ? 'Non-Grocery' : 'Grocery' });
+    row.getCell('total').numFmt = currFmt;
+    row.eachCell(cell => { cell.border = thinBorder; });
+    if (isNg) row.eachCell(cell => { cell.fill = yellowFill; });
+  });
+
+  // Sheet 5: Top Spent Items
+  const ws5 = workbook.addWorksheet('Top Spent Items');
+  ws5.columns = [
+    { header: 'Rank', key: 'rank', width: 8 },
+    { header: 'Product Name', key: 'name', width: 30 },
+    { header: 'Category', key: 'cat', width: 18 },
+    { header: 'Total Qty Bought', key: 'count', width: 16 },
+    { header: 'Total Spent', key: 'total', width: 14 }
+  ];
+  ws5.getRow(1).eachCell(cell => { cell.fill = headerFill; cell.font = headerFont; cell.border = thinBorder; });
+  Object.entries(byProduct).sort((a, b) => b[1].total - a[1].total).slice(0, 20).forEach(([name, data], idx) => {
+    const row = ws5.addRow({ rank: idx + 1, name, cat: data.cat, count: data.count, total: data.total });
+    row.getCell('total').numFmt = currFmt;
+    row.eachCell(cell => { cell.border = thinBorder; });
+  });
+
+  // Sheet 6: Frequently Purchased
+  const ws6 = workbook.addWorksheet('Frequently Purchased');
+  ws6.columns = [
+    { header: 'Product Name', key: 'name', width: 30 },
+    { header: 'Category', key: 'cat', width: 18 },
+    { header: 'Times/Qty Bought', key: 'count', width: 16 },
+    { header: 'Total Spent', key: 'total', width: 14 },
+    { header: 'Avg Cost Per Unit', key: 'avg', width: 16 }
+  ];
+  ws6.getRow(1).eachCell(cell => { cell.fill = headerFill; cell.font = headerFont; cell.border = thinBorder; });
+  Object.entries(byProduct).sort((a, b) => b[1].count - a[1].count).slice(0, 20).forEach(([name, data]) => {
+    const row = ws6.addRow({ name, cat: data.cat, count: data.count, total: data.total, avg: data.total / (data.count || 1) });
+    row.getCell('total').numFmt = currFmt;
+    row.getCell('avg').numFmt = currFmt;
+    row.eachCell(cell => { cell.border = thinBorder; });
+  });
+
+  // Generate and download
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = ctx.monthName + '_' + ctx.year + '_Grocery_Analysis.xlsx';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('Excel exported \u2014 ' + activeData.length + ' items across 6 sheets', 'success');
+}
+
 function loadDataFile(event) {
   if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) { showDemoUpgradePrompt("Sign up to load your own data."); return; }
   const file = event.target.files[0];
