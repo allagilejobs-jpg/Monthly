@@ -2281,13 +2281,6 @@ function showProductDetail(productName, source) {
     }
   }
 
-  // Prices Nearby — auto-fetch with 48h cache
-  html += '<div class="card" id="prices-nearby-card">';
-  html += '<div class="card-title"><span style="color:var(--cyan)">Prices Nearby</span></div>';
-  html += '<div id="prices-nearby-content" style="text-align:center;padding:20px;color:var(--text-muted)">';
-  html += '<div style="font-size:14px">Checking prices...</div>';
-  html += '</div></div>';
-
   // Store comparison (only if bought at multiple stores)
   if (stores.length > 1) {
     html += `<div class="card"><div class="card-title"><span style="color:var(--blue)">Store Price Comparison</span></div>`;
@@ -2338,6 +2331,13 @@ function showProductDetail(productName, source) {
     </tr>`;
   });
   html += `</tbody></table></div></div>`;
+
+  // Prices Nearby — auto-fetch with 48h cache
+  html += '<div class="card" id="prices-nearby-card">';
+  html += '<div class="card-title"><span style="color:var(--cyan)">Prices Nearby</span></div>';
+  html += '<div id="prices-nearby-content" style="text-align:center;padding:20px;color:var(--text-muted)">';
+  html += '<div style="font-size:14px">Checking prices...</div>';
+  html += '</div></div>';
 
   document.getElementById("product-detail-content").innerHTML = html;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
