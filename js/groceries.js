@@ -432,6 +432,36 @@ function loadMonthData(monthKey) {
   return data;
 }
 
+function loadMonthDataWithEdits(monthKey) {
+  var data = loadMonthData(monthKey);
+  if (!data) return [];
+  var editsKeyForMonth = "edits_" + monthKey;
+  var editsStr = (typeof DEMO_MODE !== 'undefined' && DEMO_MODE)
+    ? (demoGet(editsKeyForMonth) || "{}")
+    : (localStorage.getItem(editsKeyForMonth) || "{}");
+  var savedEdits = JSON.parse(editsStr);
+  data.forEach(function(item, idx) {
+    item._origName = item.n;
+    item._origCat = item.c;
+    item._monthKey = monthKey;
+    item._idx = idx;
+    item.w = isWeighed(item);
+    item._origW = item.w;
+    item._origNg = item.ng;
+  });
+  Object.entries(savedEdits).forEach(function(entry) {
+    var idx = parseInt(entry[0]);
+    var edits = entry[1];
+    if (data[idx]) {
+      if (edits.n !== undefined) data[idx].n = edits.n;
+      if (edits.c !== undefined) data[idx].c = edits.c;
+      if (edits.ng !== undefined) data[idx].ng = edits.ng;
+      if (edits.w !== undefined) data[idx].w = edits.w;
+    }
+  });
+  return data;
+}
+
 function initMonthData(data) {
   data.forEach((item, idx) => { item._idx = idx; item._origName = item.n; item._origCat = item.c; item._origNg = item.ng; item.w = isWeighed(item); item._origW = item.w; });
   const editsStr = (typeof DEMO_MODE !== 'undefined' && DEMO_MODE)
@@ -1217,7 +1247,7 @@ function detectPriceChanges() {
   var prevPrices = {};
   months.forEach(function(mk) {
     if (mk === currentMk) return;
-    var data = loadMonthData(mk);
+    var data = loadMonthDataWithEdits(mk);
     if (!data) return;
     data.forEach(function(item) {
       if (!prevPrices[item.n]) prevPrices[item.n] = [];
@@ -1251,7 +1281,7 @@ function detectRegularPurchases() {
   if (months.length >= 2) {
     const allMonthProducts = {};
     months.forEach(mk => {
-      const data = loadMonthData(mk);
+      const data = mk === ctx.monthKey ? activeData : loadMonthDataWithEdits(mk);
       if (!data) return;
       allMonthProducts[mk] = {};
       data.forEach(i => {
@@ -2148,9 +2178,12 @@ function showProductDetail(productName, source) {
   document.getElementById("product-detail-back").textContent = "\u2190 Back to " + backLabel;
 
   const editBtnHtml = `<span class="product-edit-btn" onclick="event.stopPropagation();openEditModal(${items[0]._idx},true)" title="Edit product name">&#9998;</span>`;
+  const isEdited = items[0]._origName && items[0].n !== items[0]._origName;
+  const editedHtml = isEdited ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px"><span class="edit-dot" title="Edited"></span> Edited from: <span style="color:var(--cyan);font-style:italic">${items[0]._origName}</span></div>` : '';
   let html = `<div class="trip-detail-header">
     <div>
       <div class="trip-detail-title">${productName} ${editBtnHtml}</div>
+      ${editedHtml}
       <div class="trip-detail-store">${cat} \u2022 ${stores.join(", ")}</div>
     </div>
     <div style="text-align:right">
@@ -2201,16 +2234,42 @@ function showProductDetail(productName, source) {
     html += '</div>';
   }
 
+  // Gather cross-month stats for KPIs
+  var crossMonthItems = [];
+  var kpiMonths = getLoadedMonths().sort();
+  kpiMonths.forEach(function(mk) {
+    var mItems;
+    if (mk === ctx.monthKey) {
+      mItems = items; // already filtered from activeData
+    } else {
+      var mData = loadMonthDataWithEdits(mk);
+      mItems = mData.filter(function(i) { return i.n === productName || i._origName === productName; });
+    }
+    mItems.forEach(function(i) { crossMonthItems.push(i); });
+  });
+  var crossDates = [...new Set(crossMonthItems.map(function(i) { return i.d; }))];
+  var crossTotalQty = crossMonthItems.reduce(function(s, i) { return s + displayQty(i); }, 0);
+  var crossTotal = crossMonthItems.reduce(function(s, i) { return s + i.t; }, 0);
+  var crossPrices = crossMonthItems.map(function(i) { return i.u; });
+  var crossMinPrice = crossPrices.length ? Math.min.apply(null, crossPrices) : minPrice;
+  var crossMaxPrice = crossPrices.length ? Math.max.apply(null, crossPrices) : maxPrice;
+  var monthCount = kpiMonths.filter(function(mk) {
+    if (mk === ctx.monthKey) return items.length > 0;
+    var mData = loadMonthDataWithEdits(mk);
+    return mData.filter(function(i) { return i.n === productName || i._origName === productName; }).length > 0;
+  }).length;
+  var multiMonth = monthCount > 1;
+
   // Summary stats
   html += `<div class="kpi-grid" style="margin-bottom:20px">`;
-  html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Times Purchased</div><div class="kpi-value" style="color:var(--green)">${dates.length}</div><div class="kpi-sub">${dates.length === 1 ? '1 date' : dates.length + ' different dates'}</div></div>`;
-  html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Total Quantity</div><div class="kpi-value" style="color:var(--cyan)">${totalQty}</div><div class="kpi-sub">units bought</div></div>`;
-  html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Avg Unit Price</div><div class="kpi-value" style="color:var(--amber)">${fmt(total / totalQty)}</div><div class="kpi-sub">per unit</div></div>`;
+  html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Times Purchased</div><div class="kpi-value" style="color:var(--green)">${crossDates.length}</div><div class="kpi-sub">${multiMonth ? 'across ' + monthCount + ' months' : (crossDates.length === 1 ? '1 date' : crossDates.length + ' different dates')}</div></div>`;
+  html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Total Quantity</div><div class="kpi-value" style="color:var(--cyan)">${crossTotalQty}</div><div class="kpi-sub">${multiMonth ? 'all months combined' : 'units bought'}</div></div>`;
+  html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Avg Unit Price</div><div class="kpi-value" style="color:var(--amber)">${fmt(crossTotal / crossTotalQty)}</div><div class="kpi-sub">${multiMonth ? 'overall average' : 'per unit'}</div></div>`;
   // Price range KPI
-  if (minPrice !== maxPrice) {
-    html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Price Range</div><div class="kpi-value" style="font-size:18px;color:var(--teal)">${fmt(minPrice)} &mdash; ${fmt(maxPrice)}</div><div class="kpi-sub">${fmt(maxPrice - minPrice)} spread</div></div>`;
+  if (crossMinPrice !== crossMaxPrice) {
+    html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Price Range</div><div class="kpi-value" style="font-size:18px;color:var(--teal)">${fmt(crossMinPrice)} &mdash; ${fmt(crossMaxPrice)}</div><div class="kpi-sub">${fmt(crossMaxPrice - crossMinPrice)} spread${multiMonth ? ' (all months)' : ''}</div></div>`;
   } else {
-    html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Consistent Price</div><div class="kpi-value" style="color:var(--teal)">${fmt(minPrice)}</div><div class="kpi-sub">same price every time</div></div>`;
+    html += `<div class="kpi-card" style="cursor:default"><div class="kpi-label">Consistent Price</div><div class="kpi-value" style="color:var(--teal)">${fmt(crossMinPrice)}</div><div class="kpi-sub">same price every time</div></div>`;
   }
   html += `</div>`;
 
@@ -2241,9 +2300,9 @@ function showProductDetail(productName, source) {
   if (allMonths.length >= 2) {
     var monthPriceData = [];
     allMonths.forEach(function(mk) {
-      var mData = loadMonthData(mk);
+      var mData = mk === ctx.monthKey ? activeData : loadMonthDataWithEdits(mk);
       if (!mData) return;
-      var matching = mData.filter(function(i) { return i.n === productName; });
+      var matching = mData.filter(function(i) { return i.n === productName || i._origName === productName; });
       if (matching.length === 0) return;
       var avgP = matching.reduce(function(s, i) { return s + i.u; }, 0) / matching.length;
       var mkParts = mk.split('_');
@@ -2314,23 +2373,72 @@ function showProductDetail(productName, source) {
     html += `</tbody></table></div></div>`;
   }
 
-  // Purchase history table
-  html += `<div class="card"><div class="card-title"><span style="color:var(--amber)">Purchase History</span></div>`;
-  html += `<div style="overflow-x:auto"><table>`;
-  html += `<thead><tr><th>Date</th><th>Store</th><th class="text-center">Qty</th><th class="text-right">Unit Price</th><th class="text-right">Total</th></tr></thead><tbody>`;
-  items.forEach(i => {
-    const dayNum = parseInt(i.d.split("/")[1]);
-    const dateLabel = ctx.monthName ? ctx.monthName + " " + dayNum + ", " + ctx.year : i.d;
-    const tripKey = i.d + "|" + i.s;
-    html += `<tr style="cursor:pointer" onclick="goToTripFromProduct('${tripKey}')">
-      <td class="mono" style="color:var(--green)">${dateLabel}</td>
-      <td>${i.s}</td>
-      <td class="text-center">${displayQty(i)}</td>
-      <td class="text-right mono">${fmt(i.u)}</td>
-      <td class="text-right mono amt">${fmt(i.t)}</td>
-    </tr>`;
+  // Purchase history table — cross-month, grouped by month, collapsible
+  var allHistoryItems = [];
+  var allHistMonths = getLoadedMonths().sort();
+  allHistMonths.forEach(function(mk) {
+    var mItems;
+    if (mk === ctx.monthKey) {
+      mItems = activeData.filter(function(i) { return i.n === productName || i._origName === productName; });
+      mItems.forEach(function(i) { i._monthKey = mk; });
+    } else {
+      var mData = loadMonthDataWithEdits(mk);
+      mItems = mData.filter(function(i) { return i.n === productName || i._origName === productName; });
+    }
+    mItems.forEach(function(i) { allHistoryItems.push(i); });
   });
-  html += `</tbody></table></div></div>`;
+  // Group by month
+  var histByMonth = {};
+  allHistoryItems.forEach(function(i) {
+    var mk = i._monthKey;
+    if (!histByMonth[mk]) histByMonth[mk] = [];
+    histByMonth[mk].push(i);
+  });
+  // Sort months descending (most recent first)
+  var histMonthKeys = Object.keys(histByMonth).sort().reverse();
+  html += `<div class="card"><div class="card-title"><span style="color:var(--amber)">Purchase History</span></div>`;
+  histMonthKeys.forEach(function(mk, mIdx) {
+    var mItems = histByMonth[mk].sort(function(a, b) { return a.d.localeCompare(b.d); });
+    var mkParts = mk.split('_');
+    var mName = MONTH_NAMES[parseInt(mkParts[1]) - 1];
+    var mYear = mkParts[0];
+    var isCurrent = mk === ctx.monthKey;
+    var isExpanded = isCurrent;
+    var sectionId = 'ph-section-' + mk;
+    var purchaseCount = mItems.length;
+    var monthTotal = mItems.reduce(function(s, i) { return s + i.t; }, 0);
+    // Section header
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer" onclick="var el=document.getElementById(\'' + sectionId + '\');var chev=this.querySelector(\'.ph-chev\');if(el.style.display===\'none\'){el.style.display=\'block\';chev.textContent=\'\\u25BC\'}else{el.style.display=\'none\';chev.textContent=\'\\u25B6\'}">';
+    html += '<div style="display:flex;align-items:center;gap:8px">';
+    html += '<span class="ph-chev" style="font-size:10px;color:var(--text-muted);width:12px">' + (isExpanded ? '\u25BC' : '\u25B6') + '</span>';
+    html += '<span style="font-weight:600;color:' + (isCurrent ? 'var(--green)' : 'var(--text)') + '">' + mName + ' ' + mYear + '</span>';
+    if (isCurrent) html += '<span style="font-size:10px;background:rgba(34,197,94,0.12);color:var(--green);padding:2px 6px;border-radius:4px">Current</span>';
+    html += '<span style="font-size:12px;color:var(--text-muted)">' + purchaseCount + ' purchase' + (purchaseCount !== 1 ? 's' : '') + '</span>';
+    html += '</div>';
+    html += '<span style="font-size:13px;font-weight:600;color:var(--amber)">' + fmt(monthTotal) + '</span>';
+    html += '</div>';
+    // Collapsible table
+    html += '<div id="' + sectionId + '" style="display:' + (isExpanded ? 'block' : 'none') + '">';
+    html += '<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Store</th><th class="text-center">Qty</th><th class="text-right">Unit Price</th><th class="text-right">Total</th></tr></thead><tbody>';
+    mItems.forEach(function(i) {
+      var dayNum = parseInt(i.d.split("/")[1]);
+      var dateLabel = mName + " " + dayNum + ", " + mYear;
+      if (isCurrent) {
+        var tripKey = i.d + "|" + i.s;
+        html += '<tr style="cursor:pointer" onclick="goToTripFromProduct(\'' + tripKey + '\')">';
+      } else {
+        html += '<tr style="opacity:0.8" title="Switch to ' + mName + ' ' + mYear + ' to view this trip">';
+      }
+      html += '<td class="mono" style="color:var(--green)">' + dateLabel + '</td>';
+      html += '<td>' + i.s + '</td>';
+      html += '<td class="text-center">' + displayQty(i) + '</td>';
+      html += '<td class="text-right mono">' + fmt(i.u) + '</td>';
+      html += '<td class="text-right mono amt">' + fmt(i.t) + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div></div>';
+  });
+  html += '</div>';
 
   // Prices Nearby — auto-fetch with 48h cache
   html += '<div class="card" id="prices-nearby-card">';
@@ -2620,7 +2728,7 @@ function getAllProductNames() {
   activeData.forEach(function(i) { names.add(i.n); });
   getLoadedMonths().forEach(function(mk) {
     if (mk === ctx.monthKey) return;
-    var data = loadMonthData(mk);
+    var data = loadMonthDataWithEdits(mk);
     if (data) data.forEach(function(i) { names.add(i.n); });
   });
   _productNamesCache = Array.from(names).sort(function(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
