@@ -2396,49 +2396,50 @@ function showProductDetail(productName, source) {
   });
   // Sort months descending (most recent first)
   var histMonthKeys = Object.keys(histByMonth).sort().reverse();
-  html += `<div class="card"><div class="card-title"><span style="color:var(--amber)">Purchase History</span></div>`;
-  histMonthKeys.forEach(function(mk, mIdx) {
+  html += '<div class="card"><div class="card-title"><span style="color:var(--amber)">Purchase History</span></div>';
+  html += '<div style="overflow-x:auto"><table style="width:100%"><thead><tr><th style="text-align:left">Date</th><th style="text-align:left">Store</th><th class="text-center">Qty</th><th class="text-right">Unit Price</th><th class="text-right">Total</th></tr></thead><tbody>';
+  histMonthKeys.forEach(function(mk) {
     var mItems = histByMonth[mk].sort(function(a, b) { return a.d.localeCompare(b.d); });
     var mkParts = mk.split('_');
     var mName = MONTH_NAMES[parseInt(mkParts[1]) - 1];
     var mYear = mkParts[0];
     var isCurrent = mk === ctx.monthKey;
-    var isExpanded = isCurrent;
     var sectionId = 'ph-section-' + mk;
     var purchaseCount = mItems.length;
     var monthTotal = mItems.reduce(function(s, i) { return s + i.t; }, 0);
-    // Section header
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer" onclick="var el=document.getElementById(\'' + sectionId + '\');var chev=this.querySelector(\'.ph-chev\');if(el.style.display===\'none\'){el.style.display=\'block\';chev.textContent=\'\\u25BC\'}else{el.style.display=\'none\';chev.textContent=\'\\u25B6\'}">';
-    html += '<div style="display:flex;align-items:center;gap:8px">';
-    html += '<span class="ph-chev" style="font-size:10px;color:var(--text-muted);width:12px">' + (isExpanded ? '\u25BC' : '\u25B6') + '</span>';
-    html += '<span style="font-weight:600;color:' + (isCurrent ? 'var(--green)' : 'var(--text)') + '">' + mName + ' ' + mYear + '</span>';
-    if (isCurrent) html += '<span style="font-size:10px;background:rgba(34,197,94,0.12);color:var(--green);padding:2px 6px;border-radius:4px">Current</span>';
-    html += '<span style="font-size:12px;color:var(--text-muted)">' + purchaseCount + ' purchase' + (purchaseCount !== 1 ? 's' : '') + '</span>';
-    html += '</div>';
-    html += '<span style="font-size:13px;font-weight:600;color:var(--amber)">' + fmt(monthTotal) + '</span>';
-    html += '</div>';
-    // Collapsible table
-    html += '<div id="' + sectionId + '" style="display:' + (isExpanded ? 'block' : 'none') + '">';
-    html += '<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Store</th><th class="text-center">Qty</th><th class="text-right">Unit Price</th><th class="text-right">Total</th></tr></thead><tbody>';
-    mItems.forEach(function(i) {
+    var isCollapsed = !isCurrent && histMonthKeys.length > 1;
+    // Month group header row
+    html += '<tr class="ph-month-hdr" style="cursor:pointer;user-select:none" onclick="var rows=document.querySelectorAll(\'.ph-row-' + sectionId + '\');var chev=this.querySelector(\'.ph-chev\');var hidden=rows.length&&rows[0].classList.contains(\'ph-hidden\');rows.forEach(function(r){r.classList.toggle(\'ph-hidden\')});chev.textContent=hidden?\'\\u25BC\':\'\\u25B6\'">';
+    html += '<td colspan="4" style="padding:10px 0 6px;border-bottom:none"><div style="display:flex;align-items:center;gap:8px">';
+    html += '<span class="ph-chev" style="font-size:9px;color:var(--text-muted)">' + (isCollapsed ? '\u25B6' : '\u25BC') + '</span>';
+    html += '<span style="font-weight:600;font-size:13px;color:' + (isCurrent ? 'var(--green)' : 'var(--text)') + '">' + mName + ' ' + mYear + '</span>';
+    if (isCurrent) html += '<span style="font-size:9px;background:rgba(34,197,94,0.12);color:var(--green);padding:1px 5px;border-radius:3px;font-weight:600">Current</span>';
+    html += '<span style="font-size:11px;color:var(--text-muted)">' + purchaseCount + ' purchase' + (purchaseCount !== 1 ? 's' : '') + '</span>';
+    html += '</div></td>';
+    html += '<td style="padding:10px 0 6px;text-align:right;border-bottom:none"><span style="font-size:13px;font-weight:600;color:var(--amber)">' + fmt(monthTotal) + '</span></td>';
+    html += '</tr>';
+    // Data rows for this month
+    mItems.forEach(function(i, idx) {
       var dayNum = parseInt(i.d.split("/")[1]);
       var dateLabel = mName + " " + dayNum + ", " + mYear;
+      var rowClass = 'ph-row-' + sectionId + (isCollapsed ? ' ph-hidden' : '');
       if (isCurrent) {
         var tripKey = i.d + "|" + i.s;
-        html += '<tr style="cursor:pointer" onclick="goToTripFromProduct(\'' + tripKey + '\')">';
+        html += '<tr class="' + rowClass + '" style="cursor:pointer" onclick="goToTripFromProduct(\'' + tripKey + '\')">';
       } else {
-        html += '<tr style="opacity:0.8" title="Switch to ' + mName + ' ' + mYear + ' to view this trip">';
+        html += '<tr class="' + rowClass + '" style="opacity:0.7" title="Switch to ' + mName + ' ' + mYear + ' to view this trip">';
       }
-      html += '<td class="mono" style="color:var(--green)">' + dateLabel + '</td>';
+      html += '<td class="mono" style="color:var(--green);padding-left:20px">' + dateLabel + '</td>';
       html += '<td>' + i.s + '</td>';
       html += '<td class="text-center">' + displayQty(i) + '</td>';
       html += '<td class="text-right mono">' + fmt(i.u) + '</td>';
       html += '<td class="text-right mono amt">' + fmt(i.t) + '</td>';
       html += '</tr>';
     });
-    html += '</tbody></table></div></div>';
   });
-  html += '</div>';
+  html += '</tbody></table></div></div>';
+  // Inline style for collapsible rows
+  html += '<style>.ph-hidden{display:none !important}</style>';
 
   // Prices Nearby — auto-fetch with 48h cache
   html += '<div class="card" id="prices-nearby-card">';
