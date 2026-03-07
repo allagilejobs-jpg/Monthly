@@ -3,526 +3,433 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Monthly Grocery & Household Spend Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<title>Family Finance Dashboards</title>
+<style>
+  /* Light theme (default) */
+  :root {
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --card-border: #e4e4e7;
+    --text: #18181b;
+    --text-muted: #71717a;
+    --green: #16a34a;
+    --blue: #2563eb;
+    --purple: #9333ea;
+    --orange: #ea580c;
+  }
+  /* Dark theme */
+  body.dark {
+    --bg: #0f1117;
+    --card: #1a1b23;
+    --card-border: #2a2b35;
+    --text: #e4e4e7;
+    --text-muted: #71717a;
+    --green: #22c55e;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+    --orange: #f97316;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.5;
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+  }
+  .container { max-width: 900px; width: 100%; padding: 40px 24px; text-align: center; margin: 0 auto; }
+  h1 {
+    font-size: 32px; font-weight: 700; margin-bottom: 8px;
+    background: linear-gradient(135deg, #22c55e, #3b82f6, #a855f7);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .subtitle { color: var(--text-muted); font-size: 15px; margin-bottom: 48px; }
+  .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 32px 24px; text-decoration: none;
+    transition: all 0.2s; display: block;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+  }
+  body.dark .card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+  .card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.08); }
+  .card-grocery:hover { border-color: rgba(34,197,94,0.5); }
+  .card-expenses:hover { border-color: rgba(59,130,246,0.5); }
+  .card-scanner:hover { border-color: rgba(249,115,22,0.5); }
+  .card-budget:hover { border-color: rgba(168,85,247,0.5); }
+  .card-icon { font-size: 40px; margin-bottom: 16px; }
+  .card-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .card-grocery .card-title { color: var(--green); }
+  .card-expenses .card-title { color: var(--blue); }
+  .card-scanner .card-title { color: var(--orange); }
+  .card-budget .card-title { color: var(--purple); }
+  .card-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .card-arrow { margin-top: 16px; font-size: 14px; font-weight: 600; }
+  .card-grocery .card-arrow { color: var(--green); }
+  .card-expenses .card-arrow { color: var(--blue); }
+  .card-scanner .card-arrow { color: var(--orange); }
+  .card-budget .card-arrow { color: var(--purple); }
+  @media (max-width: 600px) {
+    .cards { grid-template-columns: 1fr; }
+    .container { max-width: 900px; }
+    h1 { font-size: 24px; }
+    .card { padding: 24px 20px; }
+    .header { padding: 8px 12px; }
+    .home-auth-area { gap: 6px; }
+    .home-auth-btn { padding: 5px 10px; font-size: 11px; }
+    .home-user-email { max-width: 120px; font-size: 11px; }
+    .home-signout-btn { padding: 4px 8px; font-size: 10px; }
+    .theme-toggle { padding: 5px 8px; font-size: 16px; }
+  }
+  .header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--card); border-bottom: 1px solid var(--card-border);
+    padding: 10px 24px; display: flex; justify-content: flex-end; align-items: center;
+    transition: background 0.3s;
+  }
+  .container { padding-top: 60px; }
+  .theme-toggle {
+    background: none; border: 1px solid var(--card-border); border-radius: 8px;
+    padding: 6px 10px; font-size: 18px; cursor: pointer; color: var(--text);
+    transition: all 0.2s;
+  }
+  .theme-toggle:hover { border-color: var(--blue); }
+  .home-auth-area { display: flex; gap: 8px; align-items: center; }
+  .home-auth-btn {
+    border-radius: 8px; padding: 7px 16px; font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: all 0.2s; border: 1px solid;
+  }
+  .home-signin-btn {
+    background: transparent; border-color: var(--card-border); color: var(--text);
+  }
+  .home-signin-btn:hover { border-color: var(--blue); color: var(--blue); }
+  .home-signup-btn {
+    background: var(--blue); border-color: var(--blue); color: #fff;
+  }
+  .home-signup-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .home-signout-btn {
+    background: transparent; border-color: var(--card-border); color: var(--text-muted);
+    font-size: 12px; padding: 5px 12px;
+  }
+  .home-signout-btn:hover { border-color: var(--text); color: var(--text); }
+  .home-user-info {
+    display: inline-flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-muted);
+  }
+  .home-user-email { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .header { gap: 10px; }
+
+  /* ── How It Works ── */
+  .how-it-works { margin-top: 64px; }
+  .section-title {
+    font-size: 22px; font-weight: 700; margin-bottom: 8px; color: var(--text);
+  }
+  .section-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 32px; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .step {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 28px 20px; text-align: center;
+    transition: all 0.2s;
+  }
+  .step:hover { border-color: var(--blue); }
+  .step-num {
+    width: 36px; height: 36px; border-radius: 50%; line-height: 36px;
+    font-size: 15px; font-weight: 700; margin: 0 auto 14px;
+    background: rgba(59,130,246,0.12); color: var(--blue);
+  }
+  .step-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .step-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+  /* ── Feature Highlights ── */
+  .features { margin-top: 56px; }
+  .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .feat {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 22px 18px; text-align: left;
+    transition: all 0.2s;
+  }
+  .feat:hover { border-color: var(--green); }
+  .feat-icon { font-size: 24px; margin-bottom: 10px; }
+  .feat-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .feat-detail { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+  /* ── FAQ ── */
+  .faq { margin-top: 56px; margin-bottom: 40px; text-align: left; max-width: 680px; margin-left: auto; margin-right: auto; }
+  .faq .section-title { text-align: center; }
+  .faq .section-sub { text-align: center; }
+  .faq-item {
+    border: 1px solid var(--card-border); border-radius: 12px;
+    margin-bottom: 10px; overflow: hidden; background: var(--card);
+    transition: border-color 0.2s;
+  }
+  .faq-item.open { border-color: var(--blue); }
+  .faq-q {
+    padding: 16px 20px; font-size: 14px; font-weight: 700; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center;
+    color: var(--text); user-select: none;
+  }
+  .faq-q:hover { color: var(--blue); }
+  .faq-chevron {
+    font-size: 12px; transition: transform 0.2s; color: var(--text-muted);
+    flex-shrink: 0; margin-left: 12px;
+  }
+  .faq-item.open .faq-chevron { transform: rotate(180deg); }
+  .faq-a {
+    padding: 0 20px; max-height: 0; overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    font-size: 13px; color: var(--text-muted); line-height: 1.7;
+  }
+  .faq-item.open .faq-a { max-height: 200px; padding: 0 20px 16px; }
+
+  @media (max-width: 600px) {
+    .steps { grid-template-columns: 1fr; gap: 12px; }
+    .step { padding: 22px 18px; }
+    .feat-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .feat { padding: 18px 14px; }
+    .section-title { font-size: 19px; }
+    .faq-q { padding: 14px 16px; font-size: 13px; }
+    .how-it-works { margin-top: 48px; }
+    .features { margin-top: 40px; }
+    .faq { margin-top: 40px; }
+  }
+</style>
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore-compat.js"></script>
-<script src="../demo-data.js?v=cache8"></script>
-<link rel="stylesheet" href="../css/shared.css?v=cache8">
-<link rel="stylesheet" href="../css/groceries.css?v=cache8">
 </head>
 <body>
+<div class="header">
+  <div id="home-auth-area" class="home-auth-area">
+    <button class="home-auth-btn home-signin-btn" onclick="openAuthModal();switchAuthTab('signin')">Sign In</button>
+    <button class="home-auth-btn home-signup-btn" onclick="openAuthModal();switchAuthTab('signup')">Sign Up</button>
+  </div>
+  <span id="home-user-info" class="home-user-info" style="display:none">
+    <span id="home-user-email" class="home-user-email"></span>
+    <button class="home-auth-btn home-signout-btn" onclick="doSignOut()">Sign Out</button>
+  </span>
+  <button class="theme-toggle" id="theme-toggle" onclick="toggleHomeTheme()" title="Toggle light/dark mode">&#9790;</button>
+</div>
 <div class="container">
-  <div class="header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
-    <div>
-      <h1 id="dashboard-title">Monthly Grocery & Household Spend Dashboard</h1>
-      <p id="dashboard-subtitle">Family spend analysis</p>
-    </div>
-    <div class="header-nav">
-      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">&#9790;</button>
-      <a href="../Expenses/" class="nav-pill nav-pill-blue">All Expenses &rarr;</a>
-      <a href="../Budget/" class="nav-pill nav-pill-purple">Budget &rarr;</a>
+  <h1>Family Finance Dashboards</h1>
+  <p class="subtitle">Track spending, budget goals, and net worth — all in one place</p>
+  <div class="cards">
+    <a href="Groceries/" class="card card-grocery">
+      <div class="card-icon">&#128722;</div>
+      <div class="card-title">Groceries</div>
+      <div class="card-desc">Track grocery and household spending by store, category, and trip. Scan receipts to import all grocery and non-grocery expenses per store visit or shopping order.</div>
+      <div class="card-arrow">Open Dashboard &rarr;</div>
+    </a>
+    <a href="Expenses/" class="card card-expenses">
+      <div class="card-icon">&#128179;</div>
+      <div class="card-title">All Expenses</div>
+      <div class="card-desc">Track all spending from bank statements. Upload CSV, PDF, or Excel files. Auto-categorizes transactions.</div>
+      <div class="card-arrow">Open Dashboard &rarr;</div>
+    </a>
+    <a href="Scanner/" class="card card-scanner">
+      <div class="card-icon">&#128247;</div>
+      <div class="card-title">Receipt Scanner</div>
+      <div class="card-desc">Scan grocery receipts with OCR. Bulk upload photos, extract items, export to Excel or import directly.</div>
+      <div class="card-arrow">Open Scanner &rarr;</div>
+    </a>
+    <a href="Budget/" class="card card-budget">
+      <div class="card-icon">&#128176;</div>
+      <div class="card-title">Budget</div>
+      <div class="card-desc">Plan your monthly budget, track income &amp; expenses vs goals, monitor bank accounts and net worth.</div>
+      <div class="card-arrow">Open Dashboard &rarr;</div>
+    </a>
+  </div>
+  <div class="demo-cta" style="margin-top:40px">
+    <div style="color:var(--text-muted);font-size:13px;margin-bottom:16px">Not ready to sign up? Explore with sample data.</div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button onclick="enterDemoMode('Groceries')" style="
+        background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--green);
+        border-radius:10px;padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;
+        font-family:inherit;transition:all 0.2s;display:flex;align-items:center;gap:8px;
+      "><span style="font-size:18px">&#128722;</span> Groceries Demo</button>
+      <button onclick="enterDemoMode('Expenses')" style="
+        background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--blue);
+        border-radius:10px;padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;
+        font-family:inherit;transition:all 0.2s;display:flex;align-items:center;gap:8px;
+      "><span style="font-size:18px">&#128179;</span> Expenses Demo</button>
+      <button onclick="enterDemoMode('Budget')" style="
+        background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:var(--purple);
+        border-radius:10px;padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;
+        font-family:inherit;transition:all 0.2s;display:flex;align-items:center;gap:8px;
+      "><span style="font-size:18px">&#128176;</span> Budget Demo</button>
     </div>
   </div>
 
-  <div class="month-nav" id="month-nav">
-    <select id="month-select"></select>
-    <button class="month-nav-btn" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3)" onclick="openUploadChoice()">+ Upload Month</button>
-    <button class="month-nav-btn" style="background:rgba(255,255,255,0.04);color:var(--text-muted);border:1px solid var(--card-border)" onclick="openDataManager()">Manage Data</button>
-    <button class="month-nav-btn" style="background:rgba(59,130,246,0.12);color:var(--blue);border:1px solid rgba(59,130,246,0.25)" onclick="openHelpModal()">? Help</button>
-  </div>
-
-  <div class="tabs">
-    <button class="tab active" data-view="overview" onclick="showView('overview')">Overview</button>
-    <button class="tab" data-view="groceries" onclick="showView('groceries')">Groceries</button>
-    <button class="tab" data-view="nongrocery" onclick="showView('nongrocery')">Non-Grocery</button>
-    <button class="tab" data-view="stores" onclick="showView('stores')">By Store</button>
-    <button class="tab" data-view="trends" onclick="showView('trends')">Trends</button>
-    <button class="tab" data-view="trips" onclick="showView('trips')">Trips</button>
-    <button class="tab" data-view="items" onclick="showView('items')">All Items</button>
-    <button class="tab" data-view="compare" onclick="showView('compare')">Compare</button>
-  </div>
-
-  <!-- Global Search -->
-  <div id="global-search-wrap" style="position:relative;margin-bottom:20px">
-    <input type="text" id="global-search" placeholder="Search products, stores, categories..." oninput="onGlobalSearch(this.value)" onfocus="onGlobalSearch(this.value)" style="width:100%;max-width:500px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;padding:10px 16px 10px 38px;color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:border-color 0.2s">
-    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:16px;pointer-events:none">&#128269;</span>
-    <div id="global-search-results" style="display:none;position:absolute;top:100%;left:0;width:100%;max-width:500px;max-height:400px;overflow-y:auto;background:var(--card);border:1px solid var(--card-border);border-radius:10px;margin-top:4px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:100"></div>
-  </div>
-
-  <!-- ==================== OVERVIEW ==================== -->
-  <div id="view-overview" class="view active">
-    <div class="kpi-grid" id="kpi-overview"></div>
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-title">Spending by Category</div>
-        <div class="chart-wrap"><canvas id="chart-cat-pie"></canvas></div>
+  <!-- How It Works -->
+  <div class="how-it-works">
+    <div class="section-title">How It Works</div>
+    <p class="section-sub">Get started in three simple steps</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-title">Upload Your Data</div>
+        <div class="step-desc">Import bank statements (CSV, PDF, Excel), grocery receipts, or scan paper receipts with OCR.</div>
       </div>
-      <div class="card">
-        <div class="card-title">Spending by Store</div>
-        <div class="chart-wrap"><canvas id="chart-store-pie"></canvas></div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-title">Auto-Categorize</div>
+        <div class="step-desc">Transactions are automatically sorted into categories using 100+ smart rules. Edit anything with one click.</div>
       </div>
-    </div>
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-title">Weekly Spending Trend</div>
-        <div class="chart-wrap-sm"><canvas id="chart-weekly"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Grocery vs Non-Grocery</div>
-        <div class="chart-wrap-sm"><canvas id="chart-split"></canvas></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">Key Insights</div>
-      <div class="grid-3" id="insights"></div>
-    </div>
-    <div id="overview-streaks"></div>
-    <div id="recurring-card"></div>
-    <div id="price-changes-card"></div>
-    <div id="anomaly-card"></div>
-  </div>
-
-  <!-- ==================== GROCERIES ==================== -->
-  <div id="view-groceries" class="view">
-    <div class="kpi-grid" id="kpi-grocery"></div>
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-title">Grocery Spending by Category</div>
-        <div class="chart-wrap"><canvas id="chart-grocery-cat"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Top 15 Grocery Items by Spend</div>
-        <div class="chart-wrap-tall"><canvas id="chart-grocery-top"></canvas></div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-title">Track &amp; Compare</div>
+        <div class="step-desc">See trends, set budget goals, compare months, and sync across devices with cloud backup.</div>
       </div>
     </div>
-    <div class="card">
-      <div class="card-title">Frequently Purchased Grocery Items (2+ times)</div>
-      <div style="overflow-x:auto"><table id="table-grocery-freq"></table></div>
-    </div>
   </div>
 
-  <!-- ==================== NON-GROCERY ==================== -->
-  <div id="view-nongrocery" class="view">
-    <div class="kpi-grid" id="kpi-nongrocery"></div>
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-title">Non-Grocery Spending by Category</div>
-        <div class="chart-wrap-sm"><canvas id="chart-nongrocery-cat"></canvas></div>
+  <!-- Feature Highlights -->
+  <div class="features">
+    <div class="section-title">What You Get</div>
+    <p class="section-sub">Powerful tools to understand your spending</p>
+    <div class="feat-grid">
+      <div class="feat">
+        <div class="feat-icon">&#128196;</div>
+        <div class="feat-name">Multi-Format Import</div>
+        <div class="feat-detail">CSV, PDF, and Excel support. Auto-detects Chase, Bank of America, Wells Fargo, Capital One, Citi, and more.</div>
       </div>
-      <div class="card">
-        <div class="card-title">Non-Grocery by Store</div>
-        <div class="chart-wrap-sm"><canvas id="chart-nongrocery-store"></canvas></div>
+      <div class="feat">
+        <div class="feat-icon">&#127991;&#65039;</div>
+        <div class="feat-name">Smart Categories</div>
+        <div class="feat-detail">100+ merchant rules auto-categorize your transactions. Teach it new rules and they stick.</div>
       </div>
-    </div>
-    <div class="card">
-      <div class="card-title">All Non-Grocery Items</div>
-      <div style="overflow-x:auto"><table id="table-nongrocery-all"></table></div>
-    </div>
-  </div>
-
-  <!-- ==================== BY STORE ==================== -->
-  <div id="view-stores" class="view">
-    <div class="card">
-      <div class="card-title">Total Spend by Store</div>
-      <div class="chart-wrap-tall"><canvas id="chart-store-bar"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Store Breakdown</div>
-      <div id="store-breakdown"></div>
-    </div>
-  </div>
-
-  <!-- ==================== TRENDS ==================== -->
-  <div id="view-trends" class="view">
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-title">Daily Spending Pattern</div>
-        <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+      <div class="feat">
+        <div class="feat-icon">&#9729;&#65039;</div>
+        <div class="feat-name">Cloud Sync</div>
+        <div class="feat-detail">Optional Firebase sync keeps your data backed up and accessible across all your devices.</div>
       </div>
-      <div class="card">
-        <div class="card-title" id="cumulative-title">Cumulative Spend</div>
-        <div class="chart-wrap"><canvas id="chart-cumulative"></canvas></div>
+      <div class="feat">
+        <div class="feat-icon">&#128247;</div>
+        <div class="feat-name">Receipt Scanner</div>
+        <div class="feat-detail">Snap photos of paper receipts. OCR extracts items, prices, and stores automatically.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">&#127919;</div>
+        <div class="feat-name">Budget Goals</div>
+        <div class="feat-detail">Set monthly spending targets by category. Visual progress bars show where you stand.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">&#127763;</div>
+        <div class="feat-name">Dark &amp; Light Mode</div>
+        <div class="feat-detail">Easy on the eyes, day or night. Your preference saves automatically.</div>
       </div>
     </div>
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-title">Shopping Trips Per Week</div>
-        <div class="chart-wrap-sm"><canvas id="chart-trips-week"></canvas></div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="faq">
+    <div class="section-title">Questions &amp; Answers</div>
+    <p class="section-sub">Everything you need to know</p>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Is my data private?
+        <span class="faq-chevron">&#9660;</span>
       </div>
-      <div class="card">
-        <div class="card-title">Average Spend Per Trip by Store</div>
-        <div class="chart-wrap-sm"><canvas id="chart-avg-trip"></canvas></div>
+      <div class="faq-a">Your data lives in your browser's local storage by default — it never leaves your device. Cloud sync is optional and uses your personal Firebase account with encrypted transfer.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        What file formats are supported?
+        <span class="faq-chevron">&#9660;</span>
       </div>
+      <div class="faq-a">Bank statements in CSV, PDF, and Excel formats. Grocery data via Excel upload. Receipt photos in JPG, PNG, HEIC, WebP, BMP, and TIFF for OCR scanning.</div>
     </div>
-    <div class="card" id="spending-streaks"></div>
-  </div>
-
-  <!-- ==================== TRIPS ==================== -->
-  <div id="view-trips" class="view">
-    <div class="kpi-grid" id="kpi-trips"></div>
-    <div id="trips-list"></div>
-  </div>
-
-  <!-- ==================== PRODUCT DETAIL ==================== -->
-  <div id="view-product-detail" class="view">
-    <div style="margin-bottom:16px">
-      <button id="product-detail-back" style="background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;padding:8px 16px;color:var(--green);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">&larr; Back</button>
-    </div>
-    <div id="product-detail-content"></div>
-  </div>
-
-  <!-- ==================== CATEGORY DETAIL ==================== -->
-  <div id="view-category-detail" class="view">
-    <div style="margin-bottom:16px">
-      <button id="category-detail-back" style="background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;padding:8px 16px;color:var(--green);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">&larr; Back</button>
-    </div>
-    <div id="category-detail-content"></div>
-  </div>
-
-  <!-- ==================== STORE DETAIL ==================== -->
-  <div id="view-store-detail" class="view">
-    <div style="margin-bottom:16px">
-      <button id="store-detail-back" style="background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;padding:8px 16px;color:var(--green);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">&larr; Back</button>
-    </div>
-    <div id="store-detail-content"></div>
-  </div>
-
-  <!-- ==================== TRIP DETAIL ==================== -->
-  <div id="view-trip-detail" class="view">
-    <div style="margin-bottom:16px">
-      <button onclick="showView('trips')" style="background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;padding:8px 16px;color:var(--green);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">← Back to All Trips</button>
-    </div>
-    <div id="trip-detail-content"></div>
-  </div>
-
-  <!-- ==================== ALL ITEMS ==================== -->
-  <div id="view-items" class="view">
-    <div class="filter-bar">
-      <select id="filter-date"><option value="All">All Dates</option></select>
-      <select id="filter-store"><option value="All">All Stores</option></select>
-      <select id="filter-cat"><option value="All">All Categories</option></select>
-      <select id="filter-type">
-        <option value="All">All Types</option>
-        <option value="Grocery">Grocery Only</option>
-        <option value="Non-Grocery">Non-Grocery Only</option>
-        <option value="Weighed">Weighed Items</option>
-        <option value="Other">Other Non-Grocery</option>
-      </select>
-      <input type="text" id="filter-search" placeholder="Search items..." style="min-width:180px">
-      <button class="btn-clear" onclick="clearFilters()">Clear Filters</button>
-      <span id="filter-count" style="font-size:13px;color:var(--text-muted)"></span>
-    </div>
-    <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn-select-mode" id="btn-select-mode" onclick="toggleGrocSelectMode()">Select</button></div>
-    <div class="card">
-      <div style="overflow-x:auto"><table id="table-all"></table></div>
-    </div>
-  </div>
-
-  <!-- ==================== COMPARE ==================== -->
-  <div id="view-compare" class="view">
-    <div id="compare-content"></div>
-  </div>
-
-</div><!-- end container -->
-
-<!-- Upload Choice Modal -->
-<div class="modal-overlay" id="upload-choice-modal" onclick="if(event.target===this)closeUploadChoice()">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-title">Upload Monthly Data</div>
-    <div class="upload-choice-subtitle">How would you like to add your grocery data?</div>
-    <div class="upload-choice-cards">
-      <div class="upload-choice-card upload-choice-primary" onclick="goToScanner()">
-        <div class="upload-choice-icon">&#128247;</div>
-        <div class="upload-choice-name">Scan Receipts</div>
-        <div class="upload-choice-desc">Upload receipt photos &mdash; items, prices and stores are extracted automatically</div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Can I use this on my phone?
+        <span class="faq-chevron">&#9660;</span>
       </div>
-      <!-- Excel upload disabled but preserved for future use -->
-      <!--
-      <div class="upload-choice-card upload-choice-secondary" onclick="closeUploadChoice();openUploadModal()">
-        <div class="upload-choice-icon">&#128196;</div>
-        <div class="upload-choice-name">Upload Excel</div>
-        <div class="upload-choice-desc">Import from a formatted Excel spreadsheet</div>
+      <div class="faq-a">Yes! All dashboards are fully responsive and designed mobile-first. Upload files, scan receipts, and track spending from any device.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        How do I share with my partner?
+        <span class="faq-chevron">&#9660;</span>
       </div>
-      -->
+      <div class="faq-a">Sign in with the same account on both devices. Cloud sync will keep your data in sync automatically across all logged-in devices.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Is it free?
+        <span class="faq-chevron">&#9660;</span>
+      </div>
+      <div class="faq-a">Yes, completely free. No subscriptions, no hidden fees, no ads. Your finances are your business.</div>
     </div>
   </div>
 </div>
+<script src="demo-data.js"></script>
+<script src="firebase-sync.js"></script>
+<script>
+// Theme toggle
+function toggleHomeTheme() {
+  var isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('app_theme', isDark ? 'dark' : 'light');
+  document.getElementById('theme-toggle').innerHTML = isDark ? '&#9788;' : '&#9790;';
+}
+// Restore saved theme (default: light)
+(function() {
+  var saved = localStorage.getItem('app_theme');
+  if (saved === 'dark') {
+    document.body.classList.add('dark');
+    document.getElementById('theme-toggle').innerHTML = '&#9788;';
+  }
+})();
 
-<!-- Upload Modal -->
-<div class="modal-overlay" id="upload-modal" onclick="if(event.target===this)closeUploadModal()">
-  <div class="modal" style="max-width:560px">
-    <div class="modal-title">Upload Monthly Data</div>
-    <div class="drop-zone" id="drop-zone">
-      <div class="drop-zone-icon">&#128193;</div>
-      <div class="drop-zone-text">Drop your Excel file here or click to browse</div>
-      <div class="drop-zone-hint">Expects an "All Transactions" sheet with columns:<br>Date, Store, Receipt Name, Full Product Name, Category, Qty, Unit Price, Line Total, Non-Grocery?</div>
-      <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none">
-    </div>
-    <div id="upload-preview" style="display:none;margin-top:16px">
-      <div style="font-size:13px;color:var(--green);font-weight:700;margin-bottom:8px" id="upload-month-label"></div>
-      <div style="font-size:12px;color:var(--text-muted)" id="upload-stats"></div>
-      <div style="max-height:200px;overflow-y:auto;margin-top:12px;font-size:12px" id="upload-sample"></div>
-    </div>
-    <div id="upload-actions" style="display:none;margin-top:20px">
-      <div class="modal-actions">
-        <button class="modal-btn modal-btn-cancel" onclick="closeUploadModal()">Cancel</button>
-        <button class="modal-btn modal-btn-save" onclick="confirmUpload()">Import This Month</button>
-      </div>
-    </div>
-  </div>
-</div>
+// Clear demo mode when user returns to landing page
+if (sessionStorage.getItem('demo_mode') === 'true') {
+  sessionStorage.removeItem('demo_mode');
+}
+// If ?signup=true, auto-open auth modal after Firebase loads
+if (new URLSearchParams(window.location.search).has('signup')) {
+  window.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+      if (typeof openAuthModal === 'function') {
+        openAuthModal();
+        if (typeof switchAuthTab === 'function') switchAuthTab('signup');
+      }
+    }, 500);
+  });
+}
+function enterDemoMode(dashboard) {
+  sessionStorage.setItem('demo_mode', 'true');
+  window.location.href = (dashboard || 'Groceries') + '/?demo=true';
+}
+function toggleFaq(el) {
+  var item = el.parentElement;
+  var wasOpen = item.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.faq-item').forEach(function(f) { f.classList.remove('open'); });
+  // Toggle clicked
+  if (!wasOpen) item.classList.add('open');
+}
 
-<!-- Data Manager Modal -->
-<div class="modal-overlay" id="manager-modal" onclick="if(event.target===this)closeDataManager()">
-  <div class="modal" style="max-width:520px">
-    <div class="modal-title">Data Manager</div>
-    <div style="margin-bottom:16px;font-size:12px;color:var(--text-muted)">
-      Data is stored in this browser's localStorage. It does not sync across devices.
-    </div>
-    <div id="manager-list"></div>
-    <div id="manager-usage" style="margin-top:12px;font-size:11px;color:var(--text-muted)"></div>
-    <div class="modal-actions" style="margin-top:16px;flex-wrap:wrap">
-      <button class="modal-btn modal-btn-save" onclick="downloadAllData()" style="margin-right:auto">&#11015; Download Data</button>
-      <div style="display:flex;align-items:center;gap:6px;margin-right:auto">
-        <select id="excel-export-month" style="background:var(--card);border:1px solid var(--card-border);border-radius:6px;padding:6px 8px;color:var(--text);font-family:inherit;font-size:11px"></select>
-        <button class="modal-btn modal-btn-save" onclick="exportToExcel()" style="background:rgba(59,130,246,0.15);color:var(--blue)">&#128196; Export Excel</button>
-      </div>
-      <label class="modal-btn modal-btn-cancel" style="cursor:pointer">&#11014; Load Data <input type="file" accept=".json" onchange="loadDataFile(event)" style="display:none"></label>
-      <button class="modal-btn modal-btn-cancel" onclick="closeDataManager()">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- Help Modal -->
-<div class="modal-overlay" id="help-modal" onclick="if(event.target===this)closeHelpModal()">
-  <div class="modal" style="max-width:740px;max-height:85vh;overflow-y:auto">
-    <div class="modal-title" style="font-size:18px">Groceries Dashboard &mdash; Help &amp; Guide</div>
-    <div class="help-text" style="margin-bottom:20px">Everything you need to know about tracking your grocery and household spending.</div>
-
-    <!-- Getting Started -->
-    <div class="help-section">
-      <div class="help-section-title">Getting Started</div>
-      <div class="help-text">
-        The Groceries Dashboard helps you track every item you buy from grocery stores each month. It breaks down your spending by store, category, and item &mdash; so you can see exactly where your money goes.
-      </div>
-      <div class="help-text" style="margin-top:8px">
-        <strong>What you need:</strong> Photos of your grocery receipts. The Receipt Scanner will extract items, prices, and stores automatically.
-      </div>
-    </div>
-
-    <!-- How to Upload -->
-    <div class="help-section">
-      <div class="help-section-title">How to Upload a Month</div>
-      <div class="help-step">
-        <div class="help-step-num">1</div>
-        <div class="help-step-text">Click the <strong>"+ Upload Month"</strong> button in the navigation bar</div>
-      </div>
-      <div class="help-step">
-        <div class="help-step-num">2</div>
-        <div class="help-step-text">Select <strong>"Scan Receipts"</strong> &mdash; this opens the Receipt Scanner</div>
-      </div>
-      <div class="help-step">
-        <div class="help-step-num">3</div>
-        <div class="help-step-text">Upload your receipt photos (JPG, PNG, HEIC, PDF). You can upload multiple receipts at once</div>
-      </div>
-      <div class="help-step">
-        <div class="help-step-num">4</div>
-        <div class="help-step-text">Choose a scan mode &mdash; <strong>AI-Powered</strong> (recommended, more accurate) or <strong>Offline OCR</strong> (no internet needed)</div>
-      </div>
-      <div class="help-step">
-        <div class="help-step-num">5</div>
-        <div class="help-step-text">Review the extracted items &mdash; correct any names, categories, prices, or dates as needed</div>
-      </div>
-      <div class="help-step">
-        <div class="help-step-num">6</div>
-        <div class="help-step-text">Choose <strong>"Import to Dashboard"</strong>, select the month and year, then import. Your data appears immediately in the Groceries dashboard</div>
-      </div>
-      <div class="help-text" style="margin-top:10px">
-        <strong>Tip:</strong> If the scanner can't detect the date from a receipt, you'll need to select it manually before importing. The month and year are required fields.
-      </div>
-    </div>
-
-    <!-- Dashboard Tabs Guide -->
-    <div class="help-section">
-      <div class="help-section-title">Dashboard Tabs Guide</div>
-      <div class="help-text">
-        <strong style="color:var(--green)">Overview</strong> &mdash; Summary cards showing total spend, item count, store count, and trip count. Includes spending breakdown chart and highlights.<br><br>
-        <strong style="color:var(--green)">By Store</strong> &mdash; See how much you spent at each store, how many trips, and percentage of total spending. Click any store for a detailed breakdown.<br><br>
-        <strong style="color:var(--green)">By Category</strong> &mdash; Spending grouped by product category (Produce, Dairy, Meat, etc.). Click any category to see all items in it.<br><br>
-        <strong style="color:var(--green)">All Items</strong> &mdash; Complete list of every item purchased. Click any item to edit its name or category.<br><br>
-        <strong style="color:var(--green)">Compare</strong> &mdash; Appears when you have 2+ months loaded. Compare spending side-by-side across months.
-      </div>
-    </div>
-
-    <!-- How Items Are Classified -->
-    <div class="help-section">
-      <div class="help-section-title">How Items Are Classified</div>
-      <div class="help-text">
-        The dashboard classifies each item into two types:<br><br>
-        <strong style="color:var(--green)">Grocery</strong> &mdash; Food and drink items (Non-Grocery = FALSE).<br><br>
-        <strong style="color:var(--purple)">Non-Grocery</strong> &mdash; Non-food items like cleaning, personal care, household, paper products, electronics (Non-Grocery = TRUE).
-      </div>
-    </div>
-
-    <!-- Categories Reference -->
-    <div class="help-section">
-      <div class="help-section-title">Categories Reference</div>
-      <div style="margin-bottom:12px">
-        <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px">GROCERY</div>
-        <div class="help-text">Produce &bull; Dairy &amp; Eggs &bull; Meat &amp; Protein &bull; Bakery &amp; Bread &bull; Snacks &amp; Chips &bull; Candy &amp; Sweets &bull; Beverages &bull; Frozen Desserts &bull; Frozen Foods &bull; Canned &amp; Packaged Foods &bull; Baking &amp; Pantry &bull; Cooking Oils &amp; Condiments &bull; Breakfast &amp; Cereal &bull; Baby Care (Food) &bull; Prepared Foods &amp; Deli</div>
-      </div>
-      <div>
-        <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:6px">NON-GROCERY</div>
-        <div class="help-text">Health &amp; Beauty &bull; Household &amp; Cleaning &bull; Paper Products &bull; Personal Care &bull; Cleaning Products &bull; Electronics &amp; Batteries &bull; Clothing &amp; Apparel &bull; Baby Care (Non-Food) &bull; Toys &bull; Housewares</div>
-      </div>
-      <div class="help-text" style="margin-top:10px">
-        <strong>Tip:</strong> You can add new categories at any time. Just use a new category name in your spreadsheet and the dashboard will pick it up automatically. You can also edit item categories after uploading by clicking any item in the All Items tab.
-      </div>
-    </div>
-
-    <!-- Editing Items -->
-    <div class="help-section">
-      <div class="help-section-title">Editing Items</div>
-      <div class="help-text">
-        <strong>Edit from All Items:</strong> Click any item row in the All Items tab to open the edit modal. You can change the product name and category.<br><br>
-        <strong>Edit from Product Detail:</strong> When viewing a product's detail page, click the pencil icon next to the product name to rename it.<br><br>
-        <strong>Autocomplete:</strong> When editing a product name, you'll see suggestions based on existing product names from all your loaded months. This helps keep names consistent across months.
-      </div>
-    </div>
-
-    <!-- Duplicate Detection -->
-    <div class="help-section">
-      <div class="help-section-title">Duplicate Detection</div>
-      <div class="help-text">
-        When you import a new month, some products may end up with slightly different names (e.g., "Boneless Chicken" vs "Boneless Chicken Breast"). The dashboard automatically flags these potential duplicates with an amber flag icon in the All Items tab.<br><br>
-        <strong>Click the flag</strong> to see which product it matches. You'll have two options:<br><br>
-        &#8226; <strong>Rename to Match</strong> &mdash; Opens the edit modal pre-filled with the matched name so you can unify the product names.<br>
-        &#8226; <strong>Not a Duplicate</strong> &mdash; Dismisses the flag permanently if the items are genuinely different products.
-      </div>
-    </div>
-
-    <!-- Managing Your Data -->
-    <div class="help-section">
-      <div class="help-section-title">Managing Your Data</div>
-      <div class="help-text">
-        <strong>Switch months:</strong> Use the month dropdown in the navigation bar to switch between uploaded months.<br><br>
-        <strong>Manage Data:</strong> Click "Manage Data" to download a backup of all your data as a JSON file, restore from a previous backup, or delete individual months.<br><br>
-        <strong>Compare months:</strong> Once you have 2 or more months loaded, the "Compare" tab appears to show side-by-side spending comparisons.
-      </div>
-    </div>
-
-    <!-- Bulk Actions -->
-    <div class="help-section">
-      <div class="help-section-title">Bulk Actions</div>
-      <div class="help-text">
-        To act on multiple items at once, click the <strong>"Select"</strong> button above the All Items table to enter selection mode.<br><br>
-        &#8226; Checkboxes will appear next to each row &mdash; check individual items or use the header checkbox to select all<br>
-        &#8226; A floating action bar appears at the bottom showing how many are selected<br>
-        &#8226; <strong>Change Category</strong> &mdash; Re-categorize all selected items at once<br>
-        &#8226; <strong>Delete</strong> &mdash; Remove all selected items<br><br>
-        Click <strong>"Cancel"</strong> to exit selection mode and hide the checkboxes.
-      </div>
-    </div>
-
-    <!-- Prices Nearby -->
-    <div class="help-section">
-      <div class="help-section-title">Prices Nearby</div>
-      <div class="help-text">
-        When you view a product's detail page, the <strong>Prices Nearby</strong> card automatically checks current online prices at major grocery retailers (Walmart, Target, Kroger, Costco, and more).<br><br>
-        &#8226; <strong>Location</strong> &mdash; On first use, you can share your GPS location or enter a zip code. This is used to show distance to nearby stores. Your location stays on your device.<br>
-        &#8226; <strong>Caching</strong> &mdash; Results are cached for 48 hours to save API calls. Prices refresh automatically after that.<br>
-        &#8226; <strong>Best Price</strong> &mdash; The cheapest option is highlighted in green with a "BEST" badge.<br>
-        &#8226; <strong>Update Location</strong> &mdash; Click the "Update location" link below the price table to change your location.<br><br>
-        <em>Note: Prices shown are online/listed prices and may differ from in-store pricing.</em>
-      </div>
-    </div>
-
-    <!-- FAQ -->
-    <div class="help-section" style="margin-bottom:0">
-      <div class="help-section-title">Frequently Asked Questions</div>
-      <div class="help-text">
-        <strong>Q: What file types can I scan?</strong><br>
-        JPG, PNG, HEIC, and PDF files are all supported. You can upload multiple receipts at once.<br><br>
-
-        <strong>Q: How do I mark non-food items (like batteries or toys)?</strong><br>
-        After scanning, edit the item category or mark it as Non-Grocery. These items are tracked separately in the dashboard.<br><br>
-
-        <strong>Q: Where is my data stored?</strong><br>
-        All data is stored locally on your device (in your browser's localStorage). Nothing is sent to any server. Use "Manage Data" to download a backup.<br><br>
-
-        <strong>Q: Can I use this on my phone?</strong><br>
-        Yes. The dashboard is fully responsive and works on mobile browsers. Upload and view your data from any device.<br><br>
-
-        <strong>Q: What if a receipt name is hard to decode?</strong><br>
-        The AI scan mode automatically decodes receipt abbreviations into readable product names. You can also manually edit any item name after scanning.
-      </div>
-    </div>
-
-    <div class="modal-actions" style="margin-top:20px">
-      <button class="modal-btn modal-btn-cancel" onclick="closeHelpModal()">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- Edit Modal -->
-<div class="modal-overlay" id="edit-modal" onclick="if(event.target===this)closeEditModal()">
-  <div class="modal">
-    <div class="modal-title" id="edit-modal-title">Edit Item</div>
-    <div class="modal-field">
-      <label class="modal-label">Product Name</label>
-      <div style="position:relative">
-        <input type="text" class="modal-input" id="edit-name" autocomplete="off">
-        <div class="edit-suggestions" id="edit-name-suggestions"></div>
-      </div>
-      <div class="modal-original" id="edit-original-name"></div>
-    </div>
-    <div class="modal-field">
-      <label class="modal-label">Category</label>
-      <select class="modal-select" id="edit-category"></select>
-      <div class="modal-original" id="edit-original-cat"></div>
-    </div>
-    <div class="modal-field">
-      <label class="modal-label">Type</label>
-      <select class="modal-select" id="edit-type">
-        <option value="false">Grocery</option>
-        <option value="true">Non-Grocery</option>
-      </select>
-    </div>
-    <div class="modal-field">
-      <label class="modal-label">Weighed?</label>
-      <select class="modal-select" id="edit-weighed">
-        <option value="false">No (counted item)</option>
-        <option value="true">Yes (sold by weight)</option>
-      </select>
-    </div>
-    <div class="modal-actions">
-      <button class="modal-btn modal-btn-reset" id="edit-reset-btn" onclick="resetEdit()">Reset to Original</button>
-      <button class="modal-btn modal-btn-cancel" onclick="closeEditModal()">Cancel</button>
-      <button class="modal-btn modal-btn-save" onclick="saveEdit()">Save</button>
-    </div>
-  </div>
-</div>
-
-<script src="../js/shared.js?v=cache8"></script>
-<script src="../js/groceries.js?v=cache8"></script>
-<div style="text-align:center;padding:32px 20px 24px;font-size:12px;color:var(--text-muted);border-top:1px solid var(--card-border);margin-top:40px">
-  <span style="font-weight:600;color:var(--text)">Family Finance Dashboards</span><br>
-  <a href="https://allagilejobs-jpg.github.io/Monthly/Groceries/" style="color:var(--green);text-decoration:none;margin:0 8px">Groceries</a> &bull;
-  <a href="https://allagilejobs-jpg.github.io/Monthly/Expenses/" style="color:var(--blue);text-decoration:none;margin:0 8px">All Expenses</a> &bull;
-  <a href="https://allagilejobs-jpg.github.io/Monthly/Scanner/" style="color:var(--cyan);text-decoration:none;margin:0 8px">Scanner</a> &bull;
-  <a href="https://allagilejobs-jpg.github.io/Monthly/Budget/" style="color:#a855f7;text-decoration:none;margin:0 8px">Budget</a> &bull;
-  <a href="https://allagilejobs-jpg.github.io/Monthly/" style="color:var(--text-muted);text-decoration:none;margin:0 8px">Home</a>
-</div>
-<div class="bulk-bar" id="bulk-bar">
-  <span class="bulk-count" id="bulk-count">0 selected</span>
-  <button class="bulk-recat" onclick="bulkGrocRecat()">Change Category</button>
-  <button class="bulk-delete" onclick="bulkGrocDelete()">Delete</button>
-  <button class="bulk-cancel" onclick="clearGrocBulkSelection()">Cancel</button>
-</div>
-<script src="../firebase-sync.js"></script>
+// Update homepage auth buttons on auth state change
+function updateHomeAuth() {
+  var authArea = document.getElementById('home-auth-area');
+  var userInfo = document.getElementById('home-user-info');
+  if (!authArea || !userInfo) return;
+  if (typeof fb_user !== 'undefined' && fb_user) {
+    authArea.style.display = 'none';
+    userInfo.style.display = 'inline-flex';
+    document.getElementById('home-user-email').textContent = fb_user.email;
+  } else {
+    authArea.style.display = 'flex';
+    userInfo.style.display = 'none';
+  }
+}
+// Hook into firebase auth state
+(function() {
+  var origUpdate = typeof updateAuthUI === 'function' ? updateAuthUI : null;
+  if (origUpdate) {
+    updateAuthUI = function() { origUpdate(); updateHomeAuth(); };
+  }
+  // Initial check after a short delay for Firebase init
+  setTimeout(updateHomeAuth, 600);
+})();
+</script>
 </body>
 </html>
