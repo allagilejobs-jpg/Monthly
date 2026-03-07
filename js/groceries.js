@@ -257,7 +257,7 @@ function renderPricesNearby(container, results) {
   results.slice(0, 6).forEach(function(r, i) {
     var isCheapest = i === 0;
     h += '<tr>';
-    h += '<td style="font-weight:600;padding:8px 4px;' + (isCheapest ? 'color:var(--green)' : '') + '">';
+    h += '<td style="font-weight:600;padding:8px 4px;text-align:left;' + (isCheapest ? 'color:var(--green)' : '') + '">';
     h += r.url ? '<a href="' + r.url + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">' + r.store + ' ↗</a>' : r.store;
     if (isCheapest) h += ' <span style="font-size:10px;background:rgba(34,197,94,0.12);color:var(--green);padding:2px 6px;border-radius:4px;margin-left:4px">BEST</span>';
     h += '</td>';
