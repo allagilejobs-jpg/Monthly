@@ -250,9 +250,9 @@ function setPriceCache(product, results) {
 
 function renderPricesNearby(container, results) {
   var h = '<div style="overflow-x:auto"><table style="width:100%"><thead><tr>';
-  h += '<th style="text-align:left">Store</th>';
-  h += '<th style="text-align:right">Price</th>';
-  h += '<th style="text-align:right">Distance</th>';
+  h += '<th style="text-align:left;padding:8px 4px">Store</th>';
+  h += '<th style="text-align:right;padding:8px 4px">Price</th>';
+  h += '<th style="text-align:right;padding:8px 4px">Distance</th>';
   h += '</tr></thead><tbody>';
   results.slice(0, 6).forEach(function(r, i) {
     var isCheapest = i === 0;
@@ -261,8 +261,8 @@ function renderPricesNearby(container, results) {
     h += r.url ? '<a href="' + r.url + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">' + r.store + ' ↗</a>' : r.store;
     if (isCheapest) h += ' <span style="font-size:10px;background:rgba(34,197,94,0.12);color:var(--green);padding:2px 6px;border-radius:4px;margin-left:4px">BEST</span>';
     h += '</td>';
-    h += '<td style="text-align:right;font-family:\'Cascadia Code\',monospace;font-size:13px;' + (isCheapest ? 'color:var(--green);font-weight:700' : '') + '">$' + r.price.toFixed(2) + '</td>';
-    h += '<td style="text-align:right;font-size:12px;color:var(--text-muted)">' + (r.distance_mi ? r.distance_mi + ' mi' : '—') + '</td>';
+    h += '<td style="text-align:right;padding:8px 4px;font-family:\'Cascadia Code\',monospace;font-size:13px;' + (isCheapest ? 'color:var(--green);font-weight:700' : '') + '">$' + r.price.toFixed(2) + '</td>';
+    h += '<td style="text-align:right;padding:8px 4px;font-size:12px;color:var(--text-muted)">' + (r.distance_mi ? r.distance_mi + ' mi' : '—') + '</td>';
     h += '</tr>';
   });
   h += '</tbody></table></div>';
