@@ -163,6 +163,164 @@ function emptyState(icon, title, text, btnLabel, btnAction) {
 }
 function lbBadge(w) { return w ? ' <span style="display:inline-block;font-size:8px;font-style:italic;font-weight:600;color:var(--text-muted);border:1px solid var(--text-muted);border-radius:50%;width:14px;height:14px;line-height:13px;text-align:center;margin-left:3px;vertical-align:middle" title="Sold by weight">lb</span>' : ''; }
 
+// ─────────── LOCATION & PRICE CHECK ───────────
+function getUserLocation() {
+  return new Promise(function(resolve) {
+    var cached = localStorage.getItem('user_location');
+    if (cached) {
+      try { resolve(JSON.parse(cached)); return; } catch(e) {}
+    }
+    resolve(null);
+  });
+}
+
+function promptForLocation() {
+  return new Promise(function(resolve) {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+    var modal = document.createElement('div');
+    modal.style.cssText = 'background:var(--card-bg,#1a1a2e);border:1px solid var(--card-border,#2a2a4a);border-radius:16px;padding:24px;max-width:360px;width:100%;text-align:center;font-family:inherit';
+    modal.innerHTML = '<div style="font-size:20px;margin-bottom:4px">📍</div>' +
+      '<div style="font-size:15px;font-weight:600;color:var(--text-primary,#fff);margin-bottom:8px">Set Your Location</div>' +
+      '<div style="font-size:12px;color:var(--text-muted,#888);margin-bottom:16px">Used to show distances to nearby stores. Your location stays on your device.</div>' +
+      '<button id="loc-gps-btn" style="width:100%;padding:12px;margin-bottom:8px;background:var(--cyan,#06b6d4);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Use My Location</button>' +
+      '<div style="font-size:11px;color:var(--text-muted,#888);margin-bottom:8px">— or —</div>' +
+      '<div style="display:flex;gap:8px">' +
+        '<input id="loc-zip-input" type="text" maxlength="5" placeholder="Enter zip code" style="flex:1;padding:10px;background:rgba(255,255,255,0.06);border:1px solid var(--card-border,#2a2a4a);border-radius:8px;color:var(--text-primary,#fff);font-size:13px;font-family:inherit;text-align:center">' +
+        '<button id="loc-zip-btn" style="padding:10px 16px;background:rgba(255,255,255,0.08);border:1px solid var(--card-border,#2a2a4a);border-radius:8px;color:var(--text-primary,#fff);font-size:13px;cursor:pointer;font-family:inherit;font-weight:600">Go</button>' +
+      '</div>' +
+      '<button id="loc-skip-btn" style="margin-top:12px;background:none;border:none;color:var(--text-muted,#888);font-size:11px;cursor:pointer;font-family:inherit">Skip — show prices without distance</button>';
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    document.getElementById('loc-gps-btn').onclick = function() {
+      if (!navigator.geolocation) { finish(null); return; }
+      this.textContent = 'Getting location...';
+      this.disabled = true;
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          var loc = { lat: pos.coords.latitude, lng: pos.coords.longitude, type: 'gps' };
+          localStorage.setItem('user_location', JSON.stringify(loc));
+          finish(loc);
+        },
+        function() { finish(null); },
+        { timeout: 10000, maximumAge: 86400000 }
+      );
+    };
+
+    document.getElementById('loc-zip-btn').onclick = function() {
+      var zip = document.getElementById('loc-zip-input').value.trim();
+      if (!/^\d{5}$/.test(zip)) { document.getElementById('loc-zip-input').style.borderColor = 'var(--red,#ef4444)'; return; }
+      var loc = { zip: zip, type: 'zip' };
+      localStorage.setItem('user_location', JSON.stringify(loc));
+      finish(loc);
+    };
+
+    document.getElementById('loc-zip-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('loc-zip-btn').click();
+    });
+
+    document.getElementById('loc-skip-btn').onclick = function() {
+      localStorage.setItem('user_location', JSON.stringify({ type: 'skipped' }));
+      finish({ type: 'skipped' });
+    };
+
+    function finish(loc) { document.body.removeChild(overlay); resolve(loc); }
+  });
+}
+
+function getPriceCache(product) {
+  try {
+    var key = 'priceCheck_' + product.toLowerCase().replace(/\s+/g, '_');
+    var cached = localStorage.getItem(key);
+    if (!cached) return null;
+    var data = JSON.parse(cached);
+    if (Date.now() - data.timestamp > 48 * 60 * 60 * 1000) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return data.results;
+  } catch(e) { return null; }
+}
+
+function setPriceCache(product, results) {
+  var key = 'priceCheck_' + product.toLowerCase().replace(/\s+/g, '_');
+  localStorage.setItem(key, JSON.stringify({ results: results, timestamp: Date.now() }));
+}
+
+function renderPricesNearby(container, results) {
+  var h = '<div style="overflow-x:auto"><table style="width:100%"><thead><tr>';
+  h += '<th style="text-align:left">Store</th>';
+  h += '<th style="text-align:right">Price</th>';
+  h += '<th style="text-align:right">Distance</th>';
+  h += '</tr></thead><tbody>';
+  results.slice(0, 6).forEach(function(r, i) {
+    var isCheapest = i === 0;
+    h += '<tr>';
+    h += '<td style="font-weight:600;padding:8px 4px;' + (isCheapest ? 'color:var(--green)' : '') + '">';
+    h += r.url ? '<a href="' + r.url + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">' + r.store + ' ↗</a>' : r.store;
+    if (isCheapest) h += ' <span style="font-size:10px;background:rgba(34,197,94,0.12);color:var(--green);padding:2px 6px;border-radius:4px;margin-left:4px">BEST</span>';
+    h += '</td>';
+    h += '<td style="text-align:right;font-family:\'Cascadia Code\',monospace;font-size:13px;' + (isCheapest ? 'color:var(--green);font-weight:700' : '') + '">$' + r.price.toFixed(2) + '</td>';
+    h += '<td style="text-align:right;font-size:12px;color:var(--text-muted)">' + (r.distance_mi ? r.distance_mi + ' mi' : '—') + '</td>';
+    h += '</tr>';
+  });
+  h += '</tbody></table></div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">';
+  h += '<span style="font-size:10px;color:var(--text-muted);opacity:0.6">Prices are online/listed and may differ in-store.</span>';
+  h += '<a href="#" onclick="localStorage.removeItem(\'user_location\');showToast(\'Location cleared — reload product to update\',\'info\');return false" style="font-size:10px;color:var(--cyan);text-decoration:none">Update location</a>';
+  h += '</div>';
+  container.innerHTML = h;
+}
+
+async function fetchPricesNearby(productName) {
+  var container = document.getElementById('prices-nearby-content');
+  if (!container) return;
+
+  // Demo mode
+  if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) {
+    var demoResults = [
+      { store: 'Walmart', price: 3.49, distance_mi: 2.3, url: null },
+      { store: 'Target', price: 3.19, distance_mi: 4.1, url: null },
+      { store: 'Kroger', price: 3.79, distance_mi: 1.8, url: null }
+    ];
+    renderPricesNearby(container, demoResults);
+    return;
+  }
+
+  // Check cache first
+  var cached = getPriceCache(productName);
+  if (cached) { renderPricesNearby(container, cached); return; }
+
+  // Get or prompt for location
+  var loc = await getUserLocation();
+  if (!loc) {
+    loc = await promptForLocation();
+  }
+
+  try {
+    var body = { product: productName };
+    if (loc && loc.type === 'gps') { body.lat = loc.lat; body.lng = loc.lng; }
+    else if (loc && loc.type === 'zip') { body.zip = loc.zip; }
+
+    var resp = await fetch('https://receipt-proxy.vercel.app/api/price-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) throw new Error('API error');
+    var data = await resp.json();
+    if (data.results && data.results.length > 0) {
+      setPriceCache(productName, data.results);
+      renderPricesNearby(container, data.results);
+    } else {
+      container.innerHTML = '<div style="font-size:13px;color:var(--text-muted)">No online prices found for this product.</div>';
+    }
+  } catch(e) {
+    container.innerHTML = '<div style="font-size:13px;color:var(--text-muted)">Couldn\'t check prices — try again later.</div>';
+  }
+}
+
 // ─────────── UTILITIES ───────────
 const fmt = v => "$" + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 const pct = (v, total) => total > 0 ? (v / total * 100).toFixed(1) + "%" : "0%";
@@ -2123,6 +2281,13 @@ function showProductDetail(productName, source) {
     }
   }
 
+  // Prices Nearby — auto-fetch with 48h cache
+  html += '<div class="card" id="prices-nearby-card">';
+  html += '<div class="card-title"><span style="color:var(--cyan)">Prices Nearby</span></div>';
+  html += '<div id="prices-nearby-content" style="text-align:center;padding:20px;color:var(--text-muted)">';
+  html += '<div style="font-size:14px">Checking prices...</div>';
+  html += '</div></div>';
+
   // Store comparison (only if bought at multiple stores)
   if (stores.length > 1) {
     html += `<div class="card"><div class="card-title"><span style="color:var(--blue)">Store Price Comparison</span></div>`;
@@ -2178,6 +2343,9 @@ function showProductDetail(productName, source) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-product-detail').classList.add('active');
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+  // Auto-fetch nearby prices
+  fetchPricesNearby(productName);
 }
 
 function goToTripFromProduct(tripKey) {
