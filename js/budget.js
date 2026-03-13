@@ -17,7 +17,7 @@ let activeData = []; // current month's transactions
 let activeIncome = null; // current month's income
 let activeAccounts = []; // current month's accounts
 let txSortCol = 'date', txSortDir = 1;
-let txPerPage = 100, txCurrentPage = 1;
+let txPerPage = 250, txCurrentPage = 1;
 let editingTxId = null;
 let editingAcctId = null;
 
@@ -501,9 +501,9 @@ function renderTxTable() {
     var tbl = document.getElementById('tx-table');
     if (tbl && tbl.parentNode) tbl.parentNode.after(pgEl);
   }
-  if (sorted.length <= 20) { pgEl.innerHTML = ''; return; }
+  if (sorted.length <= 250) { pgEl.innerHTML = ''; return; }
   var h = '<div class="page-size-wrap"><label>Show</label><select class="page-size-select" onchange="txPerPage=+this.value;txCurrentPage=1;renderTxTable()">';
-  [20,50,100].forEach(function(n) { h += '<option value="'+n+'"'+(txPerPage===n?' selected':'')+'>'+n+'</option>'; });
+  [250,500].forEach(function(n) { h += '<option value="'+n+'"'+(txPerPage===n?' selected':'')+'>'+n+'</option>'; });
   h += '</select><label>per page</label></div>';
   h += '<div class="page-info">Showing '+(startIdx+1)+'\u2013'+Math.min(startIdx+txPerPage,sorted.length)+' of '+sorted.length+'</div>';
   h += '<div class="page-btns">';

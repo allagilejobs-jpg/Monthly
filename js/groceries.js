@@ -2548,7 +2548,7 @@ function showTripDetail(tripIdx) {
 
 // ─────────── ALL ITEMS TAB ───────────
 let currentSort = { col: "d", dir: "asc" };
-let itemsPerPage = 100;
+let itemsPerPage = 250;
 let itemsCurrentPage = 1;
 
 function renderAllItems() {
@@ -2685,9 +2685,9 @@ function renderTable() {
     pgEl.className = "pagination-bar";
     document.getElementById("table-all").parentNode.after(pgEl);
   }
-  if (data.length <= 20) { pgEl.innerHTML = ''; return; }
+  if (data.length <= 250) { pgEl.innerHTML = ''; return; }
   let pgHtml = '<div class="page-size-wrap"><label>Show</label><select class="page-size-select" onchange="itemsPerPage=+this.value;itemsCurrentPage=1;renderTable()">';
-  [20,50,100].forEach(n => { pgHtml += '<option value="'+n+'"'+(itemsPerPage===n?' selected':'')+'>'+n+'</option>'; });
+  [250,500].forEach(n => { pgHtml += '<option value="'+n+'"'+(itemsPerPage===n?' selected':'')+'>'+n+'</option>'; });
   pgHtml += '</select><label>per page</label></div>';
   pgHtml += '<div class="page-info">Showing '+(startIdx+1)+'\u2013'+Math.min(startIdx+itemsPerPage,data.length)+' of '+data.length+'</div>';
   pgHtml += '<div class="page-btns">';

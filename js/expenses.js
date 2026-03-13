@@ -2418,7 +2418,7 @@ function renderTrends() {
 // ══════════════════════════════════════════════════════════
 let txFilterCat = 'All', txFilterMerchant = '', txFilterDate = 'All';
 let txSortCol = 'date', txSortDir = 'asc';
-let txPerPage = 100, txCurrentPage = 1;
+let txPerPage = 250, txCurrentPage = 1;
 
 function renderTransactions() {
   const el = document.getElementById('view-transactions');
@@ -2515,9 +2515,9 @@ function renderTxRows() {
     const tableCard = document.getElementById('tx-table').closest('.card');
     if (tableCard) tableCard.after(pgEl);
   }
-  if (filtered.length <= 20) { pgEl.innerHTML = ''; return; }
+  if (filtered.length <= 250) { pgEl.innerHTML = ''; return; }
   let pgHtml = '<div class="page-size-wrap"><label>Show</label><select class="page-size-select" onchange="txPerPage=+this.value;txCurrentPage=1;renderTxRows()">';
-  [20,50,100].forEach(function(n) { pgHtml += '<option value="'+n+'"'+(txPerPage===n?' selected':'')+'>'+n+'</option>'; });
+  [250,500].forEach(function(n) { pgHtml += '<option value="'+n+'"'+(txPerPage===n?' selected':'')+'>'+n+'</option>'; });
   pgHtml += '</select><label>per page</label></div>';
   pgHtml += '<div class="page-info">Page '+txCurrentPage+' of '+totalPages+'</div>';
   pgHtml += '<div class="page-btns">';
@@ -2822,7 +2822,7 @@ function toggleTheme() {
 // ══════════════════════════════════════════════════════════
 let _detailTxs = [];
 let _detailPage = 1;
-let _detailPerPage = 50;
+let _detailPerPage = 250;
 let _detailType = 'merchant'; // 'merchant' or 'category'
 
 function renderDetailTxPage() {
@@ -2854,9 +2854,9 @@ function renderDetailTxPage() {
 
   var pgEl = document.getElementById('detail-tx-pagination');
   if (!pgEl) return;
-  if (total <= 20) { pgEl.innerHTML = ''; return; }
+  if (total <= 250) { pgEl.innerHTML = ''; return; }
   var h = '<div class="page-size-wrap"><label>Show</label><select class="page-size-select" onchange="_detailPerPage=+this.value;_detailPage=1;renderDetailTxPage()">';
-  [20,50,100].forEach(function(n) { h += '<option value="'+n+'"'+(_detailPerPage===n?' selected':'')+'>'+n+'</option>'; });
+  [250,500].forEach(function(n) { h += '<option value="'+n+'"'+(_detailPerPage===n?' selected':'')+'>'+n+'</option>'; });
   h += '</select><label>per page</label></div>';
   h += '<div class="page-info">'+( start+1)+'\u2013'+Math.min(start+_detailPerPage,total)+' of '+total+'</div>';
   h += '<div class="page-btns">';
