@@ -16,6 +16,35 @@
       min-height: 100vh;
     }
     
+    .main-nav {
+      background: #0f0f1a;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .main-nav a {
+      color: #aaa;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 25px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .main-nav a:hover {
+      background: #4A90A4;
+      color: white;
+    }
+    
+    .main-nav a.active {
+      background: #4A90A4;
+      color: white;
+    }
+    
     .header {
       background: linear-gradient(135deg, #4A90A4 0%, #2C5F6E 100%);
       padding: 30px 20px;
@@ -360,6 +389,12 @@
   </style>
 </head>
 <body>
+  
+  <nav class="main-nav">
+    <a href="index.html">🏠 Dashboard</a>
+    <a href="calendar.html">📅 30-Day Calendar</a>
+    <a href="editor.html" class="active">✏️ Template Editor</a>
+  </nav>
   
   <div class="header">
     <h1>🎨 Spectrum Unlocked Template Editor</h1>

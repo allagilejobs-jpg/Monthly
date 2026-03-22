@@ -16,6 +16,35 @@
       padding-bottom: 60px;
     }
     
+    .main-nav {
+      background: #0f0f1a;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .main-nav a {
+      color: #aaa;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 25px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .main-nav a:hover {
+      background: #4A90A4;
+      color: white;
+    }
+    
+    .main-nav a.active {
+      background: #4A90A4;
+      color: white;
+    }
+    
     .header {
       background: linear-gradient(135deg, #4A90A4 0%, #2C5F6E 100%);
       padding: 30px 20px;
@@ -289,12 +318,17 @@
   <p>Your complete posting schedule with ready-to-copy captions</p>
 </div>
 
+<nav class="main-nav">
+  <a href="index.html">🏠 Dashboard</a>
+  <a href="calendar.html" class="active">📅 30-Day Calendar</a>
+  <a href="editor.html">✏️ Template Editor</a>
+</nav>
+
 <div class="nav">
-  <a href="#week1" class="active">Week 1</a>
-  <a href="#week2">Week 2</a>
-  <a href="#week3">Week 3</a>
-  <a href="#week4">Week 4</a>
-  <a href="editor.html">✏️ Editor</a>
+  <a href="#week1" class="week-link active">Week 1</a>
+  <a href="#week2" class="week-link">Week 2</a>
+  <a href="#week3" class="week-link">Week 3</a>
+  <a href="#week4" class="week-link">Week 4</a>
 </div>
 
 <div class="container">

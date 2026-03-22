@@ -15,6 +15,35 @@
       color: #333;
     }
     
+    .main-nav {
+      background: #1a1a2e;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .main-nav a {
+      color: #aaa;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 25px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .main-nav a:hover {
+      background: #4A90A4;
+      color: white;
+    }
+    
+    .main-nav a.active {
+      background: #4A90A4;
+      color: white;
+    }
+    
     .hero {
       background: linear-gradient(135deg, #4A90A4 0%, #2C5F6E 100%);
       color: white;
@@ -246,6 +275,12 @@
   </style>
 </head>
 <body>
+  
+  <nav class="main-nav">
+    <a href="index.html" class="active">🏠 Dashboard</a>
+    <a href="calendar.html">📅 30-Day Calendar</a>
+    <a href="editor.html">✏️ Template Editor</a>
+  </nav>
   
   <div class="hero">
     <h1>Spectrum Unlocked</h1>
