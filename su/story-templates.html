@@ -822,6 +822,56 @@
       
       alert('✅ All story templates exported!');
     }
+    
+    // Handle URL parameters for auto-fill
+    const urlParams = new URLSearchParams(window.location.search);
+    const templateParam = urlParams.get('template');
+    const textParam = urlParams.get('text');
+    
+    if (templateParam && textParam) {
+      const templateMapping = {
+        'tip': { id: 'story-tip', selector: '.story-tip .tip-text', filename: 'story-quick-tip.png' },
+        'poll': { id: 'story-poll', selector: '.story-poll h2', filename: 'story-poll.png' },
+        'newpost': { id: 'story-newpost', selector: '.story-newpost h2', filename: 'story-new-post.png' },
+        'quote': { id: 'story-quote', selector: '.story-quote blockquote', filename: 'story-quote.png' },
+        'thisorthat': { id: 'story-thisorthat', selector: '.story-thisorthat .top-half .choice-text', filename: 'story-this-or-that.png' },
+        'bts': { id: 'story-bts', selector: '.story-bts .caption-area p', filename: 'story-behind-scenes.png' },
+        'reminder': { id: 'story-reminder', selector: '.story-reminder h2', filename: 'story-reminder.png' },
+        'link': { id: 'story-link', selector: '.story-link .description', filename: 'story-link.png' }
+      };
+      
+      const config = templateMapping[templateParam];
+      if (config) {
+        // Decode and set the text
+        const decodedText = decodeURIComponent(textParam);
+        const textElement = document.querySelector(config.selector);
+        if (textElement) {
+          textElement.textContent = decodedText;
+        }
+        
+        // Scroll to the template
+        const templateCard = document.getElementById(config.id).closest('.template-card');
+        if (templateCard) {
+          templateCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          templateCard.style.boxShadow = '0 0 30px rgba(39, 174, 96, 0.8)';
+          templateCard.style.transform = 'scale(1.02)';
+        }
+        
+        // Add export button for this specific template
+        const exportBtn = document.createElement('button');
+        exportBtn.className = 'export-all-btn';
+        exportBtn.style.background = 'linear-gradient(135deg, #9B59B6, #8E44AD)';
+        exportBtn.style.right = '200px';
+        exportBtn.innerHTML = '📥 Export This Story';
+        exportBtn.onclick = () => exportStory(config.id, config.filename);
+        document.body.appendChild(exportBtn);
+        
+        // Show toast
+        setTimeout(() => {
+          alert('✨ Template ready! Edit if needed, then click "Export This Story"');
+        }, 500);
+      }
+    }
   </script>
 </body>
 </html>

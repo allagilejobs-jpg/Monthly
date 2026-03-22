@@ -2253,30 +2253,39 @@ Link in bio → spectrumunlocked.com/resources 💙
     setTimeout(() => toast.classList.remove('show'), 2000);
   }
   
-  // Add copy buttons and create story links to all story sections
-  document.querySelectorAll('.story-section').forEach((section, index) => {
-    // Add "Create Stories" button at the bottom
-    const createBtn = document.createElement('a');
-    createBtn.href = 'story-templates.html';
-    createBtn.className = 'create-stories-btn';
-    createBtn.innerHTML = '📱 Open Story Templates';
-    section.appendChild(createBtn);
-    
-    // Add copy button to each story item
+  // Template type mapping
+  const templateMap = {
+    '💡 Quick Tip': 'tip',
+    '📊 Poll Template': 'poll', 
+    '🔔 New Post Alert': 'newpost',
+    '💬 Quote Template': 'quote',
+    '⚖️ This or That': 'thisorthat',
+    '🎬 Behind the Scenes': 'bts',
+    '💜 Daily Reminder': 'reminder',
+    '🔗 Link/Resource': 'link',
+    '💬 Quote / Affirmation': 'quote'
+  };
+  
+  // Add "Create" button to each story item
+  document.querySelectorAll('.story-section').forEach((section) => {
     section.querySelectorAll('.story-item').forEach(item => {
+      const storyType = item.querySelector('.story-type');
       const storyText = item.querySelector('.story-text');
-      if (storyText) {
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'copy-story-btn';
-        copyBtn.textContent = '📋';
-        copyBtn.title = 'Copy story text';
-        copyBtn.onclick = function(e) {
+      
+      if (storyType && storyText) {
+        const createBtn = document.createElement('button');
+        createBtn.className = 'copy-story-btn';
+        createBtn.textContent = '✨ Create';
+        createBtn.title = 'Create this story';
+        createBtn.style.background = 'rgba(39, 174, 96, 0.5)';
+        createBtn.onclick = function(e) {
           e.stopPropagation();
-          navigator.clipboard.writeText(storyText.textContent.trim()).then(() => {
-            showToast('✓ Story text copied!');
-          });
+          const typeKey = storyType.textContent.trim();
+          const template = templateMap[typeKey] || 'tip';
+          const text = encodeURIComponent(storyText.textContent.trim());
+          window.location.href = `story-templates.html?template=${template}&text=${text}`;
         };
-        item.appendChild(copyBtn);
+        item.appendChild(createBtn);
       }
     });
   });
