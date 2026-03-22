@@ -305,6 +305,41 @@
       line-height: 1.5;
     }
     
+    .story-section .create-stories-btn {
+      display: inline-block;
+      margin-top: 15px;
+      background: rgba(255,255,255,0.2);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: 2px solid rgba(255,255,255,0.3);
+      transition: all 0.2s;
+    }
+    
+    .story-section .create-stories-btn:hover {
+      background: rgba(255,255,255,0.3);
+      border-color: rgba(255,255,255,0.5);
+    }
+    
+    .story-item .copy-story-btn {
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    
+    .story-item .copy-story-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    
     .rest-day {
       background: #1a2a3e;
       border: 2px dashed #2a4a6e;
@@ -2217,6 +2252,34 @@ Link in bio → spectrumunlocked.com/resources 💙
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 2000);
   }
+  
+  // Add copy buttons and create story links to all story sections
+  document.querySelectorAll('.story-section').forEach((section, index) => {
+    // Add "Create Stories" button at the bottom
+    const createBtn = document.createElement('a');
+    createBtn.href = 'story-templates.html';
+    createBtn.className = 'create-stories-btn';
+    createBtn.innerHTML = '📱 Open Story Templates';
+    section.appendChild(createBtn);
+    
+    // Add copy button to each story item
+    section.querySelectorAll('.story-item').forEach(item => {
+      const storyText = item.querySelector('.story-text');
+      if (storyText) {
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-story-btn';
+        copyBtn.textContent = '📋';
+        copyBtn.title = 'Copy story text';
+        copyBtn.onclick = function(e) {
+          e.stopPropagation();
+          navigator.clipboard.writeText(storyText.textContent.trim()).then(() => {
+            showToast('✓ Story text copied!');
+          });
+        };
+        item.appendChild(copyBtn);
+      }
+    });
+  });
   
   // Update nav active state on scroll
   const sections = document.querySelectorAll('.week-header');
