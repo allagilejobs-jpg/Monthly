@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spectrum Unlocked — Template Editor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #4A90A4 0%, #2C5F6E 100%);
+      padding: 30px 20px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+    
+    .header p {
+      opacity: 0.9;
+      font-size: 0.95rem;
+    }
+    
+    .instructions {
+      background: #16213e;
+      padding: 20px;
+      text-align: center;
+      border-bottom: 1px solid #0f3460;
+    }
+    
+    .instructions code {
+      background: #0f3460;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    
+    .templates-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 40px;
+    }
+    
+    .template-card {
+      background: #16213e;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    
+    .template-card h3 {
+      padding: 20px;
+      background: #0f3460;
+      font-size: 1.1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .template-card h3 span {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      font-weight: normal;
+    }
+    
+    .template-preview {
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      background: #1a1a2e;
+    }
+    
+    .template-actions {
+      padding: 15px 20px;
+      display: flex;
+      gap: 10px;
+      border-top: 1px solid #0f3460;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: #4A90A4;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #5ba3b8;
+      transform: translateY(-2px);
+    }
+    
+    .btn-secondary {
+      background: #0f3460;
+      color: #eee;
+    }
+    
+    .btn-secondary:hover {
+      background: #1a4a7a;
+    }
+    
+    /* Editable content styling */
+    [contenteditable] {
+      outline: none;
+      cursor: text;
+      transition: box-shadow 0.2s;
+    }
+    
+    [contenteditable]:hover {
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.3);
+    }
+    
+    [contenteditable]:focus {
+      box-shadow: inset 0 0 0 2px #4A90A4;
+    }
+    
+    /* ========== TEMPLATE STYLES ========== */
+    .post {
+      width: 270px;
+      height: 270px;
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    
+    .story {
+      width: 180px;
+      height: 320px;
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    
+    /* Quote Post */
+    .quote-post {
+      background: linear-gradient(135deg, #4A90A4 0%, #2C5F6E 100%);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      padding: 25px; text-align: center;
+    }
+    .quote-post .quote-mark { font-size: 40px; color: rgba(255,255,255,0.3); font-family: Georgia, serif; line-height: 1; margin-bottom: -10px; }
+    .quote-post .quote-text { font-family: 'Playfair Display', serif; font-size: 16px; color: white; line-height: 1.4; margin-bottom: 15px; }
+    .quote-post .quote-author { font-size: 7px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 2px; }
+    .quote-post .logo { position: absolute; bottom: 15px; font-size: 7px; color: rgba(255,255,255,0.6); }
+    
+    /* Tip Post */
+    .tip-post {
+      background: #FDF6E9;
+      display: flex; flex-direction: column;
+      padding: 25px;
+    }
+    .tip-post .tip-header { background: #4A90A4; color: white; padding: 6px 12px; border-radius: 15px; font-weight: 600; font-size: 7px; text-transform: uppercase; letter-spacing: 1px; align-self: flex-start; margin-bottom: 15px; }
+    .tip-post .tip-title { font-family: 'Playfair Display', serif; font-size: 18px; color: #2C5F6E; line-height: 1.3; margin-bottom: 15px; }
+    .tip-post .tip-content { font-size: 9px; color: #555; line-height: 1.7; flex-grow: 1; }
+    .tip-post .logo { color: #4A90A4; font-size: 7px; font-weight: 600; }
+    
+    /* List Post */
+    .list-post {
+      background: linear-gradient(180deg, #2C5F6E 0%, #1a3a44 100%);
+      padding: 22px; display: flex; flex-direction: column;
+    }
+    .list-post .list-title { font-family: 'Playfair Display', serif; font-size: 15px; color: white; margin-bottom: 18px; line-height: 1.3; }
+    .list-post .list-items { flex-grow: 1; }
+    .list-post .list-item { display: flex; align-items: flex-start; margin-bottom: 9px; }
+    .list-post .list-number { background: #E8B86D; color: #2C5F6E; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 7px; margin-right: 8px; flex-shrink: 0; }
+    .list-post .list-text { color: white; font-size: 8px; line-height: 1.5; padding-top: 2px; }
+    .list-post .logo { color: rgba(255,255,255,0.6); font-size: 7px; margin-top: 10px; }
+    
+    /* Myth Post */
+    .myth-post { display: flex; flex-direction: column; }
+    .myth-post .myth-section { flex: 1; padding: 20px; display: flex; flex-direction: column; justify-content: center; }
+    .myth-post .myth-section.myth { background: #E74C3C; color: white; }
+    .myth-post .myth-section.truth { background: #27AE60; color: white; }
+    .myth-post .section-label { font-size: 7px; text-transform: uppercase; letter-spacing: 3px; opacity: 0.8; margin-bottom: 8px; }
+    .myth-post .section-text { font-family: 'Playfair Display', serif; font-size: 12px; line-height: 1.4; }
+    .myth-post .logo { position: absolute; bottom: 8px; right: 10px; color: rgba(255,255,255,0.7); font-size: 6px; }
+    
+    /* Resource Post */
+    .resource-post {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 25px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+    }
+    .resource-post .free-badge { background: #E8B86D; color: #333; padding: 4px 10px; border-radius: 10px; font-weight: 700; font-size: 6px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px; }
+    .resource-post .resource-title { font-family: 'Playfair Display', serif; font-size: 18px; color: white; line-height: 1.3; margin-bottom: 12px; }
+    .resource-post .resource-list { text-align: left; margin-bottom: 15px; }
+    .resource-post .resource-item { color: rgba(255,255,255,0.9); font-size: 8px; margin-bottom: 5px; display: flex; align-items: center; }
+    .resource-post .check { margin-right: 5px; font-size: 9px; }
+    .resource-post .cta { background: white; color: #764ba2; padding: 8px 18px; border-radius: 15px; font-weight: 600; font-size: 7px; }
+    .resource-post .logo { position: absolute; bottom: 12px; color: rgba(255,255,255,0.6); font-size: 7px; }
+    
+    /* Emotional Post */
+    .emotional-post {
+      background: linear-gradient(180deg, #f8f4f0 0%, #e8e0d8 100%);
+      padding: 25px; display: flex; flex-direction: column; justify-content: center; text-align: center;
+    }
+    .emotional-post .heart { font-size: 25px; margin-bottom: 12px; }
+    .emotional-post .emotional-text { font-family: 'Playfair Display', serif; font-size: 16px; color: #4A5568; line-height: 1.5; margin-bottom: 15px; }
+    .emotional-post .emotional-subtext { font-size: 8px; color: #718096; line-height: 1.7; }
+    .emotional-post .logo { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); color: #4A90A4; font-size: 7px; }
+    
+    /* Carousel Post */
+    .carousel-cover {
+      background: #4A90A4;
+      padding: 25px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+    }
+    .carousel-cover .logo { position: absolute; top: 12px; color: rgba(255,255,255,0.7); font-size: 7px; text-transform: uppercase; letter-spacing: 2px; }
+    .carousel-cover .swipe-hint { background: rgba(255,255,255,0.2); color: white; padding: 4px 8px; border-radius: 8px; font-size: 6px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+    .carousel-cover .carousel-title { font-family: 'Playfair Display', serif; font-size: 19px; color: white; line-height: 1.3; margin-bottom: 15px; }
+    .carousel-cover .carousel-subtitle { font-size: 8px; color: rgba(255,255,255,0.8); line-height: 1.6; }
+    .carousel-cover .dots { position: absolute; bottom: 15px; display: flex; gap: 4px; }
+    .carousel-cover .dot { width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,0.4); }
+    .carousel-cover .dot.active { background: white; }
+    
+    /* Story Template */
+    .story-template {
+      background: linear-gradient(180deg, #4A90A4 0%, #2C5F6E 100%);
+      padding: 20px; display: flex; flex-direction: column; justify-content: center; text-align: center;
+    }
+    .story-template .story-logo { color: rgba(255,255,255,0.7); font-size: 7px; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 2px; }
+    .story-template .story-emoji { font-size: 30px; margin-bottom: 15px; }
+    .story-template .story-title { font-family: 'Playfair Display', serif; font-size: 16px; color: white; line-height: 1.4; margin-bottom: 15px; }
+    .story-template .story-cta { background: white; color: #2C5F6E; padding: 9px 15px; border-radius: 15px; font-weight: 600; font-size: 7px; margin-top: auto; }
+    .story-template .tap-hint { color: rgba(255,255,255,0.5); font-size: 6px; margin-top: 10px; }
+    
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #27AE60;
+      color: white;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-weight: 600;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 1000;
+    }
+    
+    .toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="header">
+    <h1>🎨 Template Editor</h1>
+    <p>Click any text to edit • Download as high-res PNG</p>
+  </div>
+  
+  <div class="instructions">
+    <p>✏️ <strong>Click any text</strong> on the templates to edit it live • Then click <code>Download PNG</code> to save at 1080x1080</p>
+  </div>
+  
+  <div class="container">
+    <div class="templates-grid">
+      
+      <!-- 1. Quote Post -->
+      <div class="template-card">
+        <h3>1. Quote Post <span>1080×1080</span></h3>
+        <div class="template-preview">
+          <div class="post quote-post" id="template-quote">
+            <div class="quote-mark">"</div>
+            <div class="quote-text" contenteditable="true">Grief and love can exist together. You can mourn what you thought would be AND fiercely love your child.</div>
+            <div class="quote-author" contenteditable="true">— A fellow autism parent</div>
+            <div class="logo">spectrumunlocked.com</div>
+          </div>
+        </div>
+        <div class="template-actions">
+          <button class="btn btn-primary" onclick="downloadTemplate('template-quote', '01-quote.png')">Download PNG</button>
+          <button class="btn btn-secondary" onclick="resetTemplate('quote')">Reset</button>
+        </div>
+      </div>
+      
+      <!-- 2. Tip Post -->
+      <div class="template-card">
+        <h3>2. Quick Tip <span>1080×1080</span></h3>
+        <div class="template-preview">
+          <div class="post tip-post" id="template-tip">
+            <div class="tip-header">💡 Quick Tip</div>
+            <div class="tip-title" contenteditable="true">Therapy waitlists can be 6-12 months long</div>
+            <div class="tip-content" contenteditable="true">Get on multiple waitlists NOW — even before you're 100% sure which therapy is right. You can always decline when they call, but you can't get that time back.</div>
+            <div class="logo">spectrumunlocked.com</div>
+          </div>
+        </div>
+        <div class="template-actions">
+          <button class="btn btn-primary" onclick="downloadTemplate('template-tip', '02-tip.png')">Download PNG</button>
+          <button class="btn btn-secondary" onclick="resetTemplate('tip')">Reset</button>
+        </div>
+      </div>
+      
+      <!-- 3. List Post -->
+      <div class="template-card">
+        <h3>3. List Post <span>1080×1080</span></h3>
+        <div class="template-preview">
+          <div class="post list-post" id="template-list">
+            <div class="list-title" contenteditable="true">5 Things I Wish I Knew After the Diagnosis</div>
+            <div class="list-items">
+              <div class="list-item"><div class="list-number">1</div><div class="list-text" contenteditable="true">Therapy waitlists are LONG — get on them NOW</div></div>
+              <div class="list-item"><div class="list-number">2</div><div class="list-text" contenteditable="true">Your pediatrician isn't always the expert — find specialists</div></div>
+              <div class="list-item"><div class="list-number">3</div><div class="list-text" contenteditable="true">IEPs are negotiable — advocate loudly</div></div>
+              <div class="list-item"><div class="list-number">4</div><div class="list-text" contenteditable="true">Other autism parents will become your village</div></div>
+              <div class="list-item"><div class="list-number">5</div><div class="list-text" contenteditable="true">Your child is still the same amazing kid they were yesterday</div></div>
+            </div>
+            <div class="logo">spectrumunlocked.com</div>
+          </div>
+        </div>
+        <div class="template-actions">
+          <button class="btn btn-primary" onclick="downloadTemplate('template-list', '03-list.png')">Download PNG</button>
+          <button class="btn btn-secondary" onclick="resetTemplate('list')">Reset</button>
+        </div>
+      </div>
+      
+      <!-- 4. Myth Buster -->
+      <div class="template-card">
+        <h3>4. Myth Buster <span>1080×1080</span></h3>
+        <div class="template-preview">
+          <div class="post myth-post" id="template-myth">
+            <div class="myth-section myth">
+              <div class="section-label">❌ Myth</div>
+              <div class="section-text" contenteditable="true">"Autism is caused by bad parenting"</div>
+            </div>
+            <div class="myth-section truth">
+              <div class="section-label">✓ Truth</div>
+              <div class="section-text" contenteditable="true">Autism is a neurological difference. It's how your child's brain is wired — not caused by anything you did.</div>
+            </div>
+            <div class="logo">spectrumunlocked.com</div>
+          </div>
+        </div>
+        <div class="template-actions">
+          <button class="btn btn-primary" onclick="downloadTemplate('template-myth', '04-myth.png')">Download PNG</button>
+          <button class="btn btn-secondary" onclick="resetTemplate('myth')">Reset</button>
+        </div>
+      </div>
+      
+      <!-- 5. Resource Promo -->
+      <div class="template-card">
+        <h3>5. Resource Promo <span>1080×1080</span></h3>
+        <div class="template-preview">
+          <div class="post resource-post" id="template-resource">
+            <div class="free-badge">📚 Free Download</div>
+            <div class="resource-title" contenteditable="true">The First 48 Hours Post-Diagnosis</div>
+            <div class="resource-list">
+              <div class="resource-item"><span class="check">✓</span><span contenteditable="true">Emotional processing tips</span></div>
+              <div class="resource-item"><span class="check">✓</span><span contenteditable="true">The 3 most important calls to make</span></div>
+              <div class="resource-item"><span class="check">✓</span><span contenteditable="true">How to talk to your child</span></div>
+              <div class="resource-item"><span class="check">✓</span><span contenteditable="true">What NOT to do</span></div>
+            </div>
+            <div class="cta" contenteditable="true">Link in Bio →</div>
+            <div class="logo">spectrumunlocked.com</div>
+          </div>
+        </div>
+        <div class="template-actions">
+          <button class="btn btn-primary" onclick="downloadTemplate('template-resource', '05-resource.png')">Download PNG</button>
+          <button class="btn btn-secondary" onclick="resetTemplate('resource')">Reset</button>
+        </div>
+      </div>
+      
+      <!-- 6. Emotional Support -->
+      <div class="template-card">
+        <h3>6. Emotional Support <span>1080×1080</span></h3>
+        <div class="template-preview">
+          <div class="post emotional-post" id="template-emotional">
+            <div class="heart">💙</div>
+            <div class="emotional-text" contenteditable="true">You're doing better than you think.</div>
+            <div class="emotional-subtext" contenteditable="true">The fact that you're here, learning, searching for resources — that's love in action. Your child is lucky to have you.</div>
+            <div class="logo">spectrumunlocked.com</div>
+          </div>
+        </div>
+        <div class="template-actions">
+          <button class="btn btn-primary" onclick="downloadTemplate('template-emotional', '06-emotional.png')">Download PNG</button>
+          <button class="btn btn-secondary" onclick="resetTemplate('emotional')">Reset</button>
+        </div>
+      </div>
+      
+      <!-- 7. Carousel Cover -->
+      <div class="template-card">
+        <h3>7. Carousel Cover <span>1080×1080</span></h3>
+        <div class="template-preview">
+          <div class="post carousel-cover" id="template-carousel">
+            <div class="logo">Spectrum Unlocked</div>
+            <div class="swipe-hint">Swipe →</div>
+            <div class="carousel-title" contenteditable="true">Just Got an Autism Diagnosis?</div>
+            <div class="carousel-subtitle" contenteditable="true">Here's what to do THIS WEEK<br>(5 steps that actually help)</div>
+            <div class="dots">
+              <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+            </div>
+          </div>
+        </div>
+        <div class="template-actions">
+          <button class="btn btn-primary" onclick="downloadTemplate('template-carousel', '07-carousel.png')">Download PNG</button>
+          <button class="btn btn-secondary" onclick="resetTemplate('carousel')">Reset</button>
+        </div>
+      </div>
+      
+      <!-- 8. Story -->
+      <div class="template-card">
+        <h3>8. Story Template <span>1080×1920</span></h3>
+        <div class="template-preview">
+          <div class="story story-template" id="template-story">
+            <div class="story-logo">Spectrum Unlocked</div>
+            <div class="story-emoji" contenteditable="true">📚</div>
+            <div class="story-title" contenteditable="true">Free Guide: What to Do in the First 48 Hours</div>
+            <div class="story-cta" contenteditable="true">Tap Link to Download</div>
+            <div class="tap-hint">↑ Tap above ↑</div>
+          </div>
+        </div>
+        <div class="template-actions">
+          <button class="btn btn-primary" onclick="downloadTemplate('template-story', '08-story.png', true)">Download PNG</button>
+          <button class="btn btn-secondary" onclick="resetTemplate('story')">Reset</button>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+  
+  <div class="toast" id="toast">✓ Downloaded!</div>
+  
+  <script>
+    function downloadTemplate(elementId, filename, isStory = false) {
+      const element = document.getElementById(elementId);
+      const scale = isStory ? 6 : 4; // Scale up for high-res output
+      
+      html2canvas(element, {
+        scale: scale,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null
+      }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        
+        // Show toast
+        const toast = document.getElementById('toast');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+      });
+    }
+    
+    // Store original content for reset
+    const originalContent = {};
+    document.querySelectorAll('[contenteditable]').forEach((el, i) => {
+      originalContent[i] = el.innerHTML;
+    });
+    
+    function resetTemplate(type) {
+      location.reload(); // Simple reset - just reload
+    }
+  </script>
+  
+</body>
+</html>
