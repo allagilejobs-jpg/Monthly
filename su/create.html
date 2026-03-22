@@ -161,6 +161,17 @@
       transform: translateY(-3px);
     }
     
+    .btn-both {
+      background: linear-gradient(135deg, #9B59B6, #8E44AD);
+      color: white;
+      flex: 2;
+    }
+    
+    .btn-both:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(155, 89, 182, 0.4);
+    }
+    
     .btn-back {
       background: #2a2a4a;
       color: #aaa;
@@ -335,20 +346,22 @@
       </div>
     </div>
     <div class="actions">
-      <button class="btn btn-download" onclick="downloadGraphic()">📥 Download PNG</button>
-      <button class="btn btn-copy" onclick="copyCaption()">📋 Copy Caption</button>
-      <a href="calendar.html" class="btn btn-back">← Back to Calendar</a>
+      <button class="btn btn-both" onclick="downloadAndCopy()">🚀 Download & Copy — Ready to Post!</button>
+      <a href="calendar.html" class="btn btn-back">← Back</a>
+    </div>
+    <div class="actions" style="padding-top: 0;">
+      <button class="btn btn-download" onclick="downloadGraphic()" style="flex: 1;">📥 PNG Only</button>
+      <button class="btn btn-copy" onclick="copyCaption()" style="flex: 1;">📋 Caption Only</button>
     </div>
   </div>
   
   <div class="instructions">
-    <h3>📱 Next Steps:</h3>
+    <h3>📱 One-Click Workflow:</h3>
     <ol>
-      <li><strong>Download PNG</strong> — saves to your device</li>
-      <li><strong>Copy Caption</strong> — copies to clipboard</li>
+      <li><strong>Click "Download & Copy"</strong> — gets both at once!</li>
       <li><strong>Open Instagram</strong> — create new post</li>
       <li><strong>Select image</strong> — choose the downloaded PNG</li>
-      <li><strong>Paste caption</strong> — long-press → paste</li>
+      <li><strong>Paste caption</strong> — it's already copied!</li>
       <li><strong>Post!</strong> 🎉</li>
     </ol>
   </div>
@@ -968,6 +981,43 @@ function copyCaption() {
     document.execCommand('copy');
     document.body.removeChild(textarea);
     showToast('✓ Caption copied!');
+  });
+}
+
+async function downloadAndCopy() {
+  // Copy caption first
+  const params = new URLSearchParams(window.location.search);
+  const day = parseInt(params.get('day')) || 1;
+  const data = content[day];
+  
+  if (data) {
+    try {
+      await navigator.clipboard.writeText(data.caption);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = data.caption;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+  }
+  
+  // Then download graphic
+  const element = document.getElementById('graphic');
+  if (!element) return;
+  
+  html2canvas(element, {
+    scale: 4,
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: null
+  }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = `spectrum-unlocked-day-${day}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast('✓ Downloaded + Caption Copied! Ready to post!');
   });
 }
 
