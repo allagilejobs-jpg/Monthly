@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-03-21 — Spectrum Unlocked Marketing Page
+
+### Added `/su` directory
+- **su/index.html** — Dashboard showcasing Spectrum Unlocked marketing package
+  - Stats overview (8 templates, 16 blog posts, 8 PDFs, 5 docs)
+  - Social media graphics gallery
+  - Marketing documents list
+  - Site content checklist
+  - Next steps / recommendations
+  
+- **su/graphics/** — 8 social media templates (1080x1080 PNG)
+  - 01-quote.png — Quote post template
+  - 02-tip.png — Quick tip template
+  - 03-list.png — Numbered list template
+  - 04-myth.png — Myth vs Truth template
+  - 05-resource.png — Resource promo template
+  - 06-emotional.png — Emotional support template
+  - 07-carousel.png — Carousel cover template
+  - 08-story.png — Story template (1080x1920)
+
+---
+
 All changes made by Clawdbot on **2026-02-24** (code cleanup session).
 
 ---
