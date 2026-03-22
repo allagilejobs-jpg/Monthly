@@ -110,7 +110,7 @@
       justify-content: center;
     }
     
-    /* ========== ICON POST (Autistic Celebrities) ========== */
+    /* ========== ICON POST (Autistic Celebrities) - Quote Card Style ========== */
     .icon-post {
       width: 280px;
       height: 280px;
@@ -120,6 +120,10 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 25px;
     }
     
     .icon-post .series-badge {
@@ -129,58 +133,53 @@
       background: rgba(255,255,255,0.2);
       padding: 6px 14px;
       border-radius: 20px;
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 700;
       letter-spacing: 1px;
       text-transform: uppercase;
     }
     
-    .icon-post .photo-area {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 50px 20px 10px 20px;
-    }
-    
-    .icon-post .photo-circle {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.15);
-      border: 4px solid rgba(255,255,255,0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 40px;
-    }
-    
-    .icon-post .info-area {
-      background: rgba(0,0,0,0.3);
-      padding: 20px;
-      text-align: center;
-    }
-    
-    .icon-post .person-name {
+    .icon-post .big-quote {
+      position: absolute;
+      top: 35px;
+      left: 18px;
+      font-size: 50px;
+      opacity: 0.25;
       font-family: 'Playfair Display', serif;
-      font-size: 20px;
-      font-weight: 700;
-      margin-bottom: 4px;
     }
     
-    .icon-post .person-title {
-      font-size: 11px;
-      opacity: 0.8;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 10px;
+    .icon-post .field-icon {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      font-size: 24px;
+      opacity: 0.5;
     }
     
     .icon-post .quote {
-      font-size: 11px;
-      font-style: italic;
-      line-height: 1.5;
-      opacity: 0.9;
+      font-family: 'Playfair Display', serif;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 20px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .icon-post .person-name {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      opacity: 0.95;
+    }
+    
+    .icon-post .person-title {
+      font-size: 9px;
+      opacity: 0.7;
+      margin-top: 5px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
     
     .icon-post .logo {
@@ -191,7 +190,7 @@
       opacity: 0.6;
     }
     
-    /* ========== PARENT POST (Celebrity Autism Parents) ========== */
+    /* ========== PARENT POST (Celebrity Autism Parents) - Achievement Style ========== */
     .parent-post {
       width: 280px;
       height: 280px;
@@ -199,76 +198,55 @@
       border-radius: 12px;
       position: relative;
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
+      padding: 20px;
     }
     
     .parent-post .series-badge {
-      position: absolute;
-      top: 15px;
-      left: 15px;
       background: rgba(255,255,255,0.2);
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 10px;
+      padding: 5px 12px;
+      border-radius: 15px;
+      font-size: 8px;
       font-weight: 700;
       letter-spacing: 1px;
       text-transform: uppercase;
-    }
-    
-    .parent-post .photo-area {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 50px 20px 10px 20px;
-    }
-    
-    .parent-post .photo-circle {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.15);
-      border: 4px solid rgba(255,255,255,0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 40px;
-    }
-    
-    .parent-post .heart-badge {
-      position: absolute;
-      bottom: -10px;
-      right: -10px;
-      font-size: 30px;
-    }
-    
-    .parent-post .info-area {
-      background: rgba(0,0,0,0.3);
-      padding: 20px;
-      text-align: center;
+      display: inline-block;
+      margin-bottom: 12px;
     }
     
     .parent-post .person-name {
       font-family: 'Playfair Display', serif;
       font-size: 20px;
       font-weight: 700;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     
     .parent-post .person-title {
-      font-size: 11px;
+      font-size: 9px;
       opacity: 0.8;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
     }
     
-    .parent-post .quote {
-      font-size: 11px;
-      font-style: italic;
-      line-height: 1.5;
-      opacity: 0.9;
+    .parent-post .achievements {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .parent-post .achievement {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.15);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 9px;
+      font-weight: 500;
+      line-height: 1.3;
+    }
+    
+    .parent-post .achievement .check {
+      font-size: 12px;
+      flex-shrink: 0;
     }
     
     .parent-post .logo {
@@ -436,86 +414,140 @@
       overflow: hidden;
     }
     
+    /* Export Icon Post - Quote Card Style */
     .export-post.icon-theme {
       background: linear-gradient(135deg, #4A90A4 0%, #2C5F6E 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 100px;
     }
     
-    .export-post.parent-theme {
-      background: linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%);
-    }
-    
-    .export-post .series-badge {
+    .export-post.icon-theme .series-badge {
       position: absolute;
-      top: 60px;
-      left: 60px;
+      top: 50px;
+      left: 50px;
       background: rgba(255,255,255,0.2);
-      padding: 20px 40px;
-      border-radius: 50px;
-      font-size: 28px;
+      padding: 18px 35px;
+      border-radius: 40px;
+      font-size: 24px;
       font-weight: 700;
-      letter-spacing: 3px;
+      letter-spacing: 2px;
       text-transform: uppercase;
     }
     
-    .export-post .photo-area {
+    .export-post.icon-theme .big-quote {
       position: absolute;
-      top: 180px;
-      left: 50%;
-      transform: translateX(-50%);
+      top: 120px;
+      left: 60px;
+      font-size: 180px;
+      opacity: 0.2;
+      font-family: 'Playfair Display', serif;
     }
     
-    .export-post .photo-circle {
-      width: 320px;
-      height: 320px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.15);
-      border: 12px solid rgba(255,255,255,0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 120px;
-    }
-    
-    .export-post .info-area {
+    .export-post.icon-theme .field-icon {
       position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(0,0,0,0.4);
-      padding: 60px;
-      text-align: center;
+      top: 50px;
+      right: 60px;
+      font-size: 80px;
+      opacity: 0.5;
     }
     
-    .export-post .person-name {
+    .export-post.icon-theme .quote {
+      font-family: 'Playfair Display', serif;
+      font-size: 64px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 60px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .export-post.icon-theme .person-name {
+      font-size: 42px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 6px;
+      opacity: 0.95;
+    }
+    
+    .export-post.icon-theme .person-title {
+      font-size: 26px;
+      opacity: 0.7;
+      margin-top: 15px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+    
+    .export-post.icon-theme .logo {
+      position: absolute;
+      bottom: 35px;
+      right: 50px;
+      font-size: 24px;
+      opacity: 0.6;
+    }
+    
+    /* Export Parent Post - Achievement Style */
+    .export-post.parent-theme {
+      background: linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%);
+      padding: 80px;
+    }
+    
+    .export-post.parent-theme .series-badge {
+      background: rgba(255,255,255,0.2);
+      padding: 18px 35px;
+      border-radius: 40px;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      display: inline-block;
+      margin-bottom: 50px;
+    }
+    
+    .export-post.parent-theme .person-name {
       font-family: 'Playfair Display', serif;
       font-size: 72px;
       font-weight: 700;
       margin-bottom: 15px;
     }
     
-    .export-post .person-title {
+    .export-post.parent-theme .person-title {
       font-size: 32px;
-      opacity: 0.8;
-      text-transform: uppercase;
-      letter-spacing: 4px;
-      margin-bottom: 30px;
+      opacity: 0.85;
+      margin-bottom: 60px;
     }
     
-    .export-post .quote {
+    .export-post.parent-theme .achievements {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+    
+    .export-post.parent-theme .achievement {
+      display: flex;
+      align-items: center;
+      gap: 25px;
+      background: rgba(255,255,255,0.15);
+      padding: 35px 45px;
+      border-radius: 25px;
       font-size: 36px;
-      font-style: italic;
-      line-height: 1.5;
-      opacity: 0.95;
-      max-width: 900px;
-      margin: 0 auto;
+      font-weight: 500;
     }
     
-    .export-post .logo {
+    .export-post.parent-theme .achievement .check {
+      font-size: 45px;
+      flex-shrink: 0;
+    }
+    
+    .export-post.parent-theme .logo {
       position: absolute;
-      bottom: 30px;
-      right: 40px;
+      bottom: 35px;
+      right: 50px;
       font-size: 24px;
-      opacity: 0.7;
+      opacity: 0.6;
     }
   </style>
 </head>
@@ -525,6 +557,7 @@
     <a href="calendar.html">📅 30-Day Calendar</a>
     <a href="create.html">✨ Create Post</a>
     <a href="spotlight-series.html" class="active">⭐ Spotlight Series</a>
+    <a href="spotlight-templates.html">🎨 Visual Templates</a>
     <a href="story-templates.html">📱 Stories</a>
   </nav>
   
@@ -805,6 +838,7 @@ The "weird kid" can grow up to change the world. Never forget that. 🚀💙
         child: 'Son RJ',
         emoji: '💜',
         quote: '"RJ is my greatest teacher."',
+        achievements: ['Founded HollyRod Foundation', 'Raised $10M+ for autism families', 'Multiple books on autism parenting'],
         caption: `💜 AUTISM PARENT SPOTLIGHT: Holly Robinson Peete
 
 When her son RJ was diagnosed with autism at age 3, Holly Robinson Peete did what many of us do: She grieved. Then she fought.
@@ -834,6 +868,7 @@ To every parent early in this journey: You are not alone. 💙
         child: 'Son Diezel',
         emoji: '🎤',
         quote: '"Early intervention changed everything."',
+        achievements: ['Champion of early intervention', 'Broke stigma publicly', 'Shared therapy journey openly'],
         caption: `💜 AUTISM PARENT SPOTLIGHT: Toni Braxton
 
 When Toni Braxton's son Diezel was diagnosed with autism at age 3, she made a decision: She would do EVERYTHING.
@@ -863,6 +898,7 @@ Toni didn't hide her journey. She shared it — and helped millions of families 
         child: 'Son Xen',
         emoji: '✊',
         quote: '"In our community, we don\'t talk about it. I\'m changing that."',
+        achievements: ['Breaking stigma in Black community', 'Pushing for earlier diagnosis', 'Building support networks'],
         caption: `💜 AUTISM PARENT SPOTLIGHT: Tisha Campbell
 
 Tisha Campbell (Martin, My Wife and Kids) isn't just raising an autistic son — she's fighting to change how the Black community sees autism.
@@ -892,6 +928,7 @@ Representation matters. Black autism families need to see themselves too. 💙�
         child: 'Daughter Micah',
         emoji: '🎶',
         quote: '"Micah made me a better man."',
+        achievements: ['Speaks at autism events', 'Advocates for autism dads', 'Uses platform for awareness'],
         caption: `💜 AUTISM PARENT SPOTLIGHT: Shawn Stockman
 
 You know his voice from "End of the Road" and "I'll Make Love to You."
@@ -921,6 +958,7 @@ We don't see enough autism DADS in the spotlight. Shawn is changing that. 💙
         child: 'Son Greyson',
         emoji: '💪',
         quote: '"I share everything — the wins AND the hard days."',
+        achievements: ['Documents therapy journey', 'Shares wins AND struggles', 'Millions reached via social'],
         caption: `💜 AUTISM PARENT SPOTLIGHT: JWoww (Jenni Farley)
 
 She's known for Jersey Shore. But to autism parents, JWoww is known for something bigger: radical honesty.
@@ -950,6 +988,7 @@ You don't have to be perfect. You just have to show up. 💙
         child: 'Son Seargeoh',
         emoji: '🥊',
         quote: '"You can\'t force a child to be what they\'re not."',
+        achievements: ['Spoke openly in the 1980s', 'Supported autism research', 'Early celebrity advocate'],
         caption: `💜 AUTISM PARENT SPOTLIGHT: Sylvester Stallone
 
 Rocky. Rambo. And... one of the first celebrities to openly discuss his child's autism.
@@ -980,6 +1019,7 @@ Sometimes the first voice matters most. 💙
         child: 'Daughter',
         emoji: '👔',
         quote: '"Adaptive clothing means everyone belongs."',
+        achievements: ['Launched Tommy Adaptive', 'Sensory-friendly fabrics', 'Fashion for ALL abilities'],
         caption: `💜 AUTISM PARENT SPOTLIGHT: Tommy Hilfiger
 
 Tommy Hilfiger isn't just a fashion icon — he's a father who turned his daughter's challenges into industry change.
@@ -1013,14 +1053,11 @@ That's what autism parenting does: It makes us see problems others don't — and
           <div class="post-preview">
             <div class="icon-post" id="preview-${data.id}">
               <span class="series-badge">🌟 Spectrum Spotlight</span>
-              <div class="photo-area">
-                <div class="photo-circle">${data.emoji}</div>
-              </div>
-              <div class="info-area">
-                <div class="person-name" contenteditable="true">${data.name}</div>
-                <div class="person-title">${data.title}</div>
-                <div class="quote" contenteditable="true">${data.quote}</div>
-              </div>
+              <span class="big-quote">"</span>
+              <span class="field-icon">${data.emoji}</span>
+              <div class="quote" contenteditable="true">${data.quote}</div>
+              <div class="person-name" contenteditable="true">${data.name}</div>
+              <div class="person-title">${data.title}</div>
               <span class="logo">@spectrum_unlocked</span>
             </div>
           </div>
@@ -1037,6 +1074,10 @@ That's what autism parenting does: It makes us see problems others don't — and
     }
     
     function renderParentCard(data) {
+      const achievementsHtml = data.achievements ? data.achievements.map(a => 
+        `<div class="achievement"><span class="check">✓</span> ${a}</div>`
+      ).join('') : '';
+      
       return `
         <div class="post-card" data-id="${data.id}">
           <div class="card-header">
@@ -1046,13 +1087,10 @@ That's what autism parenting does: It makes us see problems others don't — and
           <div class="post-preview">
             <div class="parent-post" id="preview-${data.id}">
               <span class="series-badge">💜 Autism Parent Spotlight</span>
-              <div class="photo-area">
-                <div class="photo-circle">${data.emoji}<span class="heart-badge">💜</span></div>
-              </div>
-              <div class="info-area">
-                <div class="person-name" contenteditable="true">${data.name}</div>
-                <div class="person-title">${data.title} • ${data.child}</div>
-                <div class="quote" contenteditable="true">${data.quote}</div>
+              <div class="person-name" contenteditable="true">${data.name}</div>
+              <div class="person-title">${data.title} • ${data.child}</div>
+              <div class="achievements">
+                ${achievementsHtml}
               </div>
               <span class="logo">@spectrum_unlocked</span>
             </div>
@@ -1083,25 +1121,43 @@ That's what autism parenting does: It makes us see problems others don't — and
       const preview = document.getElementById('preview-' + id);
       const data = type === 'icon' ? icons.find(i => i.id === id) : parents.find(p => p.id === id);
       
-      // Create export version
       const exportContainer = document.getElementById('export-container');
       const themeClass = type === 'icon' ? 'icon-theme' : 'parent-theme';
       const badge = type === 'icon' ? '🌟 Spectrum Spotlight' : '💜 Autism Parent Spotlight';
       
-      exportContainer.innerHTML = `
-        <div class="export-post ${themeClass}" id="export-temp">
-          <span class="series-badge">${badge}</span>
-          <div class="photo-area">
-            <div class="photo-circle">${data.emoji}</div>
-          </div>
-          <div class="info-area">
-            <div class="person-name">${preview.querySelector('.person-name').textContent}</div>
-            <div class="person-title">${data.title}${data.child ? ' • ' + data.child : ''}</div>
+      let exportHtml = '';
+      
+      if (type === 'icon') {
+        // Quote Card style for Icons
+        exportHtml = `
+          <div class="export-post ${themeClass}" id="export-temp">
+            <span class="series-badge">${badge}</span>
+            <span class="big-quote">"</span>
+            <span class="field-icon">${data.emoji}</span>
             <div class="quote">${preview.querySelector('.quote').textContent}</div>
+            <div class="person-name">${preview.querySelector('.person-name').textContent}</div>
+            <div class="person-title">${data.title}</div>
+            <span class="logo">@spectrum_unlocked</span>
           </div>
-          <span class="logo">@spectrum_unlocked</span>
-        </div>
-      `;
+        `;
+      } else {
+        // Achievement style for Parents
+        const achievementsHtml = data.achievements ? data.achievements.map(a => 
+          `<div class="achievement"><span class="check">✓</span> ${a}</div>`
+        ).join('') : '';
+        
+        exportHtml = `
+          <div class="export-post ${themeClass}" id="export-temp">
+            <span class="series-badge">${badge}</span>
+            <div class="person-name">${preview.querySelector('.person-name').textContent}</div>
+            <div class="person-title">${data.title} • ${data.child}</div>
+            <div class="achievements">${achievementsHtml}</div>
+            <span class="logo">@spectrum_unlocked</span>
+          </div>
+        `;
+      }
+      
+      exportContainer.innerHTML = exportHtml;
       
       const exportEl = document.getElementById('export-temp');
       exportEl.style.position = 'absolute';
