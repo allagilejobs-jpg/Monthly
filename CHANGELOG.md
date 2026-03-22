@@ -1,5 +1,39 @@
 # Changelog
 
+## 2026-03-22 — Spectrum Spotlight Series
+
+### Added `/su/spotlight-series.html` — 8-Week Celebrity Autism Series
+Complete content package featuring famous autistic people and celebrity autism parents.
+
+**🌟 Icons on the Spectrum (7 posts):**
+- Temple Grandin — Scientist & Autism Advocate
+- Anthony Hopkins — Oscar-winning Actor
+- Greta Thunberg — Climate Activist
+- Bella Ramsey — Actor (The Last of Us)
+- Dan Aykroyd — Comedian/Actor (Ghostbusters)
+- Sia — Grammy-winning Singer
+- Elon Musk — Entrepreneur
+
+**💜 Autism Parents in the Spotlight (7 posts):**
+- Holly Robinson Peete — Son RJ
+- Toni Braxton — Son Diezel
+- Tisha Campbell — Son Xen
+- Shawn Stockman (Boyz II Men) — Daughter Micah
+- JWoww (Jenni Farley) — Son Greyson
+- Sylvester Stallone — Son Seargeoh
+- Tommy Hilfiger — Daughter
+
+**Features:**
+- Editable post templates (1080x1080)
+- Full captions with researched quotes and hashtags
+- Download & copy functionality
+- 8-week posting schedule included
+- Two distinct designs (blue for icons, purple for parents)
+
+*Updated: 2026-03-22 15:45 EST by Clawdbot*
+
+---
+
 ## 2026-03-22 — Story Templates & Calendar Update
 
 ### Added `/su/story-templates.html` — 8 Instagram Story Templates
