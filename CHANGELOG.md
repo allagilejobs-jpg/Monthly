@@ -2,6 +2,12 @@
 
 ## 2026-03-21 — Spectrum Unlocked Marketing Page
 
+### Added `/su/editor.html` — Interactive Template Editor
+- Live in-browser editing (click any text to change it)
+- Download as 1080x1080 PNG with one click
+- Uses html2canvas for client-side rendering
+- All 8 templates editable
+
 ### Added `/su` directory
 - **su/index.html** — Dashboard showcasing Spectrum Unlocked marketing package
   - Stats overview (8 templates, 16 blog posts, 8 PDFs, 5 docs)
