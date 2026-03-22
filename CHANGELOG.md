@@ -1,5 +1,48 @@
 # Changelog
 
+## 2026-03-22 — Story Templates & Calendar Update
+
+### Added `/su/story-templates.html` — 8 Instagram Story Templates
+- **1080x1920px** (9:16 ratio) — perfect for IG/TikTok stories
+- All templates editable in-browser with contenteditable
+- Export all as PNG with one click
+- Templates included:
+  - 💡 Quick Tip — actionable advice
+  - 📊 Poll/Question — engagement builders
+  - 🔔 New Post Alert — drive traffic to feed
+  - 💬 Quote/Affirmation — emotional connection
+  - ⚖️ This or That — fun engagement polls
+  - 🎬 Behind the Scenes — authenticity (add your own photos)
+  - 💜 Daily Reminder — encouragement
+  - 🔗 Link/Resource — promote downloads
+
+### Added Story Graphics
+- `su/graphics/story-quick-tip.png`
+- `su/graphics/story-poll.png`
+- `su/graphics/story-new-post.png`
+- `su/graphics/story-quote.png`
+- `su/graphics/story-this-or-that.png`
+- `su/graphics/story-behind-scenes.png`
+- `su/graphics/story-reminder.png`
+- `su/graphics/story-link.png`
+
+### Updated `/su/calendar.html` — 30-Day Content Calendar
+- Added **story section** to all 30 days
+- Each day now has 3-5 story ideas with:
+  - Timing (AM/Noon/PM)
+  - Template type to use
+  - Specific content/copy
+- Story content complements main feed posts
+- Added story legend indicator (purple)
+
+### Updated Navigation
+- All SU pages now include Stories link in nav
+- Updated index.html with new nav structure
+
+*Updated: 2026-03-22 00:05 EST by Clawdbot*
+
+---
+
 ## 2026-03-21 — Spectrum Unlocked Marketing Page
 
 ### Added `/su/editor.html` — Interactive Template Editor
