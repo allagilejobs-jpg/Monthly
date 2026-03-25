@@ -16,10 +16,12 @@
       overflow: hidden;
     }
     
-    /* Background decorative shapes */
-    .bg-shape { position: absolute; border-radius: 50%; opacity: 0.08; }
-    .bg-shape-1 { width: 500px; height: 500px; background: #4A90A4; top: -150px; right: -150px; }
-    .bg-shape-2 { width: 400px; height: 400px; background: #E8B86D; bottom: 500px; left: -150px; }
+    /* SYMMETRICAL background shapes */
+    .bg-shape { position: absolute; border-radius: 50%; opacity: 0.06; }
+    .bg-shape-1 { width: 450px; height: 450px; background: #4A90A4; top: -120px; right: -120px; }
+    .bg-shape-2 { width: 450px; height: 450px; background: #4A90A4; bottom: -120px; left: -120px; }
+    .bg-shape-3 { width: 350px; height: 350px; background: #E8B86D; top: 50%; left: -100px; transform: translateY(-50%); }
+    .bg-shape-4 { width: 350px; height: 350px; background: #E8B86D; top: 50%; right: -100px; transform: translateY(-50%); }
     
     /* Main content container - TRUE CENTER */
     .content {
@@ -104,6 +106,8 @@
 <body>
   <div class="bg-shape bg-shape-1"></div>
   <div class="bg-shape bg-shape-2"></div>
+  <div class="bg-shape bg-shape-3"></div>
+  <div class="bg-shape bg-shape-4"></div>
   
   <div class="content">
     <div class="subtitle">✨ SENSORY HACK ✨</div>
