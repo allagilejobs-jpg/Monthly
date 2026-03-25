@@ -282,3 +282,35 @@ Each vendor/store option in the Groceries dashboard is now clickable and has its
 - Back buttons correctly return to the source view
 
 *Updated: 2026-03-03 19:10 EST by Clawdbot*
+
+---
+
+## 2026-03-25 — Sensory Hacks Batch + Cron Automation
+
+### Added `/su/sensory-hacks/` — 10 Sensory Hack Templates
+Complete batch of Tuesday Tips sensory hack posts:
+1. 🎧 Headphones — Noise buffer strategy
+2. 🛏️ Weighted Blanket — Deep pressure input
+3. 🕶️ Sunglasses Indoors — Light sensitivity
+4. 🌀 Fidget Rotation — Keep fidgets effective
+5. ⏱️ Transition Countdown — Visual timers
+6. 🏕️ Calm Corner — Regulation station
+7. 🎒 Sensory Go-Bag — Be prepared
+8. 🤗 Compression Clothing — Wearable hugs
+9. 🌊 White Noise — Sound masking
+10. 🍬 Oral Sensory Input — Chewing is calming
+
+Each hack has HTML template + exported PNG (1080x1920 story format).
+
+### Added Cron Jobs for Content Automation
+- **SU Weekly Content Brainstorm** — Sundays @ 8 PM
+- **SU Daily Posting Reminder** — Every day @ 9 AM  
+- **SU Content Research** — Wednesdays @ 12 PM
+
+All cron jobs auto-push to GitHub after saving files.
+
+### Added Folders
+- `su/weekly-ideas/` — Weekly brainstorm outputs
+- `su/research/` — Content research outputs
+
+*Updated: 2026-03-25 06:50 EST by Clawdbot*
