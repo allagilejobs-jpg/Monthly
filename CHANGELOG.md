@@ -1,5 +1,38 @@
 # Changelog
 
+## 2026-03-25 — 60-Day Content Calendar + Carousels
+
+### Added 60-Day Content Calendar (`su/content-calendar-60day.md`)
+Complete content plan from March 26 - May 24, 2026 with platform indicators.
+
+**📅 Three Phases:**
+- **Phase 1 (Mar 26-31):** Pre-April Build-Up — Trending topics, myth-busters
+- **Phase 2 (Apr 1-30):** Autism Acceptance Month — Full daily content, WAAD hero
+- **Phase 3 (May 1-24):** Post-April Momentum — Summer prep, continued growth
+
+**🎨 Ready-to-Post Carousels Created:**
+1. **Day 1:** "3 Things TikTok Gets WRONG About Autism" (5 slides)
+2. **Day 2:** "Acceptance vs. Awareness — Why Language Matters" (5 slides)
+3. **Day 3:** "Glass Child Syndrome" (6 slides)
+4. **Day 8:** "World Autism Acceptance Day" HERO content (6 slides)
+
+**📱 Platform-Specific Content:**
+- Each carousel has TikTok captions (3-5 hashtags)
+- Each carousel has Instagram captions (10-15 hashtags)
+- Clear indicators: 📱 TikTok / 📸 Instagram / 🔄 Both
+
+**Files Added:**
+- `su/content-calendar-60day.md` — Full 60-day calendar
+- `su/content/index.html` — Content hub with preview grid
+- `su/content/day-01-tiktok-myths/` — 5 HTML templates + 5 PNGs + captions
+- `su/content/day-02-acceptance-vs-awareness/` — 5 HTML templates + 5 PNGs + captions
+- `su/content/day-03-glass-child/` — 6 HTML templates + 6 PNGs + captions
+- `su/content/day-08-waad/` — 6 HTML templates + 6 PNGs + captions
+
+**Commits:** c3850ab, d4c54f6
+
+---
+
 ## 2026-03-22 — Spectrum Spotlight Series
 
 ### Added `/su/spotlight-series.html` — 8-Week Celebrity Autism Series
