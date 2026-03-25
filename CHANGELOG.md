@@ -314,3 +314,35 @@ All cron jobs auto-push to GitHub after saving files.
 - `su/research/` — Content research outputs
 
 *Updated: 2026-03-25 06:50 EST by Clawdbot*
+
+---
+
+## 2026-03-25 — Navigation & Guides Update
+
+### Added `/su/guides.html` — Comprehensive How-To Guide
+Full documentation with context and explanations:
+- 🗺️ Content Overview — links to all sections
+- 📐 Instagram Sizes — 2026 best practices
+- 🔄 Posting Workflow — daily routine
+- 🎨 Using Templates — editor walkthrough
+- 🧠 Sensory Hacks — series explanation
+- ⭐ Spotlight Series — icons + parents
+- 📱 Story Templates — all 8 formats
+- 🤖 Automation — cron job details
+
+### Added `/su/sensory-hacks/index.html`
+Browseable gallery of all 10 sensory hacks with:
+- Preview images
+- Download PNG links
+- Edit Template links
+- Descriptions
+
+### Added Placeholder Pages
+- `su/weekly-ideas/index.html` — for Sunday cron outputs
+- `su/research/index.html` — for Wednesday cron outputs
+
+### Updated Navigation (All Pages)
+New nav bar across all SU pages:
+🏠 Dashboard | 📁 Content | 📅 Calendar | ✨ Create | 🎨 Editor | 🧠 Sensory | ⭐ Spotlight | 📱 Stories | 📖 Guides
+
+*Commit: fed4ccc — 2026-03-25 06:53 EST by Clawdbot*
