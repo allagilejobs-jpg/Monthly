@@ -261,14 +261,45 @@
       box-shadow: inset 0 0 0 2px #4A90A4;
     }
     
+    /* ========== SIZE SELECTOR ========== */
+    .size-selector {
+      margin-bottom: 15px;
+    }
+    .size-selector select {
+      background: #0f3460;
+      color: #eee;
+      border: 1px solid #4A90A4;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 12px;
+      width: 100%;
+      cursor: pointer;
+    }
+    .size-selector label {
+      font-size: 11px;
+      color: #E8B86D;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+      display: block;
+    }
+    
     /* ========== TEMPLATE STYLES ========== */
     .post {
       width: 200px;
-      height: 200px;
+      height: 200px; /* Default square, JS will adjust */
       position: relative;
       overflow: hidden;
       flex-shrink: 0;
+      transition: height 0.3s ease;
     }
+    
+    /* Size variations */
+    .post.size-portrait { height: 250px; } /* 4:5 ratio */
+    .post.size-tall { height: 267px; } /* 3:4 ratio */
+    .post.size-square { height: 200px; } /* 1:1 ratio */
+    .post.size-landscape { height: 105px; } /* 1.91:1 ratio */
     
     .story {
       width: 135px;
@@ -709,9 +740,41 @@ Just:
   <div class="toast" id="toast">✓ Copied!</div>
   
   <script>
+    // Instagram Size Presets 2026
+    const SIZES = {
+      portrait: { name: 'Portrait (4:5)', w: 1080, h: 1350, pw: 200, ph: 250 },
+      tall: { name: 'Tall (3:4)', w: 1080, h: 1440, pw: 200, ph: 267 },
+      square: { name: 'Square (1:1)', w: 1080, h: 1080, pw: 200, ph: 200 },
+      landscape: { name: 'Landscape', w: 1080, h: 566, pw: 200, ph: 105 },
+      story: { name: 'Story/Reel (9:16)', w: 1080, h: 1920, pw: 135, ph: 240 }
+    };
+    
+    // Track selected size per template
+    const templateSizes = {};
+    
+    function setTemplateSize(elementId, sizeKey) {
+      const element = document.getElementById(elementId);
+      if (!element) return;
+      
+      templateSizes[elementId] = sizeKey;
+      const size = SIZES[sizeKey];
+      
+      // Remove old size classes
+      element.classList.remove('size-portrait', 'size-tall', 'size-square', 'size-landscape');
+      element.classList.add('size-' + sizeKey);
+      
+      // Update dimensions
+      element.style.width = size.pw + 'px';
+      element.style.height = size.ph + 'px';
+    }
+    
     function downloadTemplate(elementId, filename, isStory = false) {
       const element = document.getElementById(elementId);
-      const scale = isStory ? 8 : 5.4; // Scale to get 1080px output
+      const sizeKey = templateSizes[elementId] || (isStory ? 'story' : 'portrait');
+      const size = SIZES[sizeKey];
+      
+      // Calculate scale to get target width (1080px)
+      const scale = size.w / element.offsetWidth;
       
       html2canvas(element, {
         scale: scale,
@@ -720,10 +783,13 @@ Just:
         backgroundColor: null
       }).then(canvas => {
         const link = document.createElement('a');
-        link.download = filename;
+        // Add size to filename
+        const parts = filename.split('.');
+        const newFilename = parts[0] + '-' + size.w + 'x' + size.h + '.' + parts[1];
+        link.download = newFilename;
         link.href = canvas.toDataURL('image/png');
         link.click();
-        showToast('✓ Downloaded!');
+        showToast('✓ Downloaded ' + size.w + '×' + size.h + '!');
       });
     }
     
@@ -751,6 +817,35 @@ Just:
       toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 2000);
     }
+    
+    // Add size selectors to all post templates on load
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('.template-card').forEach(card => {
+        const preview = card.querySelector('.template-preview');
+        const postEl = card.querySelector('.post');
+        if (!postEl || !preview) return;
+        
+        const templateId = postEl.id;
+        
+        // Create size selector
+        const selector = document.createElement('div');
+        selector.className = 'size-selector';
+        selector.innerHTML = \`
+          <label>📐 Export Size</label>
+          <select onchange="setTemplateSize('\${templateId}', this.value)">
+            <option value="portrait">Portrait — 1080×1350 (4:5) ⭐</option>
+            <option value="tall">Tall — 1080×1440 (3:4) ⭐</option>
+            <option value="square">Square — 1080×1080 (1:1)</option>
+            <option value="landscape">Landscape — 1080×566</option>
+          </select>
+        \`;
+        
+        preview.insertBefore(selector, preview.firstChild);
+        
+        // Set default to portrait
+        setTemplateSize(templateId, 'portrait');
+      });
+    });
   </script>
   
 </body>
