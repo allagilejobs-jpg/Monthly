@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-03-26 — Dashboard Update
+
+**Commit:** `4ebadc8`
+
+### Added 60-Day Calendar Links to Dashboard (`su/index.html`)
+- Added "📆 60-Day" link to main nav (alongside existing 30-Day)
+- Added 60-Day Content Calendar card to Marketing Documents section with link
+
+---
+
 ## 2026-03-25 — 60-Day Content Calendar + Carousels
 
 ### Added 60-Day Content Calendar (`su/content-calendar-60day.md`)
