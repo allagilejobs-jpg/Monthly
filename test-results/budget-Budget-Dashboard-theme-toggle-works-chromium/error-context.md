@@ -1,0 +1,264 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - heading "Monthly Budget Dashboard" [level=1] [ref=e5]
+        - paragraph [ref=e6]: Plan, track and manage your monthly budget
+      - generic [ref=e7]:
+        - button "Sign In" [ref=e9] [cursor=pointer]
+        - button "☼" [ref=e10] [cursor=pointer]
+        - link "← Groceries" [ref=e11] [cursor=pointer]:
+          - /url: ../Groceries/
+        - link "Expenses →" [ref=e12] [cursor=pointer]:
+          - /url: ../Expenses/
+    - generic [ref=e13]:
+      - button "Setup" [ref=e14] [cursor=pointer]
+      - button "Monthly Tracker" [ref=e15] [cursor=pointer]
+      - button "Bank Accounts" [ref=e16] [cursor=pointer]
+      - button "Annual Overview" [ref=e17] [cursor=pointer]
+      - button "Trends" [ref=e18] [cursor=pointer]
+      - button "Net Worth" [ref=e19] [cursor=pointer]
+      - button "? Help" [ref=e20] [cursor=pointer]
+    - generic [ref=e21]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - generic [ref=e24]: Budget Configuration
+          - generic [ref=e25]:
+            - button "🗃 Upload Statements" [ref=e26] [cursor=pointer]
+            - button "Import Excel" [ref=e27] [cursor=pointer]
+            - button "Export Excel" [ref=e28] [cursor=pointer]
+        - generic [ref=e29]:
+          - generic [ref=e30]:
+            - text: Year
+            - spinbutton [ref=e31]: "2026"
+          - generic [ref=e32]:
+            - text: Starting Month
+            - combobox [ref=e33]:
+              - option "January" [selected]
+              - option "February"
+              - option "March"
+              - option "April"
+              - option "May"
+              - option "June"
+              - option "July"
+              - option "August"
+              - option "September"
+              - option "October"
+              - option "November"
+              - option "December"
+      - generic [ref=e34]:
+        - generic [ref=e36]:
+          - generic [ref=e37]: Standard Monthly Budget
+          - generic [ref=e38]:
+            - generic [ref=e39]: Group
+            - generic [ref=e40]: Expense
+            - generic [ref=e41]: Amount
+          - generic [ref=e42]:
+            - generic [ref=e43]: Household
+            - generic [ref=e44]:
+              - generic [ref=e45]: Household
+              - textbox [ref=e46]: Rent
+              - spinbutton [ref=e47]: "0"
+            - generic [ref=e48]:
+              - generic [ref=e49]: Household
+              - textbox [ref=e50]: Internet
+              - spinbutton [ref=e51]: "0"
+            - generic [ref=e52]:
+              - generic [ref=e53]: Household
+              - textbox [ref=e54]: Utilities
+              - spinbutton [ref=e55]: "0"
+            - generic [ref=e56]:
+              - generic [ref=e57]: Household
+              - textbox [ref=e58]: Phone
+              - spinbutton [ref=e59]: "0"
+            - generic [ref=e60]: Food
+            - generic [ref=e61]:
+              - generic [ref=e62]: Food
+              - textbox [ref=e63]: Groceries
+              - spinbutton [ref=e64]: "0"
+            - generic [ref=e65]:
+              - generic [ref=e66]: Food
+              - textbox [ref=e67]: Restaurants
+              - spinbutton [ref=e68]: "0"
+            - generic [ref=e69]:
+              - generic [ref=e70]: Food
+              - textbox [ref=e71]: Coffee Shops
+              - spinbutton [ref=e72]: "0"
+            - generic [ref=e73]: Transportation
+            - generic [ref=e74]:
+              - generic [ref=e75]: Transportation
+              - textbox [ref=e76]: Public Transportation
+              - spinbutton [ref=e77]: "0"
+            - generic [ref=e78]:
+              - generic [ref=e79]: Transportation
+              - textbox [ref=e80]: Taxi Services
+              - spinbutton [ref=e81]: "0"
+            - generic [ref=e82]: Health
+            - generic [ref=e83]:
+              - generic [ref=e84]: Health
+              - textbox [ref=e85]: Massage Therapist
+              - spinbutton [ref=e86]: "0"
+            - generic [ref=e87]:
+              - generic [ref=e88]: Health
+              - textbox [ref=e89]: Dentist
+              - spinbutton [ref=e90]: "0"
+            - generic [ref=e91]: Personal
+            - generic [ref=e92]:
+              - generic [ref=e93]: Personal
+              - textbox [ref=e94]: Personal Care
+              - spinbutton [ref=e95]: "0"
+            - generic [ref=e96]:
+              - generic [ref=e97]: Personal
+              - textbox [ref=e98]: Gifts / Donations
+              - spinbutton [ref=e99]: "0"
+            - generic [ref=e100]:
+              - generic [ref=e101]: Personal
+              - textbox [ref=e102]: Clothing
+              - spinbutton [ref=e103]: "0"
+            - generic [ref=e104]:
+              - generic [ref=e105]: Personal
+              - textbox [ref=e106]: Travel
+              - spinbutton [ref=e107]: "0"
+            - generic [ref=e108]:
+              - generic [ref=e109]: Personal
+              - textbox [ref=e110]: Subscriptions
+              - spinbutton [ref=e111]: "0"
+            - generic [ref=e112]:
+              - generic [ref=e113]: Personal
+              - textbox [ref=e114]: Fitness
+              - spinbutton [ref=e115]: "0"
+            - generic [ref=e116]:
+              - generic [ref=e117]: Personal
+              - textbox [ref=e118]: Other
+              - spinbutton [ref=e119]: "0"
+          - button "Show Extra Rows" [ref=e120] [cursor=pointer]
+          - generic [ref=e121]:
+            - generic [ref=e122]: Monthly Expenses Total
+            - generic [ref=e123]: $0.00
+          - generic [ref=e124]:
+            - generic [ref=e125]: Annual Expenses Total
+            - generic [ref=e126]: $0.00
+        - generic [ref=e127]:
+          - generic [ref=e128]:
+            - generic [ref=e129]: Income Sources
+            - generic [ref=e130]:
+              - generic [ref=e131]:
+                - textbox [ref=e132]: Salary
+                - spinbutton [ref=e133]: "0"
+              - generic [ref=e134]:
+                - textbox [ref=e135]: Income Source 1
+                - spinbutton [ref=e136]: "0"
+              - generic [ref=e137]:
+                - textbox [ref=e138]: Income Source 2
+                - spinbutton [ref=e139]: "0"
+              - generic [ref=e140]:
+                - textbox [ref=e141]: Income Source 3
+                - spinbutton [ref=e142]: "0"
+              - generic [ref=e143]:
+                - textbox [ref=e144]: Income Source 4
+                - spinbutton [ref=e145]: "0"
+            - generic [ref=e146]:
+              - generic [ref=e147]: Monthly Income
+              - generic [ref=e148]: $0.00
+            - generic [ref=e149]:
+              - generic [ref=e150]: Annual Income
+              - generic [ref=e151]: $0.00
+          - generic [ref=e152]:
+            - generic [ref=e153]: Saving, Investing & Debt Payments
+            - generic [ref=e154]:
+              - generic [ref=e155]:
+                - textbox [ref=e156]: Emergency Fund
+                - spinbutton [ref=e157]: "0"
+              - generic [ref=e158]:
+                - textbox [ref=e159]: Investment Account
+                - spinbutton [ref=e160]: "0"
+              - generic [ref=e161]:
+                - textbox [ref=e162]: Debt Payment
+                - spinbutton [ref=e163]: "0"
+              - generic [ref=e164]:
+                - textbox [ref=e165]: Extra Account 1
+                - spinbutton [ref=e166]: "0"
+              - generic [ref=e167]:
+                - textbox [ref=e168]: Extra Account 2
+                - spinbutton [ref=e169]: "0"
+              - generic [ref=e170]:
+                - textbox [ref=e171]: Extra Account 3
+                - spinbutton [ref=e172]: "0"
+              - generic [ref=e173]:
+                - textbox [ref=e174]: Extra Account 4
+                - spinbutton [ref=e175]: "0"
+            - generic [ref=e176]:
+              - generic [ref=e177]: Monthly Savings
+              - generic [ref=e178]: $0.00
+          - generic [ref=e179]:
+            - generic [ref=e180]: Big Expenses (Annual)
+            - generic [ref=e181]:
+              - generic [ref=e182]:
+                - textbox [ref=e183]: "Big Expense #1"
+                - spinbutton [ref=e184]: "0"
+              - generic [ref=e185]:
+                - textbox [ref=e186]: "Big Expense #2"
+                - spinbutton [ref=e187]: "0"
+              - generic [ref=e188]:
+                - textbox [ref=e189]: "Big Expense #3"
+                - spinbutton [ref=e190]: "0"
+              - generic [ref=e191]:
+                - textbox [ref=e192]: "Big Expense #4"
+                - spinbutton [ref=e193]: "0"
+              - generic [ref=e194]:
+                - textbox [ref=e195]: "Big Expense #5"
+                - spinbutton [ref=e196]: "0"
+            - generic [ref=e197]:
+              - generic [ref=e198]: Annual Big Expenses
+              - generic [ref=e199]: $0.00
+          - generic [ref=e200]:
+            - generic [ref=e201]: Monthly Summary
+            - generic [ref=e202]:
+              - generic [ref=e203]: Income
+              - generic [ref=e204]: $0.00
+            - generic [ref=e205]:
+              - generic [ref=e206]: "- Expenses"
+              - generic [ref=e207]: $0.00
+            - generic [ref=e208]:
+              - generic [ref=e209]: "- Savings"
+              - generic [ref=e210]: $0.00
+            - generic [ref=e211]:
+              - generic [ref=e212]: Monthly Leftover
+              - generic [ref=e213]: $0.00
+            - generic [ref=e214]:
+              - generic [ref=e215]: Annual Leftover
+              - generic [ref=e216]: $0.00
+    - text: ▴ ▴ ▴ ▴ ▴ ▴
+  - generic [ref=e217]:
+    - text: Family Finance Dashboards
+    - link "Groceries" [ref=e218] [cursor=pointer]:
+      - /url: https://allagilejobs-jpg.github.io/Monthly/Groceries/
+    - text: •
+    - link "All Expenses" [ref=e219] [cursor=pointer]:
+      - /url: https://allagilejobs-jpg.github.io/Monthly/Expenses/
+    - text: •
+    - link "Scanner" [ref=e220] [cursor=pointer]:
+      - /url: https://allagilejobs-jpg.github.io/Monthly/Scanner/
+    - text: •
+    - link "Budget" [ref=e221] [cursor=pointer]:
+      - /url: https://allagilejobs-jpg.github.io/Monthly/Budget/
+    - text: •
+    - link "Home" [ref=e222] [cursor=pointer]:
+      - /url: https://allagilejobs-jpg.github.io/Monthly/
+  - generic [ref=e224]:
+    - generic [ref=e225]: 🔒
+    - generic [ref=e226]: Sign In Required
+    - generic [ref=e227]: Sign in to access your dashboard and sync data across devices, or try the demo to explore with sample data.
+    - generic [ref=e228]:
+      - button "Sign in with Google" [ref=e229] [cursor=pointer]:
+        - img [ref=e230]
+        - text: Sign in with Google
+      - generic [ref=e237]: or
+      - button "Sign In with Email" [ref=e239] [cursor=pointer]
+      - button "Try Demo" [ref=e240] [cursor=pointer]
+      - link "Back to Home" [ref=e241] [cursor=pointer]:
+        - /url: ../
+```

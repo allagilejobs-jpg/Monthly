@@ -1,0 +1,38 @@
+{
+  "name": "monthly",
+  "version": "1.0.0",
+  "description": "A suite of four browser-based personal finance tools for tracking groceries, expenses, budgets, and net worth. No backend, no subscriptions — runs entirely in the browser with data stored locally.",
+  "main": "demo-data.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "npx playwright test",
+    "test:landing": "npx playwright test landing",
+    "test:groceries": "npx playwright test groceries",
+    "test:expenses": "npx playwright test expenses",
+    "test:budget": "npx playwright test budget",
+    "test:scanner": "npx playwright test scanner",
+    "test:integration": "npx playwright test integration",
+    "test:headed": "npx playwright test --headed",
+    "test:debug": "npx playwright test --debug",
+    "test:report": "npx playwright show-report",
+    "serve": "npx http-server . -p 8080 -c-1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/allagilejobs-jpg/Monthly.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/allagilejobs-jpg/Monthly/issues"
+  },
+  "homepage": "https://github.com/allagilejobs-jpg/Monthly#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "http-server": "^14.1.1",
+    "playwright": "^1.58.2"
+  }
+}

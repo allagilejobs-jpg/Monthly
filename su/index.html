@@ -8,6 +8,11 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
+    html, body {
+      width: 100%;
+      overflow-x: hidden;
+    }
+    
     body {
       font-family: 'Poppins', sans-serif;
       background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
@@ -49,6 +54,10 @@
       color: white;
       padding: 80px 20px;
       text-align: center;
+      width: 100vw;
+      margin-left: calc(-50vw + 50%);
+      position: relative;
+      left: 0;
     }
     
     .hero h1 {
