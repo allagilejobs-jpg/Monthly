@@ -2,7 +2,7 @@
 
 ## 2026-05-06 — SU Content Research
 
-**Commit:** `f624f12`
+**Commit:** `bd17764`
 
 ### Added Weekly Content Research (`su/research/2026-05-06.md`)
 - Researched May autism parenting trends, including caregiver well-being, PDA/school refusal, AAC/apraxia, and accessibility.
