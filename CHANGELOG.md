@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-05-06 — SU Content Research
+
+**Commit:** `f624f12`
+
+### Added Weekly Content Research (`su/research/2026-05-06.md`)
+- Researched May autism parenting trends, including caregiver well-being, PDA/school refusal, AAC/apraxia, and accessibility.
+- Added upcoming May/June awareness dates for SU content planning.
+- Captured fresh content angles, content gaps, hashtags, and source notes.
+
+**Files Affected:**
+- `su/research/2026-05-06.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-03-26 — Dashboard Update
 
 **Commit:** `4ebadc8`
