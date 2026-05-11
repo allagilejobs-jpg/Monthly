@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-05-10 — SU Weekly Content Ideas
+
+**Commit:** `acb5911`
+
+### Added Weekly Instagram Content Brainstorm (`su/weekly-ideas/2026-05-10.md`)
+- Generated 7 fresh Spectrum Unlocked Instagram post ideas for the week of May 11-17, 2026.
+- Included 2 educational, 2 emotional/relatable, 2 engagement, and 1 timely/trending concept.
+- Checked `su/calendar.html` to avoid repeating existing calendar topics.
+- Highlighted top 3 recommended ideas: after-school crash plan, Mother’s Day hangover, and end-of-school-year transition survival kit.
+
+**Files Affected:**
+- `su/weekly-ideas/2026-05-10.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-05-06 — SU Content Research
 
 **Commit:** `bd17764`
