@@ -2,7 +2,7 @@
 
 ## 2026-05-13 - SU Content Research
 
-**Commit:** `pending`
+**Commit:** `b3ee20b`
 
 ### Added Weekly Content Research (`su/research/2026-05-13.md`)
 - Researched current Spectrum Unlocked content opportunities around communication access, apraxia/AAC, feeding challenges, PDA/school refusal, and GAAD accessibility content.
