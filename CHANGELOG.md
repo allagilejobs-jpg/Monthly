@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-05-13 - SU Content Research
+
+**Commit:** `pending`
+
+### Added Weekly Content Research (`su/research/2026-05-13.md`)
+- Researched current Spectrum Unlocked content opportunities around communication access, apraxia/AAC, feeding challenges, PDA/school refusal, and GAAD accessibility content.
+- Added upcoming May and June awareness dates for autism parenting content planning.
+- Captured content gaps, fresh post angles, platform notes, and hashtag sets for Instagram and TikTok.
+
+**Files Affected:**
+- `su/research/2026-05-13.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-05-10 — SU Weekly Content Ideas
 
 **Commit:** `acb5911`
