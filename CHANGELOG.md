@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-06-28 — SU Weekly Content Ideas
+
+**Commit:** `pending`
+
+### Added Weekly Instagram Content Brainstorm (`su/weekly-ideas/2026-06-28.md`)
+- Generated 7 fresh Spectrum Unlocked Instagram post ideas for the week of June 29 - July 5, 2026.
+- Included 2 educational, 2 emotional/relatable, 2 engagement, and 1 timely/trending concept.
+- Checked `su/calendar.html` to avoid repeating existing 30-day calendar topics.
+- Highlighted top 3 recommended ideas: Disability Pride Month, elopement safety, and public meltdown support.
+
+**Files Affected:**
+- `su/weekly-ideas/2026-06-28.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-05-13 - SU Content Research
 
 **Commit:** `b3ee20b`
