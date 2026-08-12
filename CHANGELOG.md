@@ -2,7 +2,7 @@
 
 ## 2026-08-12 - SU Content Research
 
-**Commit:** `bf21f19`
+**Commit:** `7245e10`
 
 ### Added Weekly Content Research (`su/research/2026-08-12.md`)
 - Researched current Spectrum Unlocked content opportunities around back-to-school discipline, accommodation gaps, after-school restraint collapse, sensory self-advocacy, and school re-entry plans.
