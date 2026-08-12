@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-08-12 - SU Content Research
+
+**Commit:** `bf21f19`
+
+### Added Weekly Content Research (`su/research/2026-08-12.md`)
+- Researched current Spectrum Unlocked content opportunities around back-to-school discipline, accommodation gaps, after-school restraint collapse, sensory self-advocacy, and school re-entry plans.
+- Added upcoming August, September, and October awareness dates for autism parenting content planning.
+- Captured content gaps, fresh post angles, recommended 7-day sprint ideas, hashtags, and source notes.
+
+**Files Affected:**
+- `su/research/2026-08-12.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-08-09 — SU Weekly Content Ideas
 
 **Commit:** `a98b730`
