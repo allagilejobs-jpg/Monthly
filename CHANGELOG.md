@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-08-30 - SU Weekly Content Ideas
+
+**Commit:** `pending`
+
+### Added Weekly Instagram Content Brainstorm (`su/weekly-ideas/2026-08-30.md`)
+- Generated 7 fresh Spectrum Unlocked Instagram post ideas for the week of August 31 - September 6, 2026.
+- Included 2 educational, 2 emotional/relatable, 2 engagement, and 1 timely/trending concept.
+- Checked `su/calendar.html` to avoid repeating existing calendar topics around diagnosis, IEP basics, sensory worksheets, apps, myth-busting, and broad encouragement.
+- Highlighted top 3 recommended ideas: after-school buffer, backpack note, and after-school reset story engagement.
+
+**Files Affected:**
+- `su/weekly-ideas/2026-08-30.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-08-12 - SU Content Research
 
 **Commit:** `7245e10`
