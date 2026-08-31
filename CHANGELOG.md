@@ -2,7 +2,7 @@
 
 ## 2026-08-30 - SU Weekly Content Ideas
 
-**Commit:** `pending`
+**Commit:** `4476a78`
 
 ### Added Weekly Instagram Content Brainstorm (`su/weekly-ideas/2026-08-30.md`)
 - Generated 7 fresh Spectrum Unlocked Instagram post ideas for the week of August 31 - September 6, 2026.
