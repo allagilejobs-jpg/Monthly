@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-09-06 - SU Weekly Content Ideas
+
+**Commit:** `pending`
+
+### Added Weekly Instagram Content Brainstorm (`su/weekly-ideas/2026-09-06.md`)
+- Generated 7 fresh Spectrum Unlocked Instagram post ideas for the week of September 7 - September 13, 2026.
+- Included 2 educational, 2 emotional/relatable, 2 engagement, and 1 timely Grandparents Day concept.
+- Checked `su/calendar.html` to avoid repeating existing calendar topics around diagnosis, IEP basics, sensory worksheets, apps, myth-busting, visual schedules, and general encouragement.
+- Highlighted top 3 recommended ideas: school refusal reframing, hard mornings validation, and Grandparents Day family support.
+
+**Files Affected:**
+- `su/weekly-ideas/2026-09-06.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-08-30 - SU Weekly Content Ideas
 
 **Commit:** `4476a78`
