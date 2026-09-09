@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-09-09 - SU Content Research
+
+**Commit:** `pending`
+
+### Added Weekly Content Research (`su/research/2026-09-09.md`)
+- Researched current Spectrum Unlocked content opportunities around back-to-school sensory tools, fidget restrictions, disability sharenting, AI/screen boundaries, and school inclusion.
+- Added upcoming September and October awareness dates for autism parenting content planning.
+- Captured competitor gaps, fresh post angles, recommended hashtags, and a Telegram summary draft.
+
+**Files Affected:**
+- `su/research/2026-09-09.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-09-06 - SU Weekly Content Ideas
 
 **Commit:** `d5b3b97`
