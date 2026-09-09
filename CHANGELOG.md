@@ -2,7 +2,7 @@
 
 ## 2026-09-09 - SU Content Research
 
-**Commit:** `pending`
+**Commit:** `88a1777`
 
 ### Added Weekly Content Research (`su/research/2026-09-09.md`)
 - Researched current Spectrum Unlocked content opportunities around back-to-school sensory tools, fidget restrictions, disability sharenting, AI/screen boundaries, and school inclusion.
