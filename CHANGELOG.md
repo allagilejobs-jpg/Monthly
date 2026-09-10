@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-09-10 - ATL Events Preview SEO Enhancements
+
+**Commit:** `6b4ce93`
+
+### Enhanced ATL Events Preview SEO (`atlevents-preview/`)
+- Added visible breadcrumbs and BreadcrumbList schema to preserved public routes and gallery detail pages.
+- Added page-specific FAQ sections and FAQPage schema across service, package, gallery, testimonial, contact, and SEO landing pages.
+- Added richer social metadata, favicons, root-relative internal links, image loading hints, service schema, contact page schema, and preview-safe noindex protection.
+- Preserved production canonical URLs so content can change without changing the Google-facing URL structure.
+
+**Files Affected:**
+- `atlevents-preview/`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-09-09 - SU Content Research
 
 **Commit:** `88a1777`
