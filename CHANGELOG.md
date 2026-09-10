@@ -546,3 +546,15 @@ New nav bar across all SU pages:
 🏠 Dashboard | 📁 Content | 📅 Calendar | ✨ Create | 🎨 Editor | 🧠 Sensory | ⭐ Spotlight | 📱 Stories | 📖 Guides
 
 *Commit: fed4ccc — 2026-03-25 06:53 EST by Clawdbot*
+## 2026-09-10 08:39 EDT — ATL Events Rebuild Preview
+
+### Added `/atlevents-preview/`
+- Hosted first mobile-first SEO rebuild preview for ATL Events on GitHub Pages.
+- Preserved current ATL Events URL structure in the preview: `/about_us`, `/services`, `/gallery`, `/kindwords`, `/contact`, `/weddingpackage`, and existing `/gallery/{id}` portfolio URLs.
+- Added SEO landing pages for Atlanta wedding planner, multicultural wedding planner Atlanta, day-of wedding coordinator Atlanta, corporate event planner Atlanta, wedding packages, and FAQ.
+- Added preview-safe `noindex,nofollow` meta tags so the GitHub Pages test copy does not compete with the live domain.
+- Included sitemap, robots file, real ATL Events assets, mobile screenshots, and SEO rebuild notes.
+
+**Files affected:** `atlevents-preview/`
+
+*Commit: pending — 2026-09-10 08:39 EDT by Meadz*
