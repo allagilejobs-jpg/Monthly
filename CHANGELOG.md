@@ -2,7 +2,7 @@
 
 ## 2026-09-10 - ATL Events Preview SEO Enhancements
 
-**Commit:** `6b4ce93`
+**Commit:** `b76c886`
 
 ### Enhanced ATL Events Preview SEO (`atlevents-preview/`)
 - Added visible breadcrumbs and BreadcrumbList schema to preserved public routes and gallery detail pages.
