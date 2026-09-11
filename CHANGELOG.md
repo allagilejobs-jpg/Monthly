@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-09-11 - ATL Events Wedding Gallery Expansion
+
+**Commit:** `pending`
+
+### Expanded ATL Events Preview Galleries (`atlevents-preview/`)
+- Added optimized, verified wedding image sets to the preserved gallery detail URLs.
+- Generated 174 web-ready JPEG images from the sorted ATL Events image library.
+- Rebuilt the main gallery page so each card links to a richer couple-specific gallery with image counts.
+- Added responsive photo-grid styling, explicit image dimensions, and ImageGallery structured data.
+- Kept gallery 16 in a safe pending state because the original PHP-extension references were empty files, not usable images.
+- Preserved preview `noindex,nofollow` metadata and preview-safe `/Monthly/atlevents-preview/` internal links.
+
+**Files Affected:**
+- `atlevents-preview/assets/gallery/weddings/`
+- `atlevents-preview/gallery.html`
+- `atlevents-preview/gallery/`
+- `atlevents-preview/css/site.css`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-09-10 - ATL Events Preview SEO Enhancements
 
 **Commit:** `b76c886`

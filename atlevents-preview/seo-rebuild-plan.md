@@ -6,12 +6,16 @@
 - Unique page titles and meta descriptions.
 - Canonical URL on every page.
 - Open Graph image/title/description on every page.
-- Local business/service structured data.
-- FAQ structured data on the FAQ page.
+- Open Graph URL, site name, Twitter card title/description/image, and favicon metadata.
+- Local business, service, contact page, FAQ, and breadcrumb structured data.
+- Visible breadcrumbs on preserved internal pages and gallery detail pages.
+- Page-specific FAQ blocks across services, packages, about, contact, gallery, testimonials, and topical landing pages.
 - XML sitemap and robots file.
 - Descriptive internal links between topical pages.
+- Root-relative internal links so nested preserved URLs do not create accidental broken paths.
 - Real event photography near relevant text.
 - Descriptive alt text for every key image.
+- Image loading/decoding hints for better performance behavior.
 - No meta keywords because Google does not use them.
 
 ## Initial Keyword Cluster
@@ -61,10 +65,10 @@
 - `/gallery/16`
 
 ## Next SEO Work
-- Convert every existing gallery/client record into an individual portfolio page.
-- Add image width/height values after final image optimization.
-- Compress hero/gallery images to WebP and keep original fallbacks.
-- Add testimonials/review schema if reviews can be represented accurately.
+- Finish image review for gallery 16 once real non-PHP/non-empty source files are found.
+- Consider a second pass to create WebP or AVIF alternates for the expanded galleries after production hosting is chosen.
+- Add testimonials/review schema only if reviews can be represented accurately and consistently with visible testimonials.
 - Add location/service-area content only where ATL Events genuinely serves.
 - Replace static mailto form with a secure backend form and spam protection.
 - Set up Search Console and submit sitemap after deployment.
+- Test structured data in Google's Rich Results Test before production launch.
