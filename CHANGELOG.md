@@ -2,7 +2,7 @@
 
 ## 2026-09-11 - ATL Events Wedding Gallery Expansion
 
-**Commit:** `pending`
+**Commit:** `f03b4ee`
 
 ### Expanded ATL Events Preview Galleries (`atlevents-preview/`)
 - Added optimized, verified wedding image sets to the preserved gallery detail URLs.
