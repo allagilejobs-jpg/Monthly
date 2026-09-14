@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-09-13 - SU Weekly Content Ideas
+
+**Commit:** `ccf8424`
+
+### Added Weekly Instagram Content Brainstorm (`su/weekly-ideas/2026-09-13.md`)
+- Generated 7 fresh Spectrum Unlocked Instagram post ideas for the week of September 14 - September 20, 2026.
+- Included 2 educational, 2 emotional/relatable, 2 engagement, and 1 timely Hispanic Heritage Month concept.
+- Checked `su/calendar.html` and recent weekly idea files to avoid repeating existing diagnosis, IEP basics, sensory worksheet, therapy comparison, autism apps, after-school collapse, school refusal, Grandparents Day, and broad back-to-school topics.
+- Highlighted top 3 recommended ideas: empty school folder communication, invisible cost of being "fine" at school, and bilingual autism advocacy for Hispanic Heritage Month.
+
+**Files Affected:**
+- `su/weekly-ideas/2026-09-13.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-09-11 - ATL Events Wedding Gallery Expansion
 
 **Commit:** `f03b4ee`
