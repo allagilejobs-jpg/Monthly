@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-09-27 - SU Weekly Content Ideas
+
+**Commit:** `pending`
+
+### Added Weekly Instagram Content Brainstorm (`su/weekly-ideas/2026-09-27.md`)
+- Generated 7 fresh Spectrum Unlocked Instagram post ideas for the week of September 28 - October 4, 2026.
+- Included 2 educational, 2 emotional/relatable, 2 engagement, and 1 timely ADHD Awareness Month concept.
+- Checked `su/calendar.html` and recent weekly idea files to avoid repeating existing diagnosis, IEP basics, sensory worksheet, therapy comparison, autism apps, school app overload, after-school reset, and National Daughters Day angles.
+- Highlighted top 3 recommended ideas: autism plus ADHD support plans, ADHD Awareness Month compassion reframe, and ordinary errands parent validation.
+
+**Files Affected:**
+- `su/weekly-ideas/2026-09-27.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-09-13 - SU Weekly Content Ideas
 
 **Commit:** `3c79215`
