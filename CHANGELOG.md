@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-04 - SU Weekly Content Ideas
+
+**Commit:** `58f6696`
+
+### Added Weekly Instagram Content Brainstorm (`su/weekly-ideas/2026-10-04.md`)
+- Generated 7 fresh Spectrum Unlocked Instagram post ideas for the week of October 5 - October 11, 2026.
+- Included 2 educational, 2 emotional/relatable, 2 engagement, and 1 timely World Mental Health Day concept.
+- Checked `su/calendar.html` and recent weekly idea files to avoid repeating existing diagnosis, IEP basics, sensory worksheet, autism apps, meltdown/tantrum framing, ADHD Awareness Month concepts, ordinary errands grief, interoception, sleep basics, and elopement safety.
+- Highlighted top 3 recommended ideas: fire drill supports, World Mental Health Day caregiver support, and replacing "use your words" with accessible communication prompts.
+
+**Files Affected:**
+- `su/weekly-ideas/2026-10-04.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-09-27 - SU Weekly Content Ideas
 
 **Commit:** `1633eb9`
