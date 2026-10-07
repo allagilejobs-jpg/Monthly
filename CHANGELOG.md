@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-07 - SU Content Research
+
+**Commit:** `pending`
+
+### Added Weekly Spectrum Unlocked Research (`su/research/2026-10-07.md`)
+- Researched current autism parenting trends, hashtags, awareness dates, competitor signals, content gaps, and evergreen angles.
+- Identified sensory-friendly Halloween as the top immediate content lane, with AAC, dyslexia, ADHD, OT, and special education uncertainty as supporting October themes.
+- Added recommended next posts, SU tool-fit notes, and hot hashtag sets for seasonal, awareness, school, and sensory content.
+
+**Files Affected:**
+- `su/research/2026-10-07.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-10-04 - SU Weekly Content Ideas
 
 **Commit:** `2aaa70b`
