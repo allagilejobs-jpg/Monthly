@@ -2,7 +2,7 @@
 
 ## 2026-10-07 - SU Content Research
 
-**Commit:** `pending`
+**Commit:** `a0bece8`
 
 ### Added Weekly Spectrum Unlocked Research (`su/research/2026-10-07.md`)
 - Researched current autism parenting trends, hashtags, awareness dates, competitor signals, content gaps, and evergreen angles.
