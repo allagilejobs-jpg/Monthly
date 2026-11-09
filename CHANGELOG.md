@@ -658,3 +658,11 @@ New nav bar across all SU pages:
 **Files affected:** `atlevents-preview/`
 
 *Commit: 6535902 — 2026-09-10 08:39 EDT by Meadz*
+
+
+## 2026-11-08 20:00 EST - Weekly Spectrum Unlocked brainstorm
+
+- Added seven original post ideas for November 9-15, with the requested 2 educational, 2 emotional, 2 engagement, and 1 timely mix.
+- Reviewed `su/calendar.html` to avoid repeats and verified the November 13 World Kindness Day anchor.
+- Files affected: `su/weekly-ideas/2026-11-08.md`, `CHANGELOG.md`.
+- Commit reference: parent `3e77c23`; this entry is included in the commit titled `Weekly content ideas 2026-11-08` (run `git log --oneline --grep="Weekly content ideas 2026-11-08"` for its generated hash).
