@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-11 12:00 ET - SU Content Research
+
+**Commit:** See `git log -- su/research/2026-11-11.md` for this entry's commit hash (self-reference avoided).
+
+- Added source-linked November 11 research: Thanksgiving access planning, awareness dates, competitor/local content gaps, evergreen IEP/therapy/sensory angles, and qualified hashtag suggestions.
+- Distinguished seasonal publishing signals from unverified social virality and checked primary SU artifacts without modifying them.
+
+**Files affected:** `su/research/2026-11-11.md`, `CHANGELOG.md`.
+
+---
+
 ## 2026-10-07 - SU Content Research
 
 **Commit:** `a0bece8`
