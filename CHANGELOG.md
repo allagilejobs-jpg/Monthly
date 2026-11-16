@@ -677,3 +677,11 @@ New nav bar across all SU pages:
 - Reviewed `su/calendar.html` to avoid repeats and verified the November 13 World Kindness Day anchor.
 - Files affected: `su/weekly-ideas/2026-11-08.md`, `CHANGELOG.md`.
 - Commit reference: parent `3e77c23`; this entry is included in the commit titled `Weekly content ideas 2026-11-08` (run `git log --oneline --grep="Weekly content ideas 2026-11-08"` for its generated hash).
+
+
+## 2026-11-15 20:00 EST - Weekly Spectrum Unlocked brainstorm
+
+- Added seven fresh ideas for November 16-22: two educational, two emotional, two engagement, and one timely.
+- Reviewed the calendar and prior week; verified November 20 World Children's Day with UNICEF and the UN.
+- Files affected: `su/weekly-ideas/2026-11-15.md`, `CHANGELOG.md`.
+- Commit reference: parent `d311b0b`; included in `Weekly content ideas 2026-11-15` (retrieve generated hash with `git log --oneline --grep="Weekly content ideas 2026-11-15"`).
